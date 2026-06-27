@@ -35,58 +35,57 @@ export function TokenSelect({ value, onChange, options, label }: TokenSelectProp
 
   return (
     <div ref={ref} className="relative">
-      {label && (
-        <label className="mb-2 block text-sm font-medium text-slate-600">
-          {label}
-        </label>
-      )}
+      {label && <label className="mv-label">{label}</label>}
       <button
         type="button"
+        data-open={open}
         onClick={() => setOpen((o) => !o)}
-        className={clsx(
-          "flex w-full items-center justify-between gap-2 rounded-2xl border bg-white px-4 py-3 text-left shadow-sm transition-all",
-          open
-            ? "border-blue-300 ring-4 ring-blue-100"
-            : "border-slate-200 hover:border-blue-200",
-        )}
+        className="mv-dropdown-trigger"
       >
-        <div>
-          <p className="text-sm font-semibold text-slate-900">{selected?.label}</p>
+        <span className="flex h-7 w-7 items-center justify-center border border-[var(--border-strong)] bg-[var(--surface-solid)] text-[10px] font-bold text-[var(--primary)]">
+          {selected?.label.slice(0, 3)}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-[var(--foreground)]">{selected?.label}</p>
           {selected?.sublabel && (
-            <p className="text-xs text-slate-500">{selected.sublabel}</p>
+            <p className="text-[11px] text-[var(--muted)]">{selected.sublabel}</p>
           )}
         </div>
-        <motion.div animate={{ rotate: open ? 180 : 0 }}>
-          <ChevronDown className="h-4 w-4 text-slate-400" />
+        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.15 }}>
+          <ChevronDown className="h-4 w-4 text-[var(--muted)]" />
         </motion.div>
       </button>
 
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -6 }}
+            initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
+            exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="absolute z-50 mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-1 shadow-lg"
+            className="mv-dropdown-menu"
           >
-            {options.map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => {
-                  onChange(opt.id);
-                  setOpen(false);
-                }}
-                className={clsx(
-                  "flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm",
-                  opt.id === value ? "bg-blue-50 font-semibold text-blue-700" : "hover:bg-slate-50",
-                )}
-              >
-                {opt.label}
-                {opt.id === value && <Check className="h-3.5 w-3.5" />}
-              </button>
-            ))}
+            <div className="p-1">
+              {options.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.id);
+                    setOpen(false);
+                  }}
+                  className={clsx(
+                    "flex w-full items-center justify-between px-2.5 py-2 text-left text-sm",
+                    opt.id === value
+                      ? "bg-[var(--primary-soft)] font-medium text-[var(--primary)]"
+                      : "text-[var(--foreground)] hover:bg-[rgba(255,255,255,0.6)]",
+                  )}
+                >
+                  <span>{opt.label}</span>
+                  {opt.id === value && <Check className="h-3.5 w-3.5" />}
+                </button>
+              ))}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

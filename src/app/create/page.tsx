@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Panel } from "@/components/ui/Panel";
 import { createSeedPhrase } from "@/lib/wallet/mnemonic";
 import { deriveAllAddresses } from "@/lib/wallet/derive-all";
 import { deriveEvmWallet } from "@/lib/wallet/evm";
@@ -100,12 +102,12 @@ export default function CreateWalletPage() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-12 sm:px-6">
-      <a href="/" className="text-sm font-medium text-slate-500 hover:text-blue-600">
+      <a href="/" className="text-sm font-medium text-[var(--muted)] hover:text-[var(--primary)]">
         ← Back to home
       </a>
 
-      <h1 className="mt-8 text-3xl font-bold text-slate-900">Create a new wallet</h1>
-      <p className="mt-3 text-slate-500">
+      <h1 className="mt-8 text-2xl font-semibold text-[var(--foreground)]">Create a new wallet</h1>
+      <p className="mt-3 text-[var(--muted)]">
         Your seed phrase is generated in your browser and encrypted locally.
         It is never sent to our servers.
       </p>
@@ -116,7 +118,7 @@ export default function CreateWalletPage() {
         </div>
       ) : !confirmed ? (
         <div className="mt-10 space-y-6">
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <div className="mv-alert-warn">
             <div className="flex items-start gap-3">
               <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
               <p>
@@ -126,17 +128,17 @@ export default function CreateWalletPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-3">
+          <Panel className="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3">
             {words.map((word, index) => (
               <div
                 key={word + index}
-                className="rounded-xl bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-800"
+                className="border border-[var(--border)] bg-[var(--surface-solid)] px-3 py-2 text-sm font-medium text-[var(--foreground)]"
               >
-                <span className="mr-2 text-slate-400">{index + 1}.</span>
+                <span className="mr-2 text-[var(--muted)]">{index + 1}.</span>
                 {word}
               </div>
             ))}
-          </div>
+          </Panel>
 
           <Button
             variant="secondary"
@@ -151,22 +153,21 @@ export default function CreateWalletPage() {
           </Button>
         </div>
       ) : (
-        <div className="mt-10 space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <label className="block text-sm font-medium text-slate-700">
-            Create a password to encrypt your wallet on this device
+        <Panel className="mt-10 space-y-4 p-5">
+          <label className="mv-label">
+            Encryption password
           </label>
-          <input
+          <Input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Minimum 8 characters"
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
           />
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="mv-alert-error">{error}</p>}
           <Button size="lg" onClick={handleFinish} disabled={loading}>
             {loading ? "Securing wallet..." : "Create wallet"}
           </Button>
-        </div>
+        </Panel>
       )}
     </main>
   );

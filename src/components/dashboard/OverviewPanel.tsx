@@ -70,10 +70,10 @@ export function OverviewPanel({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-4">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border)] pb-4">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Portfolio overview</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-xl font-semibold text-[var(--foreground)]">Portfolio overview</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">
             Balances, addresses, and capabilities across all supported networks.
           </p>
         </div>
@@ -83,7 +83,7 @@ export function OverviewPanel({
               key={tab}
               type="button"
               onClick={() => onNavigate(tab)}
-              className="border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+              className="border border-[var(--border-strong)] bg-[var(--surface-solid)] px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-[var(--muted)] transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
             >
               {tab}
             </button>
@@ -91,26 +91,26 @@ export function OverviewPanel({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-px border border-slate-200 bg-slate-200 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-px border border-[var(--border)] bg-[var(--border)] lg:grid-cols-4">
         {[
           { label: "Connected assets", value: String(stats.connected) },
           { label: "Non-zero balances", value: String(stats.withBalance) },
           { label: "Custody mode", value: stats.mode },
           { label: "Wallet source", value: stats.type },
         ].map((item) => (
-          <div key={item.label} className="bg-white px-4 py-3">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+          <div key={item.label} className="bg-[var(--surface)] px-4 py-3 backdrop-blur-md">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--muted)]">
               {item.label}
             </p>
-            <p className="mt-1 text-sm font-semibold text-slate-900">{item.value}</p>
+            <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">{item.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="border border-slate-200 bg-white">
-        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-          <h2 className="text-sm font-semibold text-slate-900">Asset registry</h2>
-          <span className="text-xs text-slate-500">
+      <div className="mv-panel">
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">Asset registry</h2>
+          <span className="text-xs text-[var(--muted)]">
             {loading ? "Refreshing balances…" : "Live mainnet balances"}
           </span>
         </div>
@@ -118,7 +118,7 @@ export function OverviewPanel({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[880px] text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-medium uppercase tracking-wider text-slate-500">
+              <tr className="border-b border-[var(--border)] bg-[var(--surface-solid)] text-[11px] font-medium uppercase tracking-wider text-[var(--muted)]">
                 <th className="px-4 py-2.5">Asset</th>
                 <th className="px-4 py-2.5">Network</th>
                 <th className="px-4 py-2.5 text-right">Balance</th>
@@ -143,7 +143,7 @@ export function OverviewPanel({
                 return (
                   <tr
                     key={chain.id}
-                    className="border-b border-slate-100 last:border-0 hover:bg-slate-50/80"
+                    className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-hover)]"
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -232,9 +232,9 @@ export function OverviewPanel({
         </div>
       </div>
 
-      <div className="grid gap-px border border-slate-200 bg-slate-200 lg:grid-cols-2">
-        <section className="bg-white px-4 py-3">
-          <h3 className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+      <div className="grid gap-px border border-[var(--border)] bg-[var(--border)] lg:grid-cols-2">
+        <section className="bg-[var(--surface)] px-4 py-3 backdrop-blur-md">
+          <h3 className="text-[11px] font-medium uppercase tracking-wider text-[var(--muted)]">
             Session
           </h3>
           <dl className="mt-2 space-y-1.5 text-sm">
@@ -253,8 +253,8 @@ export function OverviewPanel({
           </dl>
         </section>
 
-        <section className="bg-white px-4 py-3">
-          <h3 className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+        <section className="bg-[var(--surface)] px-4 py-3 backdrop-blur-md">
+          <h3 className="text-[11px] font-medium uppercase tracking-wider text-[var(--muted)]">
             Primary addresses
           </h3>
           <dl className="mt-2 space-y-2 text-xs">

@@ -15,18 +15,18 @@ export function Button({
   return (
     <button
       className={clsx(
-        "inline-flex items-center justify-center font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50",
-        size === "sm" && "rounded-lg px-3 py-2 text-xs",
-        size === "md" && "rounded-xl px-5 py-3 text-sm",
-        size === "lg" && "rounded-xl px-6 py-3.5 text-base",
+        "inline-flex items-center justify-center font-medium transition disabled:cursor-not-allowed disabled:opacity-50",
+        size === "sm" && "px-3 py-1.5 text-xs",
+        size === "md" && "px-4 py-2.5 text-sm",
+        size === "lg" && "px-5 py-3 text-sm",
         variant === "primary" &&
-          "bg-blue-600 text-white shadow-md shadow-blue-600/20 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/25 active:scale-[0.98]",
+          "border border-[var(--primary)] bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]",
         variant === "secondary" &&
-          "border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700",
+          "border border-[var(--border-strong)] bg-[var(--surface-solid)] text-[var(--foreground)] hover:bg-[var(--surface-hover)]",
         variant === "outline" &&
-          "border border-blue-200 bg-blue-50/50 text-blue-700 hover:bg-blue-50",
+          "border border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)] hover:bg-[rgba(47,111,237,0.18)]",
         variant === "ghost" &&
-          "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+          "border border-transparent text-[var(--muted)] hover:border-[var(--border)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]",
         className,
       )}
       {...props}

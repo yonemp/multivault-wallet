@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
+import { Panel } from "@/components/ui/Panel";
 import { Input } from "@/components/ui/Input";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { ActionTabs, DashboardTab } from "@/components/dashboard/ActionTabs";
@@ -124,7 +124,7 @@ export default function DashboardPage() {
         </main>
       ) : (
         <div className="min-h-screen">
-          <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+          <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--surface)] backdrop-blur-md">
             <div className="mx-auto flex w-full max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
               <Logo href="/" compact />
 
@@ -149,9 +149,9 @@ export default function DashboardPage() {
           <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6">
             {session.mode === "local" && !unlocked ? (
               <div className="mx-auto max-w-md">
-                <Card className="shadow-lg shadow-blue-100/50">
-                  <h1 className="text-2xl font-bold text-slate-900">Unlock wallet</h1>
-                  <p className="mt-2 text-sm text-slate-500">
+                <Panel className="p-6">
+                  <h1 className="text-xl font-semibold text-[var(--foreground)]">Unlock wallet</h1>
+                  <p className="mt-2 text-sm text-[var(--muted)]">
                     Access all 7 chains secured on this device.
                   </p>
                   <div className="mt-6 space-y-4">
@@ -163,15 +163,13 @@ export default function DashboardPage() {
                       onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
                     />
                     {error && (
-                      <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-                        {error}
-                      </p>
+                      <p className="mv-alert-error">{error}</p>
                     )}
                     <Button className="w-full" size="lg" onClick={handleUnlock}>
                       Unlock wallet
                     </Button>
                   </div>
-                </Card>
+                </Panel>
               </div>
             ) : (
               <div>

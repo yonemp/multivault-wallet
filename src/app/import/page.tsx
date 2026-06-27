@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Panel } from "@/components/ui/Panel";
 import { isValidSeedPhrase } from "@/lib/wallet/mnemonic";
 import { deriveAllAddresses } from "@/lib/wallet/derive-all";
 import { deriveEvmWallet } from "@/lib/wallet/evm";
@@ -96,36 +98,37 @@ export default function ImportWalletPage() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-12 sm:px-6">
-      <a href="/" className="text-sm font-medium text-slate-500 hover:text-blue-600">
+      <a href="/" className="text-sm font-medium text-[var(--muted)] hover:text-[var(--primary)]">
         ← Back to home
       </a>
 
-      <h1 className="mt-8 text-3xl font-bold text-slate-900">Import wallet</h1>
-      <p className="mt-3 text-slate-500">
+      <h1 className="mt-8 text-2xl font-semibold text-[var(--foreground)]">Import wallet</h1>
+      <p className="mt-3 text-[var(--muted)]">
         Enter your 12 or 24-word recovery phrase. It stays on your device and
         is encrypted with your password.
       </p>
 
-      <div className="mt-10 space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <Panel className="mt-10 space-y-4 p-5">
+        <label className="mv-label">Recovery phrase</label>
         <textarea
           value={seedPhrase}
           onChange={(e) => setSeedPhrase(e.target.value)}
           rows={4}
           placeholder="word1 word2 word3 ..."
-          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+          className="mv-input resize-none"
         />
-        <input
+        <label className="mv-label">Encryption password</label>
+        <Input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Encryption password (min 8 chars)"
-          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+          placeholder="Minimum 8 characters"
         />
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="mv-alert-error">{error}</p>}
         <Button size="lg" onClick={handleImport} disabled={loading}>
           {loading ? "Importing..." : "Import wallet"}
         </Button>
-      </div>
+      </Panel>
     </main>
   );
 }

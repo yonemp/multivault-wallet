@@ -22,7 +22,7 @@ type ActionTabsProps = {
 
 export function ActionTabs({ active, onChange }: ActionTabsProps) {
   return (
-    <nav className="flex items-center gap-0 overflow-x-auto border border-slate-200 bg-white">
+    <nav className="flex items-center overflow-x-auto border border-[var(--border-strong)] bg-[var(--surface)] backdrop-blur-md">
       {tabs.map(({ id, label, icon: Icon }) => {
         const isActive = active === id;
         return (
@@ -31,14 +31,17 @@ export function ActionTabs({ active, onChange }: ActionTabsProps) {
             type="button"
             onClick={() => onChange(id)}
             className={clsx(
-              "relative inline-flex shrink-0 items-center gap-2 border-r border-slate-200 px-4 py-2 text-sm font-medium transition last:border-r-0",
+              "relative inline-flex shrink-0 items-center gap-2 border-r border-[var(--border)] px-4 py-2 text-sm font-medium transition last:border-r-0",
               isActive
-                ? "bg-slate-900 text-white"
-                : "bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                ? "bg-[var(--foreground)] text-white"
+                : "text-[var(--muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]",
             )}
           >
             <Icon className="h-3.5 w-3.5" />
             {label}
+            {isActive && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--primary)]" />
+            )}
           </button>
         );
       })}

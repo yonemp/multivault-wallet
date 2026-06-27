@@ -13,9 +13,9 @@ import { registerWallet } from "@/lib/wallet/register";
 import { saveSession } from "@/lib/wallet/session";
 
 const wallets = [
-  { id: "metamask" as const, label: "MetaMask", emoji: "🦊", variant: "primary" as const },
-  { id: "phantom" as const, label: "Phantom", emoji: "👻", variant: "secondary" as const },
-  { id: "trust" as const, label: "Trust Wallet", emoji: "🛡️", variant: "secondary" as const },
+  { id: "metamask" as const, label: "MetaMask", variant: "primary" as const },
+  { id: "phantom" as const, label: "Phantom", variant: "secondary" as const },
+  { id: "trust" as const, label: "Trust Wallet", variant: "secondary" as const },
 ];
 
 export function ConnectExternal() {
@@ -96,24 +96,19 @@ export function ConnectExternal() {
   }
 
   return (
-    <div className="space-y-3">
-      {wallets.map(({ id, label, emoji, variant }) => (
+    <div className="space-y-2">
+      {wallets.map(({ id, label, variant }) => (
         <Button
           key={id}
-          className="w-full justify-start gap-3"
+          className="w-full justify-center"
           variant={variant}
           onClick={() => handleClick(id)}
           disabled={Boolean(loading)}
         >
-          <span className="text-lg">{emoji}</span>
-          {loading === id ? "Connecting..." : `Connect ${label}`}
+          {loading === id ? "Connecting…" : `Connect ${label}`}
         </Button>
       ))}
-      {error && (
-        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </p>
-      )}
+      {error && <p className="mv-alert-error">{error}</p>}
     </div>
   );
 }

@@ -1,12 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { ChainSelect } from "@/components/ui/ChainSelect";
 import { TokenSelect } from "@/components/ui/TokenSelect";
 import { Input } from "@/components/ui/Input";
+import { Panel } from "@/components/ui/Panel";
 import { ChainId } from "@/lib/wallet/chains";
 import { getAddress, SessionData } from "@/lib/wallet/session";
 import {
@@ -30,8 +29,7 @@ const SWAP_CHAINS: ChainId[] = ["ethereum", "solana"];
 
 export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
   const available = useMemo(
-    () =>
-      SWAP_CHAINS.filter((c) => getAddress(session, c)),
+    () => SWAP_CHAINS.filter((c) => getAddress(session, c)),
     [session],
   );
 
@@ -80,9 +78,8 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
           amount,
         });
         setQuoteData(quote);
-        const outDecimals = toToken === "sol" ? 9 : 6;
         setQuotePreview(
-          `${formatOutputAmount(quote.outAmount, outDecimals)} ${toToken.toUpperCase()}`,
+          `${formatOutputAmount(quote.outAmount, toToken === "sol" ? 9 : 6)} ${toToken.toUpperCase()}`,
         );
       } else {
         const evmAddress = getAddress(session, "ethereum");
@@ -96,10 +93,7 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
         });
         setQuoteData(quote);
         setQuotePreview(
-          `${formatOutputAmount(
-            quote.estimate.toAmount,
-            quote.action.toToken.decimals,
-          )} ${quote.action.toToken.symbol}`,
+          `${formatOutputAmount(quote.estimate.toAmount, quote.action.toToken.decimals)} ${quote.action.toToken.symbol}`,
         );
       }
     } catch (err) {
@@ -169,26 +163,22 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
 
   if (!available.length) {
     return (
-      <p className="text-slate-500">
+      <p className="text-[var(--muted)]">
         Connect an Ethereum or Solana wallet to swap tokens.
       </p>
     );
   }
 
   return (
-    <motion.div
-      className="mx-auto max-w-lg"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-    >
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Swap</h1>
-        <p className="mt-2 text-slate-500">
-          Best rates via Jupiter (Solana) and LI.FI (Ethereum).
+    <div className="mx-auto max-w-lg">
+      <div className="mb-5 border-b border-[var(--border)] pb-4">
+        <h1 className="text-xl font-semibold text-[var(--foreground)]">Swap</h1>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          Jupiter (Solana) · LI.FI (Ethereum)
         </p>
       </div>
 
-      <Card className="space-y-5 shadow-lg shadow-blue-100/40">
+      <Panel className="space-y-4 p-5">
         <ChainSelect
           label="Network"
           value={chain}
@@ -202,14 +192,14 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
           chains={available}
         />
 
-        <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
           <TokenSelect
             label="From"
             value={fromToken}
             onChange={setFromToken}
             options={tokenOptions}
           />
-          <Button variant="ghost" className="mb-0.5 px-3" onClick={swapTokens}>
+          <Button variant="ghost" className="mb-0.5 px-2" onClick={swapTokens}>
             ⇄
           </Button>
           <TokenSelect
@@ -221,9 +211,7 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-600">
-            Amount
-          </label>
+          <label className="mv-label">Amount</label>
           <Input
             type="number"
             min="0"
@@ -234,43 +222,28 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
           />
         </div>
 
-        {quotePreview && (
-          <p className="rounded-xl bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800">
-            Estimated output: {quotePreview}
-          </p>
-        )}
+        {quotePreview && <p className="mv-alert-info">Estimated: {quotePreview}</p>}
+        {error && <p className="mv-alert-error">{error}</p>}
+        {txHash && <p className="mv-alert-success break-all">Swapped! Tx: {txHash}</p>}
 
-        {error && (
-          <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </p>
-        )}
-
-        {txHash && (
-          <p className="break-all rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            Swapped! Tx: {txHash}
-          </p>
-        )}
-
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <Button
             variant="secondary"
             className="flex-1"
             onClick={handleQuote}
             disabled={quoting}
           >
-            {quoting ? "Quoting..." : "Get quote"}
+            {quoting ? "Quoting…" : "Get quote"}
           </Button>
           <Button
             className="flex-1"
-            size="lg"
             onClick={handleSwap}
             disabled={loading || !quoteData}
           >
-            {loading ? "Swapping..." : "Swap"}
+            {loading ? "Swapping…" : "Swap"}
           </Button>
         </div>
-      </Card>
-    </motion.div>
+      </Panel>
+    </div>
   );
 }

@@ -1,11 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { ChainSelect } from "@/components/ui/ChainSelect";
 import { Input } from "@/components/ui/Input";
+import { Panel } from "@/components/ui/Panel";
 import { ChainId, getChain } from "@/lib/wallet/chains";
 import { getAddress, getSessionChains, SessionData } from "@/lib/wallet/session";
 import {
@@ -106,19 +105,15 @@ export function SendPanel({ session, onSuccess }: SendPanelProps) {
   }
 
   return (
-    <motion.div
-      className="mx-auto max-w-lg"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-    >
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Send</h1>
-        <p className="mt-2 text-slate-500">
-          Transfer crypto across your multi-chain vault.
+    <div className="mx-auto max-w-lg">
+      <div className="mb-5 border-b border-[var(--border)] pb-4">
+        <h1 className="text-xl font-semibold text-[var(--foreground)]">Send</h1>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          Transfer assets across supported networks.
         </p>
       </div>
 
-      <Card className="space-y-5 shadow-lg shadow-blue-100/40">
+      <Panel className="space-y-4 p-5">
         <ChainSelect
           label="Network"
           value={chain}
@@ -127,29 +122,22 @@ export function SendPanel({ session, onSuccess }: SendPanelProps) {
         />
 
         {!canTransact && (
-          <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            {chainConfig.name} send launches soon. Your receive address is ready
-            in the Receive tab.
-          </div>
+          <p className="mv-alert-warn">
+            {chainConfig.name} send launches soon. Your receive address is ready.
+          </p>
         )}
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-600">
-            Recipient address
-          </label>
+          <label className="mv-label">Recipient address</label>
           <Input
             value={recipient}
             onChange={(e) => setRecipient(e.target.value)}
-            placeholder={
-              chain === "solana" ? "Solana address" : "Wallet address"
-            }
+            placeholder={chain === "solana" ? "Solana address" : "Wallet address"}
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-600">
-            Amount ({chainConfig.symbol})
-          </label>
+          <label className="mv-label">Amount ({chainConfig.symbol})</label>
           <Input
             type="number"
             min="0"
@@ -160,22 +148,13 @@ export function SendPanel({ session, onSuccess }: SendPanelProps) {
           />
         </div>
 
-        {error && (
-          <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </p>
-        )}
-
-        {txHash && (
-          <p className="break-all rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            Sent! Tx: {txHash}
-          </p>
-        )}
+        {error && <p className="mv-alert-error">{error}</p>}
+        {txHash && <p className="mv-alert-success break-all">Sent! Tx: {txHash}</p>}
 
         <Button className="w-full" size="lg" onClick={handleSend} disabled={loading}>
-          {loading ? "Sending..." : `Send ${chainConfig.symbol}`}
+          {loading ? "Sending…" : `Send ${chainConfig.symbol}`}
         </Button>
-      </Card>
-    </motion.div>
+      </Panel>
+    </div>
   );
 }
