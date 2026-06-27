@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { normalizeProfileVisibility } from "@/lib/supabase/profile-schema";
+import { upsertUserProfile } from "@/lib/supabase/profile-upsert";
 import { normalizeUsername, validateUsername } from "@/lib/platform/username";
 
 export async function GET(req: NextRequest) {
@@ -25,7 +27,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ profile: null });
   }
 
-  if (data.profile_visibility === "private" && usernameParam) {
+  if (normalizeProfileVisibility(data.profile_visibility) === "private" && usernameParam) {
     return NextResponse.json({
       profile: {
         username: data.username,
@@ -92,22 +94,15 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createServerClient();
-    const row: Record<string, string | null> = {
-      primary_address: body.primaryAddress,
-      display_name: username ?? body.displayName?.trim() ?? null,
-      avatar_color: body.avatarColor ?? "#2f6fed",
-      updated_at: new Date().toISOString(),
-    };
-    if (username) row.username = username;
-    if (body.email !== undefined) row.email = body.email?.trim() || null;
-    if (body.phone !== undefined) row.phone = body.phone?.trim() || null;
-    if (body.profileVisibility) row.profile_visibility = body.profileVisibility;
-
-    const { data, error } = await supabase
-      .from("user_profiles")
-      .upsert(row, { onConflict: "primary_address" })
-      .select()
-      .single();
+    const { data, error } = await upsertUserProfile(supabase, {
+      primaryAddress: body.primaryAddress,
+      displayName: body.displayName,
+      username,
+      avatarColor: body.avatarColor,
+      email: body.email,
+      phone: body.phone,
+      profileVisibility: body.profileVisibility,
+    });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

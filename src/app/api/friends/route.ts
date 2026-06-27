@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { isFriendWalletActive } from "@/lib/platform/friend-tracker-sync";
+import { isMissingProfileColumn } from "@/lib/supabase/profile-schema";
 import { normalizeUsername, validateUsername } from "@/lib/platform/username";
 
 type FriendRequestRow = {
@@ -136,11 +137,31 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createServerClient();
-    const { data: target, error: targetErr } = await supabase
+    let target: {
+      username: string | null;
+      primary_address: string;
+      profile_visibility?: string | null;
+    } | null = null;
+    let targetErr: { message: string } | null = null;
+
+    const extendedLookup = await supabase
       .from("user_profiles")
       .select("username, primary_address, profile_visibility")
       .eq("username", toUsername)
       .maybeSingle();
+
+    if (extendedLookup.error && isMissingProfileColumn(extendedLookup.error.message, "profile_visibility")) {
+      const baseLookup = await supabase
+        .from("user_profiles")
+        .select("username, primary_address")
+        .eq("username", toUsername)
+        .maybeSingle();
+      target = baseLookup.data;
+      targetErr = baseLookup.error;
+    } else {
+      target = extendedLookup.data;
+      targetErr = extendedLookup.error;
+    }
 
     if (targetErr) {
       if (isMissingFriendsTable(targetErr.message)) {

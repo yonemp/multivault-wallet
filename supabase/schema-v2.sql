@@ -61,3 +61,13 @@ create policy "Anyone can update profiles"
 alter table user_profiles add column if not exists username text unique;
 alter table support_tickets add column if not exists username text;
 alter table support_tickets add column if not exists messages jsonb not null default '[]'::jsonb;
+
+-- Profile security (also in schema-v4-profile-security.sql)
+alter table user_profiles
+  add column if not exists email text,
+  add column if not exists phone text,
+  add column if not exists profile_visibility text not null default 'public'
+    check (profile_visibility in ('public', 'private'));
+
+create index if not exists idx_user_profiles_visibility
+  on user_profiles (profile_visibility);
