@@ -5,15 +5,16 @@ type LogoProps = {
   href?: string;
   compact?: boolean;
   tagline?: string;
+  premium?: boolean;
 };
 
-export function Logo({ href = "/", compact = false, tagline = BRAND_TAGLINE }: LogoProps) {
+export function Logo({ href = "/", compact = false, tagline = BRAND_TAGLINE, premium = false }: LogoProps) {
   return (
     <a
       href={href}
-      className="group inline-flex items-center gap-2.5 transition-opacity hover:opacity-90"
+      className={`group inline-flex items-center gap-2.5 transition-opacity hover:opacity-90 ${premium ? "mv-premium-logo" : ""}`}
     >
-      <div className="relative flex h-8 w-8 items-center justify-center">
+      <div className={`relative flex h-8 w-8 items-center justify-center ${premium ? "mv-premium-logo-mark" : ""}`}>
         <svg viewBox="0 0 32 32" className="h-8 w-8" aria-hidden>
           <path
             d="M16 4 L28 26 L4 26 Z"
@@ -27,7 +28,7 @@ export function Logo({ href = "/", compact = false, tagline = BRAND_TAGLINE }: L
       </div>
       {!compact && (
         <div className="leading-tight">
-          <p className="text-sm font-semibold tracking-wide text-[var(--foreground)]">
+          <p className={`text-sm font-semibold tracking-wide ${premium ? "mv-premium-logo-text" : "text-[var(--foreground)]"}`}>
             {BRAND_NAME}
           </p>
           <p className="text-[9px] font-medium uppercase tracking-[0.2em] text-[var(--muted)]">

@@ -1,4 +1,5 @@
 import { Logo } from "@/components/layout/Logo";
+import { PremiumCanvas } from "@/components/marketing/PremiumCanvas";
 import { BRAND_NAME } from "@/lib/brand";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -22,12 +23,12 @@ export function MarketingShell({
 }: MarketingShellProps) {
   return (
     <div className="mv-premium">
-      <div className="mv-premium-bg" aria-hidden />
+      <PremiumCanvas />
       <div className="mv-premium-grid" aria-hidden />
 
       <header className="mv-premium-header">
         <div className="mv-premium-container mv-premium-header-inner">
-          <Logo href="/" tagline="Infrastructure" />
+          <Logo href="/" tagline="Infrastructure" premium />
           <div className="mv-premium-header-actions">
             {backHref ? (
               <Link href={backHref} className="mv-premium-ghost-link">

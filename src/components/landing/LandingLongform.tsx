@@ -1,3 +1,6 @@
+"use client";
+
+import { Reveal, Stagger, StaggerItem } from "@/components/landing/LandingMotion";
 import { BRAND_NAME } from "@/lib/brand";
 import {
   AI_CHAPTER,
@@ -22,21 +25,25 @@ function ChapterSection({ chapter, alt }: { chapter: LandingChapter; alt?: boole
       className={`mv-premium-chapter ${alt ? "mv-premium-chapter--alt" : ""}`}
     >
       <div className="mv-premium-container mv-premium-chapter-inner">
-        <p className="mv-premium-section-kicker">{chapter.kicker}</p>
-        <h2 className="mv-premium-chapter-title">{chapter.title}</h2>
-        <p className="mv-premium-chapter-lead">{chapter.lead}</p>
-        <div className="mv-premium-prose">
-          {chapter.paragraphs.map((p) => (
-            <p key={p.slice(0, 40)}>{p}</p>
-          ))}
-        </div>
-        {chapter.bullets && (
-          <ul className="mv-premium-bullet-list">
-            {chapter.bullets.map((b) => (
-              <li key={b}>{b}</li>
+        <Reveal>
+          <p className="mv-premium-section-kicker">{chapter.kicker}</p>
+          <h2 className="mv-premium-chapter-title">{chapter.title}</h2>
+          <p className="mv-premium-chapter-lead">{chapter.lead}</p>
+        </Reveal>
+        <Reveal delay={0.08}>
+          <div className="mv-premium-prose">
+            {chapter.paragraphs.map((p) => (
+              <p key={p.slice(0, 40)}>{p}</p>
             ))}
-          </ul>
-        )}
+          </div>
+          {chapter.bullets && (
+            <ul className="mv-premium-bullet-list">
+              {chapter.bullets.map((b) => (
+                <li key={b}>{b}</li>
+              ))}
+            </ul>
+          )}
+        </Reveal>
       </div>
     </section>
   );
@@ -47,10 +54,14 @@ export function LandingLongform() {
     <>
       <section className="mv-premium-intro">
         <div className="mv-premium-container">
-          <p className="mv-premium-intro-text">{LANDING_HERO_EXTENDED.sublead}</p>
-          <p className="mv-premium-intro-text mv-premium-intro-text--dim">
-            {LANDING_HERO_EXTENDED.secondLead}
-          </p>
+          <Reveal>
+            <p className="mv-premium-intro-text">{LANDING_HERO_EXTENDED.sublead}</p>
+          </Reveal>
+          <Reveal delay={0.06}>
+            <p className="mv-premium-intro-text mv-premium-intro-text--dim">
+              {LANDING_HERO_EXTENDED.secondLead}
+            </p>
+          </Reveal>
         </div>
       </section>
 
@@ -69,6 +80,7 @@ export function LandingLongform() {
           {PLATFORM_FEATURES.map((f, i) => (
             <article
               key={f.title}
+              data-index={String(i + 1).padStart(2, "0")}
               className={`mv-premium-feature-block ${i % 2 === 1 ? "mv-premium-feature-block--flip" : ""}`}
             >
               <div className="mv-premium-container mv-premium-feature-grid">
@@ -154,11 +166,11 @@ export function LandingLongform() {
           <h2 className="mv-premium-final-cta-title">{FINAL_CTA.title}</h2>
           <p className="mv-premium-final-cta-lead">{FINAL_CTA.lead}</p>
           <div className="mv-premium-hero-actions">
-            <Link href="/create" className="mv-premium-btn mv-premium-btn--solid">
+            <Link href="/create" className="mv-premium-btn mv-premium-btn--glow">
               Create wallet
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href="/import" className="mv-premium-btn mv-premium-btn--outline">
+            <Link href="/import" className="mv-premium-btn mv-premium-btn--glass">
               Import wallet
             </Link>
           </div>
