@@ -28,7 +28,7 @@ export function InstantTradePanel({ onSuccess }: InstantTradePanelProps) {
 
   function instant(side: "buy" | "sell") {
     addTradePoints(25);
-    setNote(`${side === "buy" ? "Buy" : "Sell"} staged instantly · ${meta?.symbol} @ $${price?.toFixed(2) ?? "—"} · execute via Swap`);
+    setNote(`${side === "buy" ? "Buy" : "Sell"} staged instantly · ${meta?.symbol} @ $${price?.toFixed(2) ?? "â€”"} · execute via Swap`);
     onSuccess?.();
   }
 
@@ -36,7 +36,7 @@ export function InstantTradePanel({ onSuccess }: InstantTradePanelProps) {
     <div className="mx-auto max-w-lg">
       <PageHeader
         title="Instant Trade"
-        description="One-click execution — no order configuration"
+        description="One-click execution â€” no order configuration"
       />
 
       <div className="mv-panel p-5">
@@ -58,7 +58,7 @@ export function InstantTradePanel({ onSuccess }: InstantTradePanelProps) {
         </div>
 
         <p className="mt-4 font-mono text-2xl font-bold">
-          ${price?.toLocaleString(undefined, { maximumFractionDigits: 4 }) ?? "—"}
+          ${price?.toLocaleString(undefined, { maximumFractionDigits: 4 }) ?? "â€”"}
         </p>
         <p className="text-sm text-[var(--muted)]">{meta?.name}</p>
 

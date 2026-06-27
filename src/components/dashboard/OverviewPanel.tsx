@@ -175,14 +175,14 @@ export function OverviewPanel({
         <div className="mv-panel p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">Balance</p>
           <p className="mt-1 font-mono text-2xl font-bold">
-            {priceLoading || loading ? "…" : `$${portfolioUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            {priceLoading || loading ? "â€¦" : `$${portfolioUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           </p>
           <p className="mt-1 text-[10px] text-[var(--muted)]">Live mainnet balances · CoinGecko USD</p>
         </div>
         <div className="mv-panel p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">24h Change</p>
           <p className={`mt-1 font-mono text-2xl font-bold ${(dailyChange ?? 0) >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
-            {dailyChange === null ? "—" : `${safeNumber(dailyChange) >= 0 ? "+" : ""}$${safeFixed(dailyChange, 2)}`}
+            {dailyChange === null ? "â€”" : `${safeNumber(dailyChange) >= 0 ? "+" : ""}$${safeFixed(dailyChange, 2)}`}
           </p>
           <p className="mt-1 text-[10px] text-[var(--muted)]">From recorded daily snapshots</p>
         </div>
@@ -251,10 +251,10 @@ export function OverviewPanel({
             </table>
           )}
           {bottomTab === "Activity" && (
-            <p className="px-4 py-8 text-center text-xs text-[var(--muted)]">On-chain activity feed requires indexer — no simulated trades shown</p>
+            <p className="px-4 py-8 text-center text-xs text-[var(--muted)]">On-chain activity feed requires indexer â€” no simulated trades shown</p>
           )}
           {bottomTab === "Transfers" && (
-            <p className="px-4 py-8 text-center text-xs text-[var(--muted)]">Use Portfolio → Wallets to send, receive, and distribute funds</p>
+            <p className="px-4 py-8 text-center text-xs text-[var(--muted)]">Use Portfolio â†’ Wallets to send, receive, and distribute funds</p>
           )}
         </div>
       </div>

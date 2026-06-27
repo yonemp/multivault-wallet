@@ -1,5 +1,7 @@
-const KEY = "multivault_recent_memecoins";
-export const RECENT_MEMECOINS_EVENT = "mv-recent-memecoins-changed";
+import { getLegacyItem } from "@/lib/storage/legacy-keys";
+
+const KEY = "tackers_recent_memecoins";
+export const RECENT_MEMECOINS_EVENT = "tackers-recent-memecoins-changed";
 const MAX_RECENT = 16;
 
 export type RecentMemecoin = {
@@ -29,7 +31,7 @@ function fallbackSymbol(assetId: string) {
 export function loadRecentMemecoins(): RecentMemecoin[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY) ?? "[]") as RecentMemecoin[];
+    const raw = JSON.parse(getLegacyItem(KEY) ?? "[]") as RecentMemecoin[];
     return Array.isArray(raw) ? raw : [];
   } catch {
     return [];

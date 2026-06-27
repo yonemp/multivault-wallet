@@ -103,7 +103,7 @@ export function WalletsPanel({
       map.set(w.id, {
         id: w.id,
         label: w.label,
-        address: w.addresses.solana ?? "—",
+        address: w.addresses.solana ?? "â€”",
         balance: balances[w.id] ?? 0,
         holdings: Object.keys(w.addresses).length,
         color: w.color,
@@ -160,10 +160,10 @@ export function WalletsPanel({
     const source = walletMap.get(sourceId);
     const dest = walletMap.get(destId);
     if (!source || source.balance < amt) {
-      setNote("Insufficient source balance — fund source wallet on-chain first");
+      setNote("Insufficient source balance â€” fund source wallet on-chain first");
       return;
     }
-    setNote(`Ready to send ${amt} SOL from ${source.label} → ${dest?.label ?? "destination"}. Use Send with source wallet active.`);
+    setNote(`Ready to send ${amt} SOL from ${source.label} â†’ ${dest?.label ?? "destination"}. Use Send with source wallet active.`);
     handleSetActive(sourceId);
     onNavigate("send");
   }
@@ -205,7 +205,7 @@ export function WalletsPanel({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "multivault-wallets.json";
+    a.download = "tackers-wallets.json";
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -260,7 +260,7 @@ export function WalletsPanel({
 
       {historyOpen && (
         <div className="mv-panel p-3 text-[10px] text-[var(--muted)]">
-          On-chain transfers appear after you use Send. Drag wallets to organize source → destination flows.
+          On-chain transfers appear after you use Send. Drag wallets to organize source â†’ destination flows.
         </div>
       )}
 

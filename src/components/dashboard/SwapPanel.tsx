@@ -108,7 +108,7 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
     }
 
     if (fromToken.startsWith("custom:") || toToken.startsWith("custom:")) {
-      setError("Custom token swaps require contract integration — add token for tracking, swap native/USDC for now.");
+      setError("Custom token swaps require contract integration â€” add token for tracking, swap native/USDC for now.");
       return;
     }
 
@@ -160,7 +160,7 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
       if (isSolana) {
         if (session.mode === "local") {
           const mnemonic = getUnlockedMnemonic();
-          if (!mnemonic) throw new Error("Start a new browser session — create or import your wallet to enable signing");
+          if (!mnemonic) throw new Error("Start a new browser session â€” create or import your wallet to enable signing");
           hash = await executeSolanaSwapLocal(mnemonic, quoteData);
         } else {
           const sol = getAddress(session, "solana");
@@ -169,7 +169,7 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
         }
       } else if (session.mode === "local") {
         const mnemonic = getUnlockedMnemonic();
-        if (!mnemonic) throw new Error("Start a new browser session — create or import your wallet to enable signing");
+        if (!mnemonic) throw new Error("Start a new browser session â€” create or import your wallet to enable signing");
         hash = await executeEvmSwapLocal(
           mnemonic,
           evmChain,
@@ -252,7 +252,7 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
 
         <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
           <TokenSelect label="From" value={fromToken} onChange={setFromToken} options={tokenOptions} />
-          <Button variant="ghost" className="mb-0.5 px-2" onClick={swapTokens}>⇄</Button>
+          <Button variant="ghost" className="mb-0.5 px-2" onClick={swapTokens}>â‡„</Button>
           <TokenSelect label="To" value={toToken} onChange={setToToken} options={toOptions} />
         </div>
 
@@ -267,10 +267,10 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
 
         <div className="flex gap-2">
           <Button variant="secondary" className="flex-1" onClick={handleQuote} disabled={quoting}>
-            {quoting ? "Quoting…" : "Get quote"}
+            {quoting ? "Quotingâ€¦" : "Get quote"}
           </Button>
           <Button className="flex-1" onClick={handleSwap} disabled={loading || !quoteData}>
-            {loading ? "Swapping…" : "Swap"}
+            {loading ? "Swappingâ€¦" : "Swap"}
           </Button>
         </div>
       </Panel>

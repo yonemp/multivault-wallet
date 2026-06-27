@@ -247,10 +247,10 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
                     Your wallet
                   </td>
                   <td className="px-3 py-1.5 font-mono text-[var(--muted)]">
-                    {solAddress ? `${solAddress.slice(0, 4)}…${solAddress.slice(-4)}` : "Unlock wallet"}
+                    {solAddress ? `${solAddress.slice(0, 4)}â€¦${solAddress.slice(-4)}` : "Unlock wallet"}
                   </td>
                   <td className="px-3 py-1.5 text-right text-[var(--muted)]">
-                    {tokenAddress ? "Holder % requires on-chain indexer" : "—"}
+                    {tokenAddress ? "Holder % requires on-chain indexer" : "â€”"}
                   </td>
                 </tr>
               </tbody>
@@ -287,12 +287,12 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
               {bottomTab === "holders" && (
                 <p className="p-3 text-[10px] text-[var(--muted)]">
                   {tokenAddress
-                    ? "Holder distribution requires a Solana indexer — not shown until live data is available."
+                    ? "Holder distribution requires a Solana indexer â€” not shown until live data is available."
                     : "Select a live pair from Pulse to view holder stats."}
                 </p>
               )}
               {bottomTab === "traders" && (
-                <p className="p-3 text-[10px] text-[var(--muted)]">Top traders by volume — requires on-chain trade indexer.</p>
+                <p className="p-3 text-[10px] text-[var(--muted)]">Top traders by volume â€” requires on-chain trade indexer.</p>
               )}
             </div>
           </div>
@@ -303,7 +303,7 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
 
       {(loading || tokenLoading) && (
         <p className="text-[9px] text-[var(--muted)]">
-          {tokenLoading ? "Syncing from pump.fun…" : "Syncing prices…"}
+          {tokenLoading ? "Syncing from pump.funâ€¦" : "Syncing pricesâ€¦"}
         </p>
       )}
     </div>

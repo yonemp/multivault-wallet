@@ -1,4 +1,6 @@
-const UNLOCK_KEY = "mv_wallet_unlock";
+import { getLegacySessionItem } from "@/lib/storage/legacy-keys";
+
+const UNLOCK_KEY = "tackers_wallet_unlock";
 
 type UnlockSession = {
   mnemonic: string;
@@ -7,7 +9,7 @@ type UnlockSession = {
 
 function readSession(): UnlockSession | null {
   if (typeof window === "undefined") return null;
-  const raw = sessionStorage.getItem(UNLOCK_KEY);
+  const raw = getLegacySessionItem(UNLOCK_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as UnlockSession;

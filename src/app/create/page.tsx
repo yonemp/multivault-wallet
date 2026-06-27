@@ -12,6 +12,7 @@ import { UsernamePicker } from "@/components/onboarding/UsernamePicker";
 import { hasAccountUsername, saveUsernameForWallet } from "@/lib/platform/account-username";
 import { setupLocalWallet } from "@/lib/wallet/setup-wallet";
 import { vaultWalletCount } from "@/lib/wallet/wallet-vault";
+import { BRAND_NAME } from "@/lib/brand";
 import { CheckCircle2, Copy, ShieldAlert } from "lucide-react";
 
 const STEPS = [
@@ -108,7 +109,7 @@ export default function CreateWalletPage() {
               {isAdding ? "Add wallet" : "Create wallet"}
             </h1>
             <p className="mv-premium-page-sub">
-              Generate a 12-word phrase. Encrypted locally — never sent to our servers.
+              Generate a 12-word phrase. Encrypted locally â€” never sent to our servers.
             </p>
           </div>
 
@@ -134,7 +135,7 @@ export default function CreateWalletPage() {
         <div className="mv-premium-flow">
           <div className="mv-premium-page-head mv-premium-page-head--left">
             <h1 className="mv-premium-page-title">Back up phrase</h1>
-            <p className="mv-premium-page-sub">Store offline. MultiVault cannot recover a lost phrase.</p>
+            <p className="mv-premium-page-sub">Store offline. {BRAND_NAME} cannot recover a lost phrase.</p>
           </div>
 
           <div className="mv-premium-alert">
@@ -219,7 +220,7 @@ export default function CreateWalletPage() {
             />
             {error && <p className="mv-alert-error">{error}</p>}
             <Button size="lg" className="mv-premium-action w-full" onClick={handleFinish} disabled={loading}>
-              {loading ? "Securing…" : "Create wallet"}
+              {loading ? "Securingâ€¦" : "Create wallet"}
             </Button>
           </div>
         </div>
@@ -244,7 +245,7 @@ export default function CreateWalletPage() {
           <h1 className="mv-premium-page-title">Wallet ready</h1>
           {createdAddress && (
             <p className="mv-premium-address">
-              SOL {createdAddress.slice(0, 6)}…{createdAddress.slice(-4)}
+              SOL {createdAddress.slice(0, 6)}â€¦{createdAddress.slice(-4)}
             </p>
           )}
           <div className="mv-premium-done-actions">

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Settings, X } from "lucide-react";
 import { addTradePoints } from "@/lib/platform/rewards";
+import { getLegacyItem } from "@/lib/storage/legacy-keys";
 
 type FloatingInstantTradeProps = {
   symbol: string;
@@ -14,7 +15,7 @@ const BUY_AMOUNTS = [0.5, 2, 5, 10];
 const SELL_PCTS = [10, 25, 50, 100];
 const PAY_TOKENS = ["SOL", "USDC", "USOL"] as const;
 
-const POS_KEY = "mv_instant_trade_pos";
+const POS_KEY = "tackers_instant_trade_pos";
 
 export function FloatingInstantTrade({ symbol, onClose, onTrade }: FloatingInstantTradeProps) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -28,7 +29,7 @@ export function FloatingInstantTrade({ symbol, onClose, onTrade }: FloatingInsta
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(POS_KEY);
+      const saved = getLegacyItem(POS_KEY);
       if (saved) setPos(JSON.parse(saved) as { x: number; y: number });
       else setPos({ x: Math.max(0, window.innerWidth - 300), y: 100 });
     } catch {
@@ -72,7 +73,7 @@ export function FloatingInstantTrade({ symbol, onClose, onTrade }: FloatingInsta
 
   function handleBuy(amount: number) {
     addTradePoints(25);
-    setNote(`Buy ${amount} ${payToken} → ${symbol}`);
+    setNote(`Buy ${amount} ${payToken} â†’ ${symbol}`);
     onTrade?.("buy", String(amount));
   }
 
@@ -152,7 +153,7 @@ export function FloatingInstantTrade({ symbol, onClose, onTrade }: FloatingInsta
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[8px] text-[var(--muted)]">
             <span className="font-bold text-[var(--gain)]">{slippage}%</span>
             <span>0.0</span>
-            <span>0.1 ▲</span>
+            <span>0.1 â–²</span>
             <span>0.01</span>
             <span className="rounded border border-[var(--border)] px-1">Off</span>
             <label className="flex items-center gap-0.5">
@@ -182,7 +183,7 @@ export function FloatingInstantTrade({ symbol, onClose, onTrade }: FloatingInsta
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[8px] text-[var(--muted)]">
             <span className="font-bold text-[var(--gain)]">15%</span>
-            <span>0.0 0.1 ▲</span>
+            <span>0.0 0.1 â–²</span>
             <span className="rounded border border-[var(--border)] px-1">Off</span>
             <span>Sell Init.</span>
           </div>

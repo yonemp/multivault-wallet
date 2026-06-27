@@ -269,7 +269,7 @@ export function PulseFiltersModal({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "multivault-pulse-filters.json";
+    a.download = "tackers-pulse-filters.json";
     a.click();
     URL.revokeObjectURL(url);
   }

@@ -1,3 +1,4 @@
+import { getLegacyItem } from "@/lib/storage/legacy-keys";
 import { ChainId } from "./chains";
 
 export type CustomToken = {
@@ -11,12 +12,12 @@ export type CustomToken = {
   addedAt: number;
 };
 
-const STORAGE_KEY = "multivault_custom_tokens";
+const STORAGE_KEY = "tackers_custom_tokens";
 
 export function loadCustomTokens(): CustomToken[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = getLegacyItem(STORAGE_KEY);
     return raw ? (JSON.parse(raw) as CustomToken[]) : [];
   } catch {
     return [];

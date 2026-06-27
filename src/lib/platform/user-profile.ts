@@ -1,3 +1,5 @@
+import { getLegacyItem } from "@/lib/storage/legacy-keys";
+
 export type ProfileVisibility = "public" | "private";
 
 export type UserProfile = {
@@ -10,12 +12,14 @@ export type UserProfile = {
   updatedAt: number;
 };
 
-const STORAGE_KEY = "mv_user_profiles";
+export const USER_PROFILES_KEY = "tackers_user_profiles";
+
+const STORAGE_KEY = USER_PROFILES_KEY;
 
 function readAll(): Record<string, UserProfile> {
   if (typeof window === "undefined") return {};
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = getLegacyItem(STORAGE_KEY);
     return raw ? (JSON.parse(raw) as Record<string, UserProfile>) : {};
   } catch {
     return {};

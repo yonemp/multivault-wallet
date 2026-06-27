@@ -70,7 +70,7 @@ export function FriendsPanel({ onFriendsChanged }: FriendsPanelProps) {
       }
     } catch {
       if (username) applySnapshot(loadLocalFriends(username));
-      setError("Could not reach server — using local friends");
+      setError("Could not reach server â€” using local friends");
     } finally {
       setLoading(false);
     }
@@ -197,7 +197,7 @@ export function FriendsPanel({ onFriendsChanged }: FriendsPanelProps) {
       {error && <p className="mv-alert-error mx-3 mt-2 text-xs">{error}</p>}
       {setupRequired && (
         <p className="mx-3 mt-2 text-[10px] text-[var(--warning)]">
-          Friends cloud DB not configured — requests work locally on this device until schema-v3 is run.
+          Friends cloud DB not configured â€” requests work locally on this device until schema-v3 is run.
         </p>
       )}
 
@@ -256,7 +256,7 @@ export function FriendsPanel({ onFriendsChanged }: FriendsPanelProps) {
             Friends ({friends.length})
           </h3>
           {loading && !friends.length ? (
-            <p className="text-sm text-[var(--muted)]">Loading…</p>
+            <p className="text-sm text-[var(--muted)]">Loadingâ€¦</p>
           ) : friends.length ? (
             <div className="space-y-2">
               {friends.map((f) => (
@@ -282,7 +282,7 @@ export function FriendsPanel({ onFriendsChanged }: FriendsPanelProps) {
             </div>
           ) : (
             <p className="text-sm text-[var(--muted)]">
-              No friends yet. Send a request by username — when they accept, their wallet is tracked automatically.
+              No friends yet. Send a request by username â€” when they accept, their wallet is tracked automatically.
             </p>
           )}
         </section>

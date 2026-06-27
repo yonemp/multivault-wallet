@@ -35,12 +35,14 @@ export type RemoteSupportTicket = {
   updated_at?: string | null;
 };
 
-const STORAGE_KEY = "mv_support_tickets";
+import { getLegacyItem } from "@/lib/storage/legacy-keys";
+
+const STORAGE_KEY = "tackers_support_tickets";
 
 function readAll(): LocalSupportTicket[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]") as LocalSupportTicket[];
+    const raw = JSON.parse(getLegacyItem(STORAGE_KEY) ?? "[]") as LocalSupportTicket[];
     return raw.map((t) => ({
       ...t,
       messages: t.messages?.length ? t.messages : parseTicketMessages({

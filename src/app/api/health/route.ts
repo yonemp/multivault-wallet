@@ -26,5 +26,5 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  return NextResponse.json({ status: "ok", service: "multivault-health" });
+  return NextResponse.json({ status: "ok", service: "tackers-health" });
 }

@@ -1,3 +1,5 @@
+import { getLegacyItem } from "@/lib/storage/legacy-keys";
+
 export type FriendRequest = {
   id: string;
   from_username: string;
@@ -21,7 +23,7 @@ export type FriendsSnapshot = {
   setupRequired?: boolean;
 };
 
-const STORAGE_KEY = "mv_friends_local";
+const STORAGE_KEY = "tackers_friends_local";
 
 type LocalFriendsStore = {
   requests: FriendRequest[];
@@ -30,7 +32,7 @@ type LocalFriendsStore = {
 function readStore(): LocalFriendsStore {
   if (typeof window === "undefined") return { requests: [] };
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{"requests":[]}') as LocalFriendsStore;
+    return JSON.parse(getLegacyItem(STORAGE_KEY) ?? '{"requests":[]}') as LocalFriendsStore;
   } catch {
     return { requests: [] };
   }

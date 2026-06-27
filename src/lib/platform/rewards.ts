@@ -1,4 +1,6 @@
-const KEY = "multivault_rewards";
+import { getLegacyItem } from "@/lib/storage/legacy-keys";
+
+const KEY = "tackers_rewards";
 
 export type RewardsState = {
   points: number;
@@ -20,13 +22,13 @@ const DEFAULT: RewardsState = {
 };
 
 function generateCode() {
-  return `MV${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  return `TK${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
 export function loadRewards(): RewardsState {
   if (typeof window === "undefined") return DEFAULT;
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = getLegacyItem(KEY);
     const data = raw ? (JSON.parse(raw) as RewardsState) : { ...DEFAULT };
     if (!data.referralCode) data.referralCode = generateCode();
     return data;

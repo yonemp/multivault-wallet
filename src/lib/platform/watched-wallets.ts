@@ -1,4 +1,6 @@
-const KEY = "multivault_watched_wallets";
+import { getLegacyItem } from "@/lib/storage/legacy-keys";
+
+const KEY = "tackers_watched_wallets";
 
 export type WatchedWallet = {
   id: string;
@@ -16,7 +18,7 @@ export type WatchedWallet = {
 export function loadWatchedWallets(): WatchedWallet[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? "[]") as WatchedWallet[];
+    return JSON.parse(getLegacyItem(KEY) ?? "[]") as WatchedWallet[];
   } catch {
     return [];
   }

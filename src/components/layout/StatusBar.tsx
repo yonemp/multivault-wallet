@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { AssetMarketData } from "@/app/api/prices/route";
+import { BRAND_NAME } from "@/lib/brand";
 import { safeFixed, safeNumber } from "@/lib/format/numbers";
 
 export function StatusBar() {
@@ -54,7 +55,7 @@ export function StatusBar() {
         </span>
       </div>
       <div className="flex items-center gap-4 text-[var(--muted)]">
-        <span>MultiVault Terminal</span>
+        <span>{BRAND_NAME} Terminal</span>
         <span className="font-mono">{time}</span>
       </div>
     </footer>

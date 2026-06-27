@@ -1,3 +1,4 @@
+import { getLegacyItem } from "@/lib/storage/legacy-keys";
 import { ChainId } from "./chains";
 
 export type WalletAddresses = Partial<Record<ChainId, string>>;
@@ -14,7 +15,7 @@ export type SessionData = {
   solanaAddress?: string;
 };
 
-const SESSION_KEY = "multivault_session";
+const SESSION_KEY = "tackers_session";
 
 function migrateSession(raw: SessionData): SessionData {
   if (raw.addresses) return raw;
@@ -32,7 +33,7 @@ export function saveSession(session: SessionData) {
 }
 
 export function loadSession(): SessionData | null {
-  const raw = localStorage.getItem(SESSION_KEY);
+  const raw = getLegacyItem(SESSION_KEY);
   if (!raw) return null;
   try {
     return migrateSession(JSON.parse(raw) as SessionData);

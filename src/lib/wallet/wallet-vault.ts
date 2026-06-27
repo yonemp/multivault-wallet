@@ -1,3 +1,4 @@
+import { getLegacyItem } from "@/lib/storage/legacy-keys";
 import { WalletAddresses } from "./session";
 import { loadEncryptedWallet } from "./storage";
 
@@ -11,15 +12,15 @@ export type VaultWallet = {
   createdAt: number;
 };
 
-const VAULT_KEY = "multivault_wallet_vault";
-const ACTIVE_ID_KEY = "multivault_active_wallet_id";
+const VAULT_KEY = "tackers_wallet_vault";
+const ACTIVE_ID_KEY = "tackers_active_wallet_id";
 
 const COLORS = ["#f5a623", "#5b7aff", "#00c076", "#9945ff", "#ff6b6b", "#4ecdc4"];
 
 export function loadVault(): VaultWallet[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(VAULT_KEY) ?? "[]") as VaultWallet[];
+    return JSON.parse(getLegacyItem(VAULT_KEY) ?? "[]") as VaultWallet[];
   } catch {
     return [];
   }
@@ -35,7 +36,7 @@ export function getVaultWallet(id: string): VaultWallet | undefined {
 
 export function getActiveWalletId(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(ACTIVE_ID_KEY);
+  return getLegacyItem(ACTIVE_ID_KEY);
 }
 
 export function setActiveWalletId(id: string) {

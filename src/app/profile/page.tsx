@@ -124,7 +124,7 @@ export default function ProfilePage() {
 
   async function persistProfile() {
     if (!primaryAddress) {
-      setError("No wallet address found — reconnect your wallet and try again.");
+      setError("No wallet address found â€” reconnect your wallet and try again.");
       return;
     }
     setError(null);
@@ -170,7 +170,7 @@ export default function ProfilePage() {
 
   function saveProfile() {
     if (!primaryAddress) {
-      setError("No wallet address found — reconnect your wallet and try again.");
+      setError("No wallet address found â€” reconnect your wallet and try again.");
       return;
     }
 
@@ -252,7 +252,7 @@ export default function ProfilePage() {
   }
 
   if (!session) {
-    return <main className="flex min-h-screen items-center justify-center">Loading…</main>;
+    return <main className="flex min-h-screen items-center justify-center">Loadingâ€¦</main>;
   }
 
   return (
@@ -310,15 +310,15 @@ export default function ProfilePage() {
                 onChange={(e) => setTicketBody(e.target.value)}
                 rows={5}
                 className="mv-input resize-none"
-                placeholder="Describe your issue…"
+                placeholder="Describe your issueâ€¦"
               />
             </div>
             {error && <p className="mv-alert-error">{error}</p>}
             {ticketSent && (
               <p className="mv-alert-success">
                 {ticketQueuedLocally
-                  ? "Ticket received — check My tickets for status"
-                  : "Ticket submitted — check My tickets for replies"}
+                  ? "Ticket received â€” check My tickets for status"
+                  : "Ticket submitted â€” check My tickets for replies"}
               </p>
             )}
             <Button className="w-full" onClick={submitTicket}>

@@ -1,6 +1,8 @@
+import { BRAND_NAME } from "@/lib/brand";
+
 export function buildSignInMessage(address: string, chain: string) {
   const timestamp = new Date().toISOString();
-  return `Sign in to MultiVault
+  return `Sign in to ${BRAND_NAME}
 
 Address: ${address}
 Chain: ${chain}

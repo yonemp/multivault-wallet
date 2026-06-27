@@ -1,11 +1,13 @@
-const KEY = "multivault_pulse_col_widths";
+import { getLegacyItem } from "@/lib/storage/legacy-keys";
+
+const KEY = "tackers_pulse_col_widths";
 export const DEFAULT_PULSE_COL_WIDTHS: [number, number, number] = [33.33, 33.33, 33.34];
 export const MIN_PULSE_COL_PCT = 12;
 
 export function loadPulseColumnWidths(): [number, number, number] {
   if (typeof window === "undefined") return DEFAULT_PULSE_COL_WIDTHS;
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY) ?? "null") as number[] | null;
+    const raw = JSON.parse(getLegacyItem(KEY) ?? "null") as number[] | null;
     if (!Array.isArray(raw) || raw.length !== 3) return DEFAULT_PULSE_COL_WIDTHS;
     const sum = raw.reduce((a, b) => a + b, 0);
     if (Math.abs(sum - 100) > 0.5) return DEFAULT_PULSE_COL_WIDTHS;

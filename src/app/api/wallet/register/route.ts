@@ -42,7 +42,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    if (!message.includes("Sign in to MultiVault")) {
+    const validSignIn =
+      message.includes("Sign in to Tackers")
+      || message.includes("Sign in to MultiVault")
+      || message.includes("Sign in to TACKERS");
+    if (!validSignIn) {
       return NextResponse.json({ error: "Invalid sign-in message" }, { status: 400 });
     }
 

@@ -1,16 +1,18 @@
+import { getLegacyItem } from "@/lib/storage/legacy-keys";
 import {
   saveLocalProfile,
   loadLocalProfile,
+  USER_PROFILES_KEY,
   type ProfileVisibility,
 } from "@/lib/platform/user-profile";
 import { normalizeUsername, validateUsername } from "@/lib/platform/username";
 
-const ACCOUNT_USERNAME_KEY = "mv_account_username";
+const ACCOUNT_USERNAME_KEY = "tackers_account_username";
 
 function readProfiles(): Record<string, { displayName?: string }> {
   if (typeof window === "undefined") return {};
   try {
-    return JSON.parse(localStorage.getItem("mv_user_profiles") ?? "{}") as Record<
+    return JSON.parse(getLegacyItem(USER_PROFILES_KEY) ?? "{}") as Record<
       string,
       { displayName?: string }
     >;
@@ -21,7 +23,7 @@ function readProfiles(): Record<string, { displayName?: string }> {
 
 export function getAccountUsername(): string | null {
   if (typeof window === "undefined") return null;
-  const stored = localStorage.getItem(ACCOUNT_USERNAME_KEY);
+  const stored = getLegacyItem(ACCOUNT_USERNAME_KEY);
   if (stored?.trim()) return normalizeUsername(stored);
 
   for (const profile of Object.values(readProfiles())) {

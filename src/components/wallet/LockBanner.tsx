@@ -41,7 +41,7 @@ export function LockBanner({
         )}
         <div>
           <p className="text-xs font-semibold">
-            {locked ? "Wallet locked — view-only mode" : "Wallet unlocked"}
+            {locked ? "Wallet locked â€” view-only mode" : "Wallet unlocked"}
           </p>
           <p className="text-[10px] text-[var(--muted)]">
             {locked

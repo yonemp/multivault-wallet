@@ -73,7 +73,7 @@ export function UsernamePicker({
           className="mt-1"
         />
         <p className="mt-1.5 text-[10px] text-[var(--muted)]">
-          3–20 characters · letters, numbers, underscore · starts with a letter
+          3â€“20 characters · letters, numbers, underscore · starts with a letter
         </p>
       </div>
 
@@ -108,7 +108,7 @@ export function UsernamePicker({
               <Lock className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning)]" />
               <div>
                 <p className="font-semibold">Private</p>
-                <p className="mt-0.5 text-[var(--muted)]">Hidden from search — only existing friends can interact</p>
+                <p className="mt-0.5 text-[var(--muted)]">Hidden from search â€” only existing friends can interact</p>
               </div>
             </button>
           </div>
@@ -123,7 +123,7 @@ export function UsernamePicker({
         onClick={handleSubmit}
         disabled={loading || submitting || !username.trim()}
       >
-        {loading || submitting ? "Saving…" : submitLabel}
+        {loading || submitting ? "Savingâ€¦" : submitLabel}
       </Button>
     </Panel>
   );

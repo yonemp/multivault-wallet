@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BRAND_NAME } from "@/lib/brand";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppBackground } from "@/components/layout/AppBackground";
 import { ErrorBoundary } from "@/components/layout/ErrorBoundary";
@@ -18,7 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MultiVault | Enterprise Digital Asset Infrastructure",
+  title: `${BRAND_NAME} | Multi-Chain Trading Terminal`,
   description:
     "Institutional-grade multi-chain trading, portfolio management, and self-custody wallet infrastructure for modern operators.",
 };

@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
 
 type LogoProps = {
   href?: string;
@@ -6,7 +7,7 @@ type LogoProps = {
   tagline?: string;
 };
 
-export function Logo({ href = "/", compact = false, tagline = "Terminal" }: LogoProps) {
+export function Logo({ href = "/", compact = false, tagline = BRAND_TAGLINE }: LogoProps) {
   return (
     <a
       href={href}
@@ -27,7 +28,7 @@ export function Logo({ href = "/", compact = false, tagline = "Terminal" }: Logo
       {!compact && (
         <div className="leading-tight">
           <p className="text-sm font-semibold tracking-wide text-[var(--foreground)]">
-            MultiVault
+            {BRAND_NAME}
           </p>
           <p className="text-[9px] font-medium uppercase tracking-[0.2em] text-[var(--muted)]">
             {tagline}

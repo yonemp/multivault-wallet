@@ -1,4 +1,6 @@
-const KEY = "multivault_managed_wallets";
+import { getLegacyItem } from "@/lib/storage/legacy-keys";
+
+const KEY = "tackers_managed_wallets";
 
 export type ManagedWallet = {
   id: string;
@@ -13,7 +15,7 @@ export type ManagedWallet = {
 export function loadManagedWallets(): ManagedWallet[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? "[]") as ManagedWallet[];
+    return JSON.parse(getLegacyItem(KEY) ?? "[]") as ManagedWallet[];
   } catch {
     return [];
   }

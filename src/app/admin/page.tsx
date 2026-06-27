@@ -8,7 +8,10 @@ import { Input } from "@/components/ui/Input";
 import { Panel } from "@/components/ui/Panel";
 import { HealthLogPanel } from "@/components/admin/HealthLogPanel";
 import { TicketConversation } from "@/components/profile/TicketConversation";
+import { getLegacySessionItem } from "@/lib/storage/legacy-keys";
 import { parseTicketMessages, normalizeTicketStatus } from "@/lib/platform/ticket-messages";
+
+const ADMIN_KEY = "tackers_admin_key";
 import { ArrowLeft, Crown, Flag, MessageSquare, Users, Wallet } from "lucide-react";
 
 type WalletRow = {
@@ -78,7 +81,7 @@ export default function AdminPage() {
         });
         const verifyBody = (await verifyRes.json().catch(() => ({}))) as { error?: string };
         if (!verifyRes.ok) {
-          sessionStorage.removeItem("mv_admin_key");
+          sessionStorage.removeItem(ADMIN_KEY);
           setAuthenticated(false);
           setAuthError(
             verifyBody.error
@@ -96,7 +99,7 @@ export default function AdminPage() {
       if (!wRes.ok) {
         const wBody = (await wRes.json().catch(() => ({}))) as { error?: string };
         setAuthenticated(true);
-        sessionStorage.setItem("mv_admin_key", trimmed);
+        sessionStorage.setItem(ADMIN_KEY, trimmed);
         setWallets([]);
         setStats(EMPTY_STATS);
         setTickets([]);
@@ -114,14 +117,14 @@ export default function AdminPage() {
       setTickets(tData.tickets ?? []);
       setTicketsSetupRequired(tData.setupRequired === true);
       setAuthenticated(true);
-      sessionStorage.setItem("mv_admin_key", trimmed);
+      sessionStorage.setItem(ADMIN_KEY, trimmed);
       if (tData.setupRequired) {
         setDataError(tData.hint ?? "Run supabase/schema-v2.sql in Supabase to enable support tickets.");
       } else if (!tRes.ok) {
         setDataError("Wallet data loaded, but support tickets could not be fetched.");
       }
     } catch {
-      sessionStorage.removeItem("mv_admin_key");
+      sessionStorage.removeItem(ADMIN_KEY);
       setAuthenticated(false);
       setAuthError("Could not reach server. Check your connection and try again.");
     } finally {
@@ -130,7 +133,7 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    const saved = sessionStorage.getItem("mv_admin_key");
+    const saved = getLegacySessionItem(ADMIN_KEY);
     if (saved) {
       setAdminKey(saved);
       loadData(saved);
@@ -189,11 +192,11 @@ export default function AdminPage() {
               </p>
             )}
             <Button type="submit" className="w-full" disabled={loading || !adminKey.trim()}>
-              {loading ? "Verifying…" : "Unlock admin panel"}
+              {loading ? "Verifyingâ€¦" : "Unlock admin panel"}
             </Button>
           </form>
           <Link href="/dashboard" className="block text-center text-sm text-[var(--muted)] hover:text-[var(--primary)]">
-            ← Back to wallet terminal
+            â† Back to wallet terminal
           </Link>
         </Panel>
       </main>

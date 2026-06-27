@@ -11,6 +11,7 @@ import {
   addWatchedWallet,
   loadWatchedWallets,
   removeWatchedWallet,
+  saveWatchedWallets,
   WatchedWallet,
 } from "@/lib/platform/watched-wallets";
 import { AtSign, Download, Plus, Trash2, Upload, Users, Wallet } from "lucide-react";
@@ -18,8 +19,8 @@ import { AtSign, Download, Plus, Trash2, Upload, Users, Wallet } from "lucide-re
 const SUB_TABS = ["Wallet Manager", "Friends", "Live Trades", "Monitor", "KOLs"] as const;
 
 function truncate(addr: string) {
-  if (!addr || addr.length < 12) return addr || "—";
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+  if (!addr || addr.length < 12) return addr || "â€”";
+  return `${addr.slice(0, 6)}â€¦${addr.slice(-4)}`;
 }
 
 function EmptyState({ title, desc }: { title: string; desc: string }) {
@@ -89,7 +90,7 @@ export function TrackersPanel() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "multivault-trackers.json";
+    a.download = "tackers-trackers.json";
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -104,7 +105,7 @@ export function TrackersPanel() {
       try {
         const data = JSON.parse(await file.text()) as WatchedWallet[];
         if (Array.isArray(data)) {
-          localStorage.setItem("multivault_watched_wallets", JSON.stringify(data));
+          saveWatchedWallets(data);
           refreshWallets();
         }
       } catch {

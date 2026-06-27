@@ -1,4 +1,4 @@
-# MultiVault
+# Tackers
 
 A multi-chain web wallet built with Next.js. Create or import a wallet in the browser, or connect MetaMask, Phantom, or Trust Wallet.
 
@@ -45,8 +45,8 @@ Add these environment variables in Vercel project settings:
 
 ## API
 
-- `POST /api/wallet/register` — verify signature and save public address
-- `GET /api/wallets` — list registered wallet addresses
+- `POST /api/wallet/register` â€” verify signature and save public address
+- `GET /api/wallets` â€” list registered wallet addresses
 
 ## Tech stack
 

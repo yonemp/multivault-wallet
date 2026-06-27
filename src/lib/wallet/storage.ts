@@ -1,4 +1,6 @@
-const STORAGE_KEY = "multivault_encrypted_wallet";
+import { getLegacyItem } from "@/lib/storage/legacy-keys";
+
+const STORAGE_KEY = "tackers_encrypted_wallet";
 
 async function deriveKey(password: string, salt: BufferSource) {
   const encoder = new TextEncoder();
@@ -77,7 +79,7 @@ export function saveEncryptedWallet(payload: string) {
 }
 
 export function loadEncryptedWallet() {
-  return localStorage.getItem(STORAGE_KEY);
+  return getLegacyItem(STORAGE_KEY);
 }
 
 export function clearEncryptedWallet() {

@@ -3,17 +3,19 @@
 import { AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { getLegacySessionItem } from "@/lib/storage/legacy-keys";
 
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const seen = sessionStorage.getItem("mv_booted");
+    const BOOT_KEY = "tackers_booted";
+    const seen = getLegacySessionItem(BOOT_KEY);
     if (seen) {
       setReady(true);
       return;
     }
-    sessionStorage.setItem("mv_booted", "1");
+    sessionStorage.setItem(BOOT_KEY, "1");
   }, []);
 
   return (

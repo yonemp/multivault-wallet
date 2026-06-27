@@ -50,7 +50,7 @@ export function RewardsPanel() {
     <div>
       <PageHeader
         title="Rewards"
-        description="Earn SOL and points for trading — progress through ranks for higher multipliers"
+        description="Earn SOL and points for trading â€” progress through ranks for higher multipliers"
       />
 
       <div className="grid gap-3 lg:grid-cols-3">
@@ -61,7 +61,7 @@ export function RewardsPanel() {
           </div>
           <p className="mt-2 text-2xl font-bold">{state.rank}</p>
           <p className="mt-1 text-xs text-[var(--muted)]">
-            {state.multiplier}× point multiplier
+            {state.multiplier}Ã— point multiplier
           </p>
         </div>
         <div className="mv-panel p-4">
@@ -89,7 +89,7 @@ export function RewardsPanel() {
             <h3 className="text-sm font-semibold">Referral program</h3>
           </div>
           <p className="text-xs text-[var(--muted)]">
-            Share your code — referrals start at 10× multiplier. You earn points when they trade.
+            Share your code â€” referrals start at 10Ã— multiplier. You earn points when they trade.
           </p>
           <div className="flex items-center gap-2">
             <code className="flex-1 border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 font-mono text-sm">
@@ -111,7 +111,7 @@ export function RewardsPanel() {
             </div>
           ) : (
             <p className="text-xs text-[var(--gain)]">
-              Referred by {state.referredBy} · 10× active
+              Referred by {state.referredBy} · 10Ã— active
             </p>
           )}
         </div>

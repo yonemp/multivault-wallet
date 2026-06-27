@@ -1,5 +1,6 @@
 "use client";
 
+import { BRAND_INITIALS, BRAND_NAME } from "@/lib/brand";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
@@ -11,7 +12,7 @@ type LoadingScreenProps = {
 };
 
 export function LoadingScreen({
-  message = "MultiVault",
+  message = BRAND_NAME,
   submessage = "Initializing secure multi-chain vault",
   duration = 2200,
   onComplete,
@@ -50,7 +51,7 @@ export function LoadingScreen({
     >
       <div className="relative z-10 flex flex-col items-center px-6">
         <div className="flex h-12 w-12 items-center justify-center border border-[var(--border-strong)] bg-[var(--surface)]">
-          <span className="text-xs font-bold tracking-widest text-[var(--primary)]">MV</span>
+          <span className="text-xs font-bold tracking-widest text-[var(--primary)]">{BRAND_INITIALS}</span>
         </div>
 
         <motion.h1

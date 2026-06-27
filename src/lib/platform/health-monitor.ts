@@ -1,3 +1,6 @@
+import { BRAND_NAME } from "@/lib/brand";
+import { getLegacySessionItem } from "@/lib/storage/legacy-keys";
+
 export type HealthEvent = {
   id: string;
   type: "error" | "rejection" | "react" | "info";
@@ -8,13 +11,13 @@ export type HealthEvent = {
   meta?: Record<string, string>;
 };
 
-const KEY = "multivault_health_log";
+const KEY = "tackers_health_log";
 const MAX = 80;
 
 function load(): HealthEvent[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(sessionStorage.getItem(KEY) ?? "[]") as HealthEvent[];
+    return JSON.parse(getLegacySessionItem(KEY) ?? "[]") as HealthEvent[];
   } catch {
     return [];
   }
@@ -44,7 +47,7 @@ export function recordHealthEvent(
   save(events);
 
   if (type !== "info") {
-    console.error(`[MultiVault Health] ${type}:`, message, stack ?? "");
+    console.error(`[${BRAND_NAME} Health] ${type}:`, message, stack ?? "");
   }
 
   void reportToServer(event).catch(() => {});

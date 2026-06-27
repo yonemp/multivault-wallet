@@ -5,12 +5,14 @@ export type WalletLayout = {
   destIds: string[];
 };
 
-const KEY = "multivault_wallet_layout";
+import { getLegacyItem } from "@/lib/storage/legacy-keys";
+
+const KEY = "tackers_wallet_layout";
 
 export function loadWalletLayout(): WalletLayout {
   if (typeof window === "undefined") return { sourceIds: [], destIds: [] };
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY) ?? "{}") as WalletLayout;
+    const raw = JSON.parse(getLegacyItem(KEY) ?? "{}") as WalletLayout;
     return {
       sourceIds: raw.sourceIds ?? [],
       destIds: raw.destIds ?? [],

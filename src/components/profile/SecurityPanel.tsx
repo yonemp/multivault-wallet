@@ -10,12 +10,13 @@ import { usePasswordPrompt } from "@/hooks/usePasswordPrompt";
 import { loadEncryptedWallet } from "@/lib/wallet/storage";
 import { changeWalletPassword, verifyWalletPassword } from "@/lib/wallet/verify-password";
 
+import { BRAND_NAME } from "@/lib/brand";
 import { AlertTriangle, Copy, Download, Eye, EyeOff, KeyRound, ShieldAlert } from "lucide-react";
 
 const DISCLAIMERS = [
   "I understand that anyone with my recovery phrase can steal all my funds permanently.",
-  "I understand MultiVault cannot recover my wallet if I lose my seed phrase or password.",
-  "I will store my backup offline in a secure location — never in screenshots, email, or cloud notes.",
+  `I understand ${BRAND_NAME} cannot recover my wallet if I lose my seed phrase or password.`,
+  "I will store my backup offline in a secure location â€” never in screenshots, email, or cloud notes.",
 ];
 
 type SecurityPanelProps = {
@@ -70,12 +71,12 @@ export function SecurityPanel({ email, phone, isLocalWallet }: SecurityPanelProp
     if (!mnemonic) return;
     const date = new Date().toISOString().slice(0, 10);
     const content = [
-      "MULTIVAULT RECOVERY PHRASE BACKUP",
+      `${BRAND_NAME} recovery PHRASE BACKUP`,
       "=================================",
       `Exported: ${new Date().toLocaleString()}`,
       "",
       "WARNING: Anyone with this phrase controls your funds.",
-      "Store offline. Never share. MultiVault cannot recover lost phrases.",
+      `Store offline. Never share. ${BRAND_NAME} cannot recover lost phrases.`,
       "",
       "RECOVERY PHRASE (write in order):",
       "",
@@ -87,7 +88,7 @@ export function SecurityPanel({ email, phone, isLocalWallet }: SecurityPanelProp
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `multivault-seed-phrase-${date}.txt`;
+    a.download = `tackers-seed-phrase-${date}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -102,7 +103,7 @@ export function SecurityPanel({ email, phone, isLocalWallet }: SecurityPanelProp
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `multivault-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `tackers-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -153,14 +154,14 @@ export function SecurityPanel({ email, phone, isLocalWallet }: SecurityPanelProp
       <Panel className="mv-glass p-5">
         <h2 className="flex items-center gap-2 text-sm font-semibold">
           <ShieldAlert className="h-4 w-4 text-[var(--warning)]" />
-          Critical — read before backing up
+          Critical â€” read before backing up
         </h2>
         <ul className="mt-3 space-y-2 text-xs text-[var(--muted)]">
           <li>· Your <strong className="text-[var(--foreground)]">recovery phrase</strong> is the master key to all chains in this wallet.</li>
-          <li>· If you lose it, your funds are <strong className="text-[var(--loss)]">gone forever</strong>. MultiVault cannot reset or recover it.</li>
-          <li>· Never share your phrase with anyone — including support staff or &quot;admin&quot; messages.</li>
+          <li>· If you lose it, your funds are <strong className="text-[var(--loss)]">gone forever</strong>. {BRAND_NAME} cannot reset or recover it.</li>
+          <li>· Never share your phrase with anyone â€” including support staff or &quot;admin&quot; messages.</li>
           <li>· Write it on paper. Store copies in separate secure locations. Do not save in cloud drives or photos.</li>
-          <li>· Your wallet password is only required for withdrawals, deleting wallets, and changing contact info — not for browsing or trading.</li>
+          <li>· Your wallet password is only required for withdrawals, deleting wallets, and changing contact info â€” not for browsing or trading.</li>
         </ul>
       </Panel>
 

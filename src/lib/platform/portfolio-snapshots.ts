@@ -1,4 +1,6 @@
-const KEY = "mv_portfolio_snapshots";
+import { getLegacyItem } from "@/lib/storage/legacy-keys";
+
+const KEY = "tackers_portfolio_snapshots";
 
 export type PortfolioSnapshot = {
   date: string;
@@ -8,7 +10,7 @@ export type PortfolioSnapshot = {
 export function loadSnapshots(): PortfolioSnapshot[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? "[]") as PortfolioSnapshot[];
+    return JSON.parse(getLegacyItem(KEY) ?? "[]") as PortfolioSnapshot[];
   } catch {
     return [];
   }

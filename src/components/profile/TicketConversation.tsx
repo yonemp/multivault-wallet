@@ -148,7 +148,7 @@ export function TicketConversation({
           <Input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder={adminMode ? "Reply to user…" : "Ask a follow-up…"}
+            placeholder={adminMode ? "Reply to userâ€¦" : "Ask a follow-upâ€¦"}
             disabled={busy}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {

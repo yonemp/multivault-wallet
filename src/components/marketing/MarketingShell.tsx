@@ -1,4 +1,5 @@
 import { Logo } from "@/components/layout/Logo";
+import { BRAND_NAME } from "@/lib/brand";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -54,7 +55,7 @@ export function MarketingShell({
       {showFooter && (
         <footer className="mv-premium-footer">
           <div className="mv-premium-container mv-premium-footer-inner">
-            <p>© {new Date().getFullYear()} MultiVault</p>
+            <p>© {new Date().getFullYear()} {BRAND_NAME}</p>
             <div className="mv-premium-footer-links">
               <Link href="/sign-in">Sign in</Link>
               <Link href="/create">Create wallet</Link>

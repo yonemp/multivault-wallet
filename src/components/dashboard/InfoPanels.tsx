@@ -3,13 +3,14 @@
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
+import { BRAND_NAME } from "@/lib/brand";
 
 export function BuyCryptoPanel() {
   return (
     <div className="mx-auto max-w-lg">
       <PageHeader
         title="Buy Crypto"
-        description="On-ramp SOL directly — no external site required"
+        description="On-ramp SOL directly â€” no external site required"
       />
       <div className="mv-panel space-y-4 p-5">
         <p className="text-sm text-[var(--muted)]">
@@ -23,7 +24,7 @@ export function BuyCryptoPanel() {
               className="border border-[var(--border)] px-4 py-3 text-left text-sm transition hover:border-[var(--primary)]"
             >
               {p}
-              <span className="ml-2 text-xs text-[var(--muted)]">— coming soon</span>
+              <span className="ml-2 text-xs text-[var(--muted)]">â€” coming soon</span>
             </button>
           ))}
         </div>
@@ -38,7 +39,7 @@ export function MultiWalletPanel() {
       <PageHeader title="Multi-wallet" description="Manage multiple wallets from one account" />
       <div className="mv-panel space-y-3 p-5 text-sm">
         <p className="text-[var(--muted)]">
-          MultiVault currently uses one active session wallet. External connect (MetaMask / Phantom) registers per-chain addresses.
+          {BRAND_NAME} currently uses one active session wallet. External connect (MetaMask / Phantom) registers per-chain addresses.
         </p>
         <ul className="space-y-2 text-xs text-[var(--muted)]">
           <li>· Create or import additional wallets via home page</li>
@@ -80,7 +81,7 @@ export function FeesPanel() {
 export function FaqsPanel() {
   const faqs = [
     {
-      q: "Is MultiVault custodial?",
+      q: `Is ${BRAND_NAME} custodial?`,
       a: "No. Your seed phrase is encrypted locally and never sent to our servers.",
     },
     {
@@ -89,11 +90,11 @@ export function FaqsPanel() {
     },
     {
       q: "What is Pulse?",
-      a: "Pulse tracks new token activity across migration stages — New, Final Stretch, and Migrated.",
+      a: "Pulse tracks new token activity across migration stages â€” New, Final Stretch, and Migrated.",
     },
     {
       q: "How do rewards work?",
-      a: "Earn points per trade. Referrals unlock a 10× multiplier. Ranks increase reward rates.",
+      a: "Earn points per trade. Referrals unlock a 10Ã— multiplier. Ranks increase reward rates.",
     },
     {
       q: "Can I snipe migrations?",
@@ -126,7 +127,7 @@ export function SupportPanel() {
       <PageHeader title="Support" description="Get help via tickets or community" />
       <div className="mv-panel space-y-4 p-6">
         <p className="text-sm text-[var(--muted)]">
-          Chat with support on open tickets from Profile → Support until resolved.
+          Chat with support on open tickets from Profile â†’ Support until resolved.
         </p>
         <Link href="/profile?tab=support">
           <Button className="w-full">My support tickets</Button>
@@ -137,7 +138,7 @@ export function SupportPanel() {
           rel="noopener noreferrer"
           className="block text-xs text-[var(--primary)]"
         >
-          Join Discord →
+          Join Discord â†’
         </a>
       </div>
     </div>

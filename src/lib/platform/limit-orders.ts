@@ -1,4 +1,6 @@
-const KEY = "multivault_limit_orders";
+import { getLegacyItem } from "@/lib/storage/legacy-keys";
+
+const KEY = "tackers_limit_orders";
 
 export type LimitOrder = {
   id: string;
@@ -14,7 +16,7 @@ export type LimitOrder = {
 export function loadLimitOrders(): LimitOrder[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? "[]") as LimitOrder[];
+    return JSON.parse(getLegacyItem(KEY) ?? "[]") as LimitOrder[];
   } catch {
     return [];
   }

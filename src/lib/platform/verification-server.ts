@@ -1,4 +1,5 @@
 import { createHash, randomInt } from "crypto";
+import { BRAND_NAME } from "@/lib/brand";
 import { createServerClient } from "@/lib/supabase/server";
 
 export type VerificationChannel = "email" | "phone";
@@ -68,7 +69,7 @@ async function storeCode(
 
 async function sendEmailCode(to: string, code: string) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL ?? "MultiVault <onboarding@resend.dev>";
+  const from = process.env.RESEND_FROM_EMAIL ?? `${BRAND_NAME} <onboarding@resend.dev>`;
   if (!apiKey) throw new Error("Email verification is not configured (RESEND_API_KEY)");
 
   const res = await fetch("https://api.resend.com/emails", {
@@ -80,7 +81,7 @@ async function sendEmailCode(to: string, code: string) {
     body: JSON.stringify({
       from,
       to: [to],
-      subject: "Your MultiVault verification code",
+      subject: `Your ${BRAND_NAME} verification code`,
       html: `
         <p>Your verification code is:</p>
         <p style="font-size:28px;font-weight:bold;letter-spacing:4px">${code}</p>
@@ -106,7 +107,7 @@ async function sendSmsCode(to: string, code: string) {
   const body = new URLSearchParams({
     To: to,
     From: from,
-    Body: `Your MultiVault code is ${code}. Expires in 10 minutes.`,
+    Body: `Your ${BRAND_NAME} code is ${code}. Expires in 10 minutes.`,
   });
 
   const res = await fetch(
@@ -143,7 +144,7 @@ export async function sendVerificationCode(opts: {
   const destination = normalizeDestination(channel, raw);
   const recent = await countRecentSends(destination, channel);
   if (recent >= MAX_SENDS_PER_WINDOW) {
-    throw new Error("Too many codes sent — wait a few minutes and try again");
+    throw new Error("Too many codes sent â€” wait a few minutes and try again");
   }
 
   const code = String(randomInt(100000, 999999));
