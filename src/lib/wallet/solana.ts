@@ -10,4 +10,18 @@ export function deriveSolanaKeypair(mnemonic: string): Keypair {
   return Keypair.fromSeed(key.slice(0, 32));
 }
 
-export const SOLANA_RPC = "https://api.mainnet-beta.solana.com";
+const DEFAULT_SOLANA_RPCS = [
+  "https://api.mainnet-beta.solana.com",
+  "https://solana-rpc.publicnode.com",
+  "https://solana.drpc.org",
+];
+
+export function getSolanaRpcEndpoints(): string[] {
+  const custom = process.env.SOLANA_RPC_URL?.trim();
+  if (custom) {
+    return [custom, ...DEFAULT_SOLANA_RPCS.filter((rpc) => rpc !== custom)];
+  }
+  return DEFAULT_SOLANA_RPCS;
+}
+
+export const SOLANA_RPC = DEFAULT_SOLANA_RPCS[0];

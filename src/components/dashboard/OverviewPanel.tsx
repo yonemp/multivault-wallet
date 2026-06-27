@@ -2,9 +2,9 @@
 
 import { DashboardTab } from "@/components/dashboard/ActionTabs";
 import { CHAIN_LIST, ChainId } from "@/lib/wallet/chains";
-import { ChainBalances } from "@/lib/wallet/balances";
+import { ChainBalances } from "@/lib/wallet/balances-client";
 import { getAddress, getSessionChains, SessionData } from "@/lib/wallet/session";
-import { Check, Copy, ExternalLink } from "lucide-react";
+import { Check, Copy, ExternalLink, RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
 
 type OverviewPanelProps = {
@@ -12,6 +12,7 @@ type OverviewPanelProps = {
   balances: ChainBalances;
   loading?: boolean;
   onNavigate: (tab: DashboardTab) => void;
+  onRefresh?: () => void;
 };
 
 function truncateAddress(address: string) {
@@ -43,6 +44,7 @@ export function OverviewPanel({
   balances,
   loading,
   onNavigate,
+  onRefresh,
 }: OverviewPanelProps) {
   const [copied, setCopied] = useState<ChainId | null>(null);
   const activeChains = getSessionChains(session);
@@ -110,9 +112,22 @@ export function OverviewPanel({
       <div className="mv-panel">
         <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
           <h2 className="text-sm font-semibold text-[var(--foreground)]">Asset registry</h2>
-          <span className="text-xs text-[var(--muted)]">
-            {loading ? "Refreshing balances…" : "Live mainnet balances"}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[var(--muted)]">
+              {loading ? "Refreshing balances…" : "Live mainnet balances"}
+            </span>
+            {onRefresh && (
+              <button
+                type="button"
+                onClick={onRefresh}
+                disabled={loading}
+                className="border border-[var(--border)] p-1 text-[var(--muted)] transition hover:border-[var(--primary)] hover:text-[var(--primary)] disabled:opacity-50"
+                title="Refresh balances"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="overflow-x-auto">

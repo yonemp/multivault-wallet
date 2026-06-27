@@ -12,7 +12,10 @@ import { ReceivePanel } from "@/components/dashboard/ReceivePanel";
 import { SendPanel } from "@/components/dashboard/SendPanel";
 import { SwapPanel } from "@/components/dashboard/SwapPanel";
 import { Logo } from "@/components/layout/Logo";
-import { ChainBalances, fetchChainBalances } from "@/lib/wallet/balances";
+import {
+  ChainBalances,
+  fetchChainBalances,
+} from "@/lib/wallet/balances-client";
 import { deriveAllAddresses } from "@/lib/wallet/derive-all";
 import {
   clearSession,
@@ -51,6 +54,9 @@ export default function DashboardPage() {
 
     if (current.mode === "external") {
       setUnlocked(true);
+    }
+
+    if (Object.keys(current.addresses).length > 0) {
       loadBalances(current);
     }
   }, []);
@@ -106,6 +112,9 @@ export default function DashboardPage() {
   }
 
   const ready = session && (session.mode === "external" || unlocked);
+  const hasAddresses =
+    session != null && Object.keys(session.addresses).length > 0;
+  const showNav = ready || hasAddresses;
 
   return (
     <>
@@ -128,7 +137,7 @@ export default function DashboardPage() {
             <div className="mx-auto flex w-full max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
               <Logo href="/" compact />
 
-              {ready && (
+              {showNav && (
                 <div className="flex flex-1 items-center justify-start overflow-x-auto">
                   <ActionTabs active={activeTab} onChange={setActiveTab} />
                 </div>
@@ -147,12 +156,12 @@ export default function DashboardPage() {
           </header>
 
           <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6">
-            {session.mode === "local" && !unlocked ? (
-              <div className="mx-auto max-w-md">
+            {session.mode === "local" && !unlocked && (
+              <div className="mx-auto mb-5 max-w-md">
                 <Panel className="p-6">
                   <h1 className="text-xl font-semibold text-[var(--foreground)]">Unlock wallet</h1>
                   <p className="mt-2 text-sm text-[var(--muted)]">
-                    Access all 7 chains secured on this device.
+                    Unlock to send or swap. Balances and receive addresses are visible below.
                   </p>
                   <div className="mt-6 space-y-4">
                     <Input
@@ -171,7 +180,9 @@ export default function DashboardPage() {
                   </div>
                 </Panel>
               </div>
-            ) : (
+            )}
+
+            {showNav && (
               <div>
                 {activeTab === "overview" && (
                   <OverviewPanel
@@ -179,17 +190,28 @@ export default function DashboardPage() {
                     balances={balances}
                     loading={loadingBalances}
                     onNavigate={setActiveTab}
+                    onRefresh={refreshBalances}
                   />
                 )}
-                {activeTab === "receive" && ready && (
+                {activeTab === "receive" && hasAddresses && (
                   <ReceivePanel session={session} />
                 )}
-                {activeTab === "send" && ready && (
-                  <SendPanel session={session} onSuccess={refreshBalances} />
-                )}
-                {activeTab === "swap" && ready && (
-                  <SwapPanel session={session} onSuccess={refreshBalances} />
-                )}
+                {activeTab === "send" &&
+                  (ready ? (
+                    <SendPanel session={session} onSuccess={refreshBalances} />
+                  ) : (
+                    <p className="text-sm text-[var(--muted)]">
+                      Unlock your wallet to send funds.
+                    </p>
+                  ))}
+                {activeTab === "swap" &&
+                  (ready ? (
+                    <SwapPanel session={session} onSuccess={refreshBalances} />
+                  ) : (
+                    <p className="text-sm text-[var(--muted)]">
+                      Unlock your wallet to swap tokens.
+                    </p>
+                  ))}
               </div>
             )}
           </main>
