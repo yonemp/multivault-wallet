@@ -1,8 +1,10 @@
 import { verifyMessage } from "ethers";
 import { PublicKey } from "@solana/web3.js";
 import nacl from "tweetnacl";
-import { createServerClient } from "@/lib/supabase/server";
+import { upsertWallet } from "@/lib/db";
 import { NextResponse } from "next/server";
+
+export const runtime = "nodejs";
 
 type RegisterBody = {
   address: string;
@@ -58,20 +60,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    const supabase = createServerClient();
-    const { error } = await supabase.from("connected_wallets").upsert(
-      {
-        address,
-        chain,
-        wallet_type: walletType,
-        last_seen_at: new Date().toISOString(),
-      },
-      { onConflict: "address,chain" },
-    );
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    upsertWallet({ address, chain, walletType });
 
     return NextResponse.json({ success: true });
   } catch {
