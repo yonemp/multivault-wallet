@@ -3,10 +3,9 @@
 import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/layout/Logo";
-
 import { ActionTabs, DashboardTab } from "@/components/dashboard/ActionTabs";
 import { Button } from "@/components/ui/Button";
-import { LogOut, Search, Wallet } from "lucide-react";
+import { LogOut, Search, Wallet, Lock } from "lucide-react";
 import type { AssetMarketData } from "@/app/api/prices/route";
 
 type AppShellProps = {
@@ -16,6 +15,7 @@ type AppShellProps = {
   showNav?: boolean;
   onLogout?: () => void;
   terminal?: boolean;
+  walletLocked?: boolean;
 };
 
 export function AppShell({
@@ -25,6 +25,7 @@ export function AppShell({
   showNav = true,
   onLogout,
   terminal = true,
+  walletLocked = false,
 }: AppShellProps) {
   const [solPrice, setSolPrice] = useState<AssetMarketData | null>(null);
 
@@ -37,21 +38,29 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-elevated)]">
-        {/* Preset / price strip — Axiom leading status row */}
+      <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-elevated)]/90 backdrop-blur-xl">
+        <div className="mv-header-glow h-px w-full" />
+
         <div className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-1.5 text-[11px]">
-          <span className="rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 font-medium text-[var(--muted)]">
-            Preset 1
-          </span>
+          <span className="mv-preset-pill">Preset 1</span>
           <span className="font-mono text-[var(--muted)]">
             SOL{" "}
             <span className="text-[var(--foreground)]">
               ${solPrice?.price.toFixed(2) ?? "—"}
             </span>
+            {solPrice && (
+              <span className={`ml-1 ${solPrice.change24h >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
+                {solPrice.change24h >= 0 ? "+" : ""}
+                {solPrice.change24h.toFixed(2)}%
+              </span>
+            )}
           </span>
-          <span className="hidden text-[var(--muted-dim)] sm:inline">
-            · Multi-chain terminal
-          </span>
+          {walletLocked && (
+            <span className="flex items-center gap-1 rounded border border-[var(--warning)]/40 bg-[var(--warning)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--warning)]">
+              <Lock className="h-3 w-3" /> Locked
+            </span>
+          )}
+          <span className="hidden text-[var(--muted-dim)] sm:inline">· Multi-chain terminal</span>
         </div>
 
         <div className="flex h-[var(--header-h)] items-center gap-2 px-4">
@@ -64,22 +73,16 @@ export function AppShell({
           <div className="ml-auto flex shrink-0 items-center gap-1">
             <button
               type="button"
-              className="hidden items-center gap-2 border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--muted)] transition hover:border-[var(--border-strong)] hover:text-[var(--foreground)] sm:flex"
+              className="mv-header-btn hidden sm:flex"
             >
               <Search className="h-3.5 w-3.5" />
               Search
             </button>
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-1.5 border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
-            >
+            <Link href="/dashboard" className="mv-header-btn">
               <Wallet className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Wallet</span>
             </Link>
-            <Link
-              href="/profile"
-              className="ax-nav-link hidden sm:inline"
-            >
+            <Link href="/profile" className="ax-nav-link hidden sm:inline">
               Profile
             </Link>
             <Link href="/admin" className="ax-nav-link hidden md:inline">
@@ -105,7 +108,6 @@ export function AppShell({
           {children}
         </div>
       </main>
-
     </div>
   );
 }

@@ -29,7 +29,7 @@ export function StatusBar() {
 
   return (
     <footer
-      className="fixed bottom-0 left-0 right-0 z-50 flex h-[var(--status-h)] items-center justify-between border-t border-[var(--border)] bg-[var(--bg-elevated)] px-4 text-[11px]"
+      className="fixed bottom-0 left-0 right-0 z-50 flex h-[var(--status-h)] items-center justify-between border-t border-[var(--border)] bg-[var(--bg-elevated)]/90 px-4 text-[11px] backdrop-blur-xl"
       style={{ height: "var(--status-h)" }}
     >
       <div className="flex items-center gap-4">

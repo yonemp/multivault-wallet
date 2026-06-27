@@ -15,6 +15,7 @@ import {
 import { registerWallet } from "@/lib/wallet/register";
 import { buildSignInMessage } from "@/lib/auth/message";
 import { saveSession } from "@/lib/wallet/session";
+import { setUnlockedMnemonic } from "@/lib/wallet/unlock-store";
 import nacl from "tweetnacl";
 
 function toBase64(bytes: Uint8Array) {
@@ -87,6 +88,7 @@ export default function ImportWalletPage() {
         evmAddress: evmWallet.address,
         solanaAddress: solanaKeypair.publicKey.toBase58(),
       });
+      setUnlockedMnemonic(normalized);
 
       window.location.href = "/dashboard";
     } catch (err) {

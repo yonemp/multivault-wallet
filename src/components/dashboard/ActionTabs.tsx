@@ -34,13 +34,10 @@ export function ActionTabs({ active, onChange }: ActionTabsProps) {
           key={id}
           type="button"
           onClick={() => onChange(id)}
-          data-active={active === id}
-          className="ax-nav-link relative shrink-0 py-3"
+          data-active={active === id ? "true" : "false"}
+          className="ax-nav-tab shrink-0 py-3"
         >
           {label}
-          {active === id && (
-            <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-[var(--primary)]" />
-          )}
         </button>
       ))}
 

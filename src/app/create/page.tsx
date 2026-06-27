@@ -15,6 +15,7 @@ import {
 import { registerWallet } from "@/lib/wallet/register";
 import { buildSignInMessage } from "@/lib/auth/message";
 import { saveSession } from "@/lib/wallet/session";
+import { setUnlockedMnemonic } from "@/lib/wallet/unlock-store";
 import { Copy, ShieldAlert } from "lucide-react";
 import nacl from "tweetnacl";
 
@@ -91,6 +92,7 @@ export default function CreateWalletPage() {
         evmAddress: evmWallet.address,
         solanaAddress: solanaKeypair.publicKey.toBase58(),
       });
+      setUnlockedMnemonic(seedPhrase);
 
       window.location.href = "/dashboard";
     } catch (err) {
