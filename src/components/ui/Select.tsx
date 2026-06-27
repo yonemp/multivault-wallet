@@ -9,7 +9,7 @@ export function Select({
   return (
     <select
       className={clsx(
-        "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-violet-400",
+        "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100",
         className,
       )}
       {...props}

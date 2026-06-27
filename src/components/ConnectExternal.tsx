@@ -12,6 +12,12 @@ import {
 import { registerWallet } from "@/lib/wallet/register";
 import { saveSession } from "@/lib/wallet/session";
 
+const wallets = [
+  { id: "metamask" as const, label: "MetaMask", emoji: "🦊", variant: "primary" as const },
+  { id: "phantom" as const, label: "Phantom", emoji: "👻", variant: "secondary" as const },
+  { id: "trust" as const, label: "Trust Wallet", emoji: "🛡️", variant: "secondary" as const },
+];
+
 export function ConnectExternal() {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,33 +88,27 @@ export function ConnectExternal() {
     }
   }
 
+  function handleClick(id: "metamask" | "phantom" | "trust") {
+    if (id === "phantom") handlePhantom();
+    else handleEvm(id);
+  }
+
   return (
-    <div className="space-y-4">
-      <Button
-        className="w-full"
-        onClick={() => handleEvm("metamask")}
-        disabled={Boolean(loading)}
-      >
-        {loading === "metamask" ? "Connecting..." : "Connect MetaMask"}
-      </Button>
-      <Button
-        className="w-full"
-        variant="secondary"
-        onClick={() => handlePhantom()}
-        disabled={Boolean(loading)}
-      >
-        {loading === "phantom" ? "Connecting..." : "Connect Phantom"}
-      </Button>
-      <Button
-        className="w-full"
-        variant="secondary"
-        onClick={() => handleEvm("trust")}
-        disabled={Boolean(loading)}
-      >
-        {loading === "trust" ? "Connecting..." : "Connect Trust Wallet"}
-      </Button>
+    <div className="space-y-3">
+      {wallets.map(({ id, label, emoji, variant }) => (
+        <Button
+          key={id}
+          className="w-full justify-start gap-3"
+          variant={variant}
+          onClick={() => handleClick(id)}
+          disabled={Boolean(loading)}
+        >
+          <span className="text-lg">{emoji}</span>
+          {loading === id ? "Connecting..." : `Connect ${label}`}
+        </Button>
+      ))}
       {error && (
-        <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </p>
       )}

@@ -156,16 +156,17 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
       ];
 
   return (
-    <div className="max-w-lg space-y-5 rounded-2xl border border-white/10 bg-white/5 p-6">
-      <div>
-        <h2 className="text-xl font-semibold text-white">Swap tokens</h2>
-        <p className="mt-2 text-sm text-zinc-400">
+    <div className="mx-auto max-w-lg">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-900">Swap</h1>
+        <p className="mt-2 text-slate-500">
           Swap via Jupiter (Solana) or LI.FI (EVM). Rates are estimates.
         </p>
       </div>
 
+      <div className="space-y-5 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-lg shadow-blue-100/40">
       <div>
-        <label className="mb-2 block text-sm text-zinc-400">Network</label>
+        <label className="mb-2 block text-sm font-medium text-slate-600">Network</label>
         <Select
           value={network}
           onChange={(e) => {
@@ -190,7 +191,7 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
 
       <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
         <div>
-          <label className="mb-2 block text-sm text-zinc-400">From</label>
+          <label className="mb-2 block text-sm font-medium text-slate-600">From</label>
           <Select value={fromToken} onChange={(e) => setFromToken(e.target.value)}>
             {tokenOptions.map((t) => (
               <option key={t.id} value={t.id}>
@@ -203,7 +204,7 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
           ⇄
         </Button>
         <div>
-          <label className="mb-2 block text-sm text-zinc-400">To</label>
+          <label className="mb-2 block text-sm font-medium text-slate-600">To</label>
           <Select value={toToken} onChange={(e) => setToToken(e.target.value)}>
             {tokenOptions
               .filter((t) => t.id !== fromToken)
@@ -217,7 +218,7 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
       </div>
 
       <div>
-        <label className="mb-2 block text-sm text-zinc-400">Amount</label>
+        <label className="mb-2 block text-sm font-medium text-slate-600">Amount</label>
         <Input
           type="number"
           min="0"
@@ -229,19 +230,19 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
       </div>
 
       {quotePreview && (
-        <p className="rounded-xl border border-violet-400/30 bg-violet-500/10 px-4 py-3 text-sm text-violet-100">
+        <p className="rounded-xl bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800">
           Estimated output: {quotePreview}
         </p>
       )}
 
       {error && (
-        <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </p>
       )}
 
       {txHash && (
-        <p className="break-all rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+        <p className="break-all rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           Swapped! Tx: {txHash}
         </p>
       )}
@@ -257,11 +258,13 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
         </Button>
         <Button
           className="flex-1"
+          size="lg"
           onClick={handleSwap}
           disabled={loading || !quoteData}
         >
           {loading ? "Swapping..." : "Swap"}
         </Button>
+      </div>
       </div>
     </div>
   );

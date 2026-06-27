@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { ArrowRight } from "lucide-react";
 import { ReactNode } from "react";
 
 type WalletCardProps = {
@@ -7,14 +8,30 @@ type WalletCardProps = {
   icon: ReactNode;
   onClick?: () => void;
   href?: string;
-  accent?: "violet" | "orange" | "blue" | "green";
+  accent?: "blue" | "sky" | "indigo" | "slate";
 };
 
 const accents = {
-  violet: "from-violet-500/20 to-fuchsia-500/10 border-violet-400/30",
-  orange: "from-orange-500/20 to-amber-500/10 border-orange-400/30",
-  blue: "from-blue-500/20 to-cyan-500/10 border-blue-400/30",
-  green: "from-emerald-500/20 to-green-500/10 border-emerald-400/30",
+  blue: {
+    border: "border-blue-200/80 hover:border-blue-300",
+    bg: "bg-gradient-to-br from-white to-blue-50/50",
+    icon: "bg-blue-600 text-white shadow-blue-500/30",
+  },
+  sky: {
+    border: "border-sky-200/80 hover:border-sky-300",
+    bg: "bg-gradient-to-br from-white to-sky-50/50",
+    icon: "bg-sky-500 text-white shadow-sky-500/30",
+  },
+  indigo: {
+    border: "border-indigo-200/80 hover:border-indigo-300",
+    bg: "bg-gradient-to-br from-white to-indigo-50/50",
+    icon: "bg-indigo-600 text-white shadow-indigo-500/30",
+  },
+  slate: {
+    border: "border-slate-200/80 hover:border-slate-300",
+    bg: "bg-gradient-to-br from-white to-slate-50",
+    icon: "bg-slate-700 text-white shadow-slate-500/30",
+  },
 };
 
 export function WalletCard({
@@ -23,20 +40,33 @@ export function WalletCard({
   icon,
   onClick,
   href,
-  accent = "violet",
+  accent = "blue",
 }: WalletCardProps) {
+  const style = accents[accent];
   const className = clsx(
-    "group relative overflow-hidden rounded-2xl border bg-gradient-to-br p-6 text-left transition hover:-translate-y-0.5 hover:shadow-xl",
-    accents[accent],
+    "group relative flex flex-col rounded-2xl border p-6 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg",
+    style.border,
+    style.bg,
   );
 
   const content = (
     <>
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-black/20 text-2xl">
+      <div
+        className={clsx(
+          "mb-5 flex h-14 w-14 items-center justify-center rounded-2xl text-2xl shadow-lg transition group-hover:scale-105",
+          style.icon,
+        )}
+      >
         {icon}
       </div>
-      <h3 className="text-lg font-semibold text-white">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-zinc-400">{description}</p>
+      <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+      <p className="mt-2 flex-1 text-sm leading-6 text-slate-500">
+        {description}
+      </p>
+      <div className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 transition group-hover:gap-2">
+        Continue
+        <ArrowRight className="h-4 w-4" />
+      </div>
     </>
   );
 

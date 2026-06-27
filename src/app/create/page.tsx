@@ -96,26 +96,26 @@ export default function CreateWalletPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-6 py-12">
-      <a href="/" className="text-sm text-zinc-400 hover:text-white">
-        ← Back
+    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-12 sm:px-6">
+      <a href="/" className="text-sm font-medium text-slate-500 hover:text-blue-600">
+        ← Back to home
       </a>
 
-      <h1 className="mt-8 text-3xl font-bold text-white">Create a new wallet</h1>
-      <p className="mt-3 text-zinc-400">
+      <h1 className="mt-8 text-3xl font-bold text-slate-900">Create a new wallet</h1>
+      <p className="mt-3 text-slate-500">
         Your seed phrase is generated in your browser and encrypted locally.
         It is never sent to our servers.
       </p>
 
       {!seedPhrase ? (
         <div className="mt-10">
-          <Button onClick={handleCreate}>Generate seed phrase</Button>
+          <Button size="lg" onClick={handleCreate}>Generate seed phrase</Button>
         </div>
       ) : !confirmed ? (
         <div className="mt-10 space-y-6">
-          <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-100">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
             <div className="flex items-start gap-3">
-              <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" />
+              <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
               <p>
                 Write down these 12 words in order. Anyone with this phrase can
                 access your funds. MultiVault cannot recover it for you.
@@ -123,13 +123,13 @@ export default function CreateWalletPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-white/5 p-6 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-3">
             {words.map((word, index) => (
               <div
                 key={word + index}
-                className="rounded-lg bg-black/20 px-3 py-2 text-sm text-zinc-200"
+                className="rounded-xl bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-800"
               >
-                <span className="mr-2 text-zinc-500">{index + 1}.</span>
+                <span className="mr-2 text-slate-400">{index + 1}.</span>
                 {word}
               </div>
             ))}
@@ -143,13 +143,13 @@ export default function CreateWalletPage() {
             Copy seed phrase
           </Button>
 
-          <Button onClick={() => setConfirmed(true)}>
+          <Button size="lg" onClick={() => setConfirmed(true)}>
             I saved my seed phrase
           </Button>
         </div>
       ) : (
-        <div className="mt-10 space-y-4">
-          <label className="block text-sm text-zinc-300">
+        <div className="mt-10 space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <label className="block text-sm font-medium text-slate-700">
             Create a password to encrypt your wallet on this device
           </label>
           <input
@@ -157,10 +157,10 @@ export default function CreateWalletPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Minimum 8 characters"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-violet-400"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
           />
-          {error && <p className="text-sm text-red-300">{error}</p>}
-          <Button onClick={handleFinish} disabled={loading}>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <Button size="lg" onClick={handleFinish} disabled={loading}>
             {loading ? "Securing wallet..." : "Create wallet"}
           </Button>
         </div>

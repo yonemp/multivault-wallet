@@ -1,5 +1,10 @@
 import clsx from "clsx";
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, LayoutGrid } from "lucide-react";
+import {
+  ArrowDownLeft,
+  ArrowLeftRight,
+  ArrowUpRight,
+  LayoutGrid,
+} from "lucide-react";
 
 export type DashboardTab = "overview" | "send" | "receive" | "swap";
 
@@ -17,23 +22,26 @@ type ActionTabsProps = {
 
 export function ActionTabs({ active, onChange }: ActionTabsProps) {
   return (
-    <div className="flex flex-wrap gap-2">
-      {tabs.map(({ id, label, icon: Icon }) => (
-        <button
-          key={id}
-          type="button"
-          onClick={() => onChange(id)}
-          className={clsx(
-            "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition",
-            active === id
-              ? "bg-violet-500 text-white shadow-lg shadow-violet-500/20"
-              : "bg-white/5 text-zinc-300 hover:bg-white/10",
-          )}
-        >
-          <Icon className="h-4 w-4" />
-          {label}
-        </button>
-      ))}
-    </div>
+    <nav className="flex items-center gap-1 overflow-x-auto">
+      {tabs.map(({ id, label, icon: Icon }) => {
+        const isActive = active === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onChange(id)}
+            className={clsx(
+              "relative inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200",
+              isActive
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/25"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+            )}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </button>
+        );
+      })}
+    </nav>
   );
 }

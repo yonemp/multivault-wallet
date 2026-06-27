@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
 import { ActionTabs, DashboardTab } from "@/components/dashboard/ActionTabs";
 import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
 import { ReceivePanel } from "@/components/dashboard/ReceivePanel";
 import { SendPanel } from "@/components/dashboard/SendPanel";
 import { SwapPanel } from "@/components/dashboard/SwapPanel";
+import { Logo } from "@/components/layout/Logo";
 import {
   clearSession,
   loadSession,
@@ -126,7 +129,7 @@ export default function DashboardPage() {
 
   if (!session) {
     return (
-      <main className="flex min-h-screen items-center justify-center text-zinc-400">
+      <main className="flex min-h-screen items-center justify-center text-slate-500">
         Loading...
       </main>
     );
@@ -135,45 +138,61 @@ export default function DashboardPage() {
   const ready = session.mode === "external" || unlocked;
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-5xl px-6 py-12">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-sm uppercase tracking-[0.2em] text-violet-300">
-            MultiVault
-          </p>
-          <h1 className="mt-2 text-3xl font-bold text-white">Dashboard</h1>
-        </div>
-        <Button variant="ghost" onClick={handleLogout}>
-          <LogOut className="mr-2 h-4 w-4" />
-          Log out
-        </Button>
-      </div>
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
+          <Logo href="/" compact />
 
-      {session.mode === "local" && !unlocked ? (
-        <div className="mt-12 max-w-md space-y-4 rounded-2xl border border-white/10 bg-white/5 p-6">
-          <h2 className="text-lg font-semibold text-white">Unlock wallet</h2>
-          <p className="text-sm text-zinc-400">
-            Unlock to send, receive, and swap with your wallet.
-          </p>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Your encryption password"
-            className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-violet-400"
-          />
-          {error && <p className="text-sm text-red-300">{error}</p>}
-          <Button onClick={handleUnlock}>Unlock</Button>
+          {ready && (
+            <div className="flex flex-1 items-center justify-start overflow-x-auto">
+              <ActionTabs active={activeTab} onChange={setActiveTab} />
+            </div>
+          )}
+
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="shrink-0">
+            <LogOut className="mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Log out</span>
+          </Button>
         </div>
-      ) : (
-        <>
-          <div className="mt-8">
-            <ActionTabs active={activeTab} onChange={setActiveTab} />
+      </header>
+
+      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+        {session.mode === "local" && !unlocked ? (
+          <div className="mx-auto max-w-md">
+            <Card className="shadow-lg shadow-blue-100/50">
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold text-slate-900">Unlock wallet</h1>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Enter your password to send, receive, and swap with your wallet.
+                </p>
+              </div>
+              <div className="space-y-4">
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Encryption password"
+                  onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
+                />
+                {error && (
+                  <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                  </p>
+                )}
+                <Button className="w-full" size="lg" onClick={handleUnlock}>
+                  Unlock wallet
+                </Button>
+              </div>
+            </Card>
           </div>
-
-          <div className="mt-8">
+        ) : (
+          <div>
             {activeTab === "overview" && (
-              <OverviewPanel session={session} balances={balances} />
+              <OverviewPanel
+                session={session}
+                balances={balances}
+                onNavigate={setActiveTab}
+              />
             )}
             {activeTab === "receive" && ready && (
               <ReceivePanel session={session} />
@@ -185,8 +204,8 @@ export default function DashboardPage() {
               <SwapPanel session={session} onSuccess={refreshBalances} />
             )}
           </div>
-        </>
-      )}
-    </main>
+        )}
+      </main>
+    </div>
   );
 }

@@ -92,34 +92,34 @@ export default function ImportWalletPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-6 py-12">
-      <a href="/" className="text-sm text-zinc-400 hover:text-white">
-        ← Back
+    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-12 sm:px-6">
+      <a href="/" className="text-sm font-medium text-slate-500 hover:text-blue-600">
+        ← Back to home
       </a>
 
-      <h1 className="mt-8 text-3xl font-bold text-white">Import wallet</h1>
-      <p className="mt-3 text-zinc-400">
+      <h1 className="mt-8 text-3xl font-bold text-slate-900">Import wallet</h1>
+      <p className="mt-3 text-slate-500">
         Enter your 12 or 24-word recovery phrase. It stays on your device and
         is encrypted with your password.
       </p>
 
-      <div className="mt-10 space-y-4">
+      <div className="mt-10 space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <textarea
           value={seedPhrase}
           onChange={(e) => setSeedPhrase(e.target.value)}
           rows={4}
           placeholder="word1 word2 word3 ..."
-          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-violet-400"
+          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
         />
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Encryption password (min 8 chars)"
-          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-violet-400"
+          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
         />
-        {error && <p className="text-sm text-red-300">{error}</p>}
-        <Button onClick={handleImport} disabled={loading}>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <Button size="lg" onClick={handleImport} disabled={loading}>
           {loading ? "Importing..." : "Import wallet"}
         </Button>
       </div>

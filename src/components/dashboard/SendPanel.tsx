@@ -100,16 +100,17 @@ export function SendPanel({ session, onSuccess }: SendPanelProps) {
   }
 
   return (
-    <div className="max-w-lg space-y-5 rounded-2xl border border-white/10 bg-white/5 p-6">
-      <div>
-        <h2 className="text-xl font-semibold text-white">Send crypto</h2>
-        <p className="mt-2 text-sm text-zinc-400">
+    <div className="mx-auto max-w-lg">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-900">Send</h1>
+        <p className="mt-2 text-slate-500">
           Transfer native tokens to another wallet address.
         </p>
       </div>
 
+      <div className="space-y-5 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-lg shadow-blue-100/40">
       <div>
-        <label className="mb-2 block text-sm text-zinc-400">Network</label>
+        <label className="mb-2 block text-sm font-medium text-slate-600">Network</label>
         <Select
           value={network}
           onChange={(e) => setNetwork(e.target.value as SendNetwork)}
@@ -126,7 +127,7 @@ export function SendPanel({ session, onSuccess }: SendPanelProps) {
       </div>
 
       <div>
-        <label className="mb-2 block text-sm text-zinc-400">Recipient address</label>
+        <label className="mb-2 block text-sm font-medium text-slate-600">Recipient address</label>
         <Input
           value={recipient}
           onChange={(e) => setRecipient(e.target.value)}
@@ -135,7 +136,7 @@ export function SendPanel({ session, onSuccess }: SendPanelProps) {
       </div>
 
       <div>
-        <label className="mb-2 block text-sm text-zinc-400">Amount ({symbol})</label>
+        <label className="mb-2 block text-sm font-medium text-slate-600">Amount ({symbol})</label>
         <Input
           type="number"
           min="0"
@@ -147,20 +148,21 @@ export function SendPanel({ session, onSuccess }: SendPanelProps) {
       </div>
 
       {error && (
-        <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </p>
       )}
 
       {txHash && (
-        <p className="break-all rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+        <p className="break-all rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           Sent! Tx: {txHash}
         </p>
       )}
 
-      <Button className="w-full" onClick={handleSend} disabled={loading}>
+      <Button className="w-full" size="lg" onClick={handleSend} disabled={loading}>
         {loading ? "Sending..." : `Send ${symbol}`}
       </Button>
+      </div>
     </div>
   );
 }
