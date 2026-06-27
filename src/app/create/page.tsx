@@ -5,29 +5,20 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Panel } from "@/components/ui/Panel";
-import { Logo } from "@/components/layout/Logo";
-import { OnboardingStepper } from "@/components/wallet/OnboardingStepper";
+import { MarketingShell } from "@/components/marketing/MarketingShell";
+import { PremiumStepper } from "@/components/marketing/PremiumStepper";
 import { createSeedPhrase } from "@/lib/wallet/mnemonic";
 import { UsernamePicker } from "@/components/onboarding/UsernamePicker";
 import { hasAccountUsername, saveUsernameForWallet } from "@/lib/platform/account-username";
 import { setupLocalWallet } from "@/lib/wallet/setup-wallet";
 import { vaultWalletCount } from "@/lib/wallet/wallet-vault";
-import {
-  CheckCircle2,
-  Copy,
-  KeyRound,
-  Shield,
-  ShieldAlert,
-  Sparkles,
-  Wallet,
-} from "lucide-react";
+import { CheckCircle2, Copy, ShieldAlert } from "lucide-react";
 
 const STEPS = [
   { id: "intro", label: "Start" },
   { id: "backup", label: "Backup" },
   { id: "secure", label: "Secure" },
-  { id: "username", label: "Username" },
+  { id: "username", label: "Profile" },
   { id: "done", label: "Ready" },
 ];
 
@@ -98,191 +89,183 @@ export default function CreateWalletPage() {
   }
 
   return (
-    <div className="relative min-h-screen">
-      <header className="border-b border-[var(--border)] bg-[var(--bg-elevated)]/80 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
-          <Logo href="/" compact />
-          <Link href={isAdding ? "/dashboard?tab=overview&wallets=1" : "/"} className="text-xs text-[var(--muted)] hover:text-[var(--primary)]">
-            {isAdding ? "← Back to wallets" : "← Home"}
-          </Link>
-        </div>
-      </header>
+    <MarketingShell
+      narrow
+      backHref={isAdding ? "/dashboard?tab=overview&wallets=1" : "/"}
+      backLabel={isAdding ? "Wallets" : "Home"}
+      headerRight={
+        <Link href="/sign-in" className="mv-premium-ghost-link">
+          Sign in
+        </Link>
+      }
+    >
+      <PremiumStepper steps={displaySteps} current={step} />
 
-      <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
-        <div className="mb-8 flex justify-center">
-          <OnboardingStepper steps={displaySteps} current={step} />
-        </div>
-
-        {step === "intro" && (
-          <div className="space-y-6">
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-[var(--primary)]/30 bg-[var(--primary-soft)]">
-                <Sparkles className="h-7 w-7 text-[var(--primary)]" />
-              </div>
-              <h1 className="text-2xl font-semibold">
-                {isAdding ? "Create another wallet" : "Create your wallet"}
-              </h1>
-              <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-[var(--muted)]">
-                {isAdding
-                  ? "Add a new trading wallet to your vault. Each wallet has its own seed phrase and can be dragged into source or destination slots."
-                  : "Generate a 12-word seed phrase in your browser. It is encrypted locally and never sent to our servers."}
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              {[
-                { icon: Shield, title: "Self-custody", desc: "Only you hold the keys" },
-                { icon: KeyRound, title: "Encrypted", desc: "Password-protected on device" },
-                { icon: Wallet, title: "Multi-wallet", desc: "Trade with many wallets" },
-              ].map(({ icon: Icon, title, desc }) => (
-                <Panel key={title} className="p-4 text-center">
-                  <Icon className="mx-auto h-5 w-5 text-[var(--primary)]" />
-                  <p className="mt-2 text-xs font-semibold">{title}</p>
-                  <p className="mt-1 text-[10px] text-[var(--muted)]">{desc}</p>
-                </Panel>
-              ))}
-            </div>
-
-            {!isAdding && (
-              <Panel className="p-4">
-                <label className="mv-label">Wallet name (optional)</label>
-                <Input
-                  value={label}
-                  onChange={(e) => setLabel(e.target.value)}
-                  placeholder="e.g. Trading Wallet 1"
-                  className="mt-1"
-                />
-              </Panel>
-            )}
-
-            <Button size="lg" className="w-full" onClick={handleGenerate}>
-              Generate seed phrase
-            </Button>
-          </div>
-        )}
-
-        {step === "backup" && seedPhrase && (
-          <div className="space-y-6">
-            <div className="mv-alert-warn">
-              <div className="flex items-start gap-3">
-                <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
-                <div>
-                  <p className="font-semibold">Write this down — nowhere else</p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
-                    Anyone with these 12 words controls your funds. MultiVault cannot recover a lost phrase.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <Panel className="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3">
-              {words.map((word, index) => (
-                <div
-                  key={`${word}-${index}`}
-                  className="border border-[var(--border)] bg-[var(--surface-solid)] px-3 py-2.5 text-sm font-medium"
-                >
-                  <span className="mr-2 font-mono text-[var(--muted)]">{index + 1}.</span>
-                  {word}
-                </div>
-              ))}
-            </Panel>
-
-            <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={() => navigator.clipboard.writeText(seedPhrase)}>
-                <Copy className="mr-2 h-4 w-4" />
-                Copy phrase
-              </Button>
-            </div>
-
-            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-[var(--border)] p-4">
-              <input
-                type="checkbox"
-                checked={writtenDown}
-                onChange={(e) => setWrittenDown(e.target.checked)}
-                className="mt-0.5"
-              />
-              <span className="text-sm">I have written down my seed phrase and stored it safely offline</span>
-            </label>
-
-            <Button size="lg" className="w-full" disabled={!writtenDown} onClick={() => setStep("secure")}>
-              Continue to password
-            </Button>
-          </div>
-        )}
-
-        {step === "secure" && (
-          <Panel className="space-y-4 p-6">
-            <h2 className="text-lg font-semibold">Encrypt your wallet</h2>
-            <p className="text-sm text-[var(--muted)]">
-              Used for withdrawals, deleting wallets, and changing contact info. Not required for browsing or trading.
+      {step === "intro" && (
+        <div className="mv-premium-flow">
+          <div className="mv-premium-page-head mv-premium-page-head--left">
+            <h1 className="mv-premium-page-title">
+              {isAdding ? "Add wallet" : "Create wallet"}
+            </h1>
+            <p className="mv-premium-page-sub">
+              Generate a 12-word phrase. Encrypted locally — never sent to our servers.
             </p>
+          </div>
+
+          {!isAdding && (
+            <div className="mv-premium-panel">
+              <label className="mv-premium-label">Wallet name (optional)</label>
+              <Input
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder="Trading wallet"
+                className="mv-premium-input mt-2"
+              />
+            </div>
+          )}
+
+          <Button size="lg" className="mv-premium-action w-full" onClick={handleGenerate}>
+            Generate phrase
+          </Button>
+        </div>
+      )}
+
+      {step === "backup" && seedPhrase && (
+        <div className="mv-premium-flow">
+          <div className="mv-premium-page-head mv-premium-page-head--left">
+            <h1 className="mv-premium-page-title">Back up phrase</h1>
+            <p className="mv-premium-page-sub">Store offline. MultiVault cannot recover a lost phrase.</p>
+          </div>
+
+          <div className="mv-premium-alert">
+            <ShieldAlert className="h-4 w-4 shrink-0" />
+            <span>Anyone with these words controls your funds.</span>
+          </div>
+
+          <div className="mv-premium-seed-grid">
+            {words.map((word, index) => (
+              <div key={`${word}-${index}`} className="mv-premium-seed-word">
+                <span>{index + 1}</span>
+                {word}
+              </div>
+            ))}
+          </div>
+
+          <Button
+            variant="secondary"
+            className="mv-premium-action-secondary"
+            onClick={() => navigator.clipboard.writeText(seedPhrase)}
+          >
+            <Copy className="mr-2 h-4 w-4" />
+            Copy phrase
+          </Button>
+
+          <label className="mv-premium-check">
+            <input
+              type="checkbox"
+              checked={writtenDown}
+              onChange={(e) => setWrittenDown(e.target.checked)}
+            />
+            <span>I saved this phrase offline</span>
+          </label>
+
+          <Button
+            size="lg"
+            className="mv-premium-action w-full"
+            disabled={!writtenDown}
+            onClick={() => setStep("secure")}
+          >
+            Continue
+          </Button>
+        </div>
+      )}
+
+      {step === "secure" && (
+        <div className="mv-premium-flow">
+          <div className="mv-premium-page-head mv-premium-page-head--left">
+            <h1 className="mv-premium-page-title">Set password</h1>
+            <p className="mv-premium-page-sub">
+              Required for withdrawals, wallet deletion, and contact changes.
+            </p>
+          </div>
+
+          <div className="mv-premium-panel mv-premium-panel--stack">
             {isAdding && (
               <>
-                <label className="mv-label">Wallet name</label>
+                <label className="mv-premium-label">Wallet name</label>
                 <Input
                   value={label}
                   onChange={(e) => setLabel(e.target.value)}
                   placeholder={`Wallet ${vaultWalletCount() + 1}`}
+                  className="mv-premium-input"
                 />
               </>
             )}
-            <label className="mv-label">Password</label>
+            <label className="mv-premium-label">Password</label>
             <Input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Minimum 8 characters"
+              className="mv-premium-input"
             />
-            <label className="mv-label">Confirm password</label>
+            <label className="mv-premium-label">Confirm password</label>
             <Input
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               placeholder="Re-enter password"
+              className="mv-premium-input"
             />
             {error && <p className="mv-alert-error">{error}</p>}
-            <Button size="lg" className="w-full" onClick={handleFinish} disabled={loading}>
-              {loading ? "Securing wallet…" : "Create wallet"}
+            <Button size="lg" className="mv-premium-action w-full" onClick={handleFinish} disabled={loading}>
+              {loading ? "Securing…" : "Create wallet"}
             </Button>
-          </Panel>
-        )}
+          </div>
+        </div>
+      )}
 
-        {step === "username" && createdAddress && (
+      {step === "username" && createdAddress && (
+        <div className="mv-premium-flow">
           <UsernamePicker
             onSubmit={async (username, profileVisibility) => {
               await saveUsernameForWallet(createdAddress, username, "#526fff", profileVisibility);
               setStep("done");
             }}
           />
-        )}
+        </div>
+      )}
 
-        {step === "done" && (
-          <div className="space-y-6 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[var(--gain)]/40 bg-[var(--gain-soft)]">
-              <CheckCircle2 className="h-8 w-8 text-[var(--gain)]" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold">Wallet ready</h2>
-              <p className="mt-2 text-sm text-[var(--muted)]">
-                Your wallet is encrypted and added to your vault. Drag it between active, source, and destination zones in Portfolio → Wallets.
-              </p>
-              {createdAddress && (
-                <p className="mt-3 font-mono text-xs text-[var(--primary)]">
-                  SOL {createdAddress.slice(0, 6)}…{createdAddress.slice(-4)}
-                </p>
-              )}
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-              <Button size="lg" onClick={() => { window.location.href = "/dashboard?tab=overview&wallets=1&welcome=1"; }}>
-                Open Portfolio → Wallets
-              </Button>
-              <Button variant="secondary" size="lg" onClick={() => { window.location.href = "/create?add=1"; }}>
-                Add another wallet
-              </Button>
-            </div>
+      {step === "done" && (
+        <div className="mv-premium-flow mv-premium-flow--center">
+          <div className="mv-premium-success-icon">
+            <CheckCircle2 className="h-8 w-8" />
           </div>
-        )}
-      </main>
-    </div>
+          <h1 className="mv-premium-page-title">Wallet ready</h1>
+          {createdAddress && (
+            <p className="mv-premium-address">
+              SOL {createdAddress.slice(0, 6)}…{createdAddress.slice(-4)}
+            </p>
+          )}
+          <div className="mv-premium-done-actions">
+            <Button
+              size="lg"
+              className="mv-premium-action"
+              onClick={() => { window.location.href = "/dashboard?tab=overview&wallets=1&welcome=1"; }}
+            >
+              Open terminal
+            </Button>
+            <Button
+              variant="secondary"
+              size="lg"
+              className="mv-premium-action-secondary"
+              onClick={() => { window.location.href = "/create?add=1"; }}
+            >
+              Add another
+            </Button>
+          </div>
+        </div>
+      )}
+    </MarketingShell>
   );
 }
