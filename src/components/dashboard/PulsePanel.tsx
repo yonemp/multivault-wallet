@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePulseColumnResize } from "@/hooks/usePulseColumnResize";
 import type { PulseToken } from "@/app/api/pulse/route";
 import type { PulseTicker } from "@/app/api/pulse/tickers/route";
 import { DashboardTab, type NavigateMeta } from "@/components/dashboard/ActionTabs.types";
@@ -76,6 +77,7 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
   });
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filterColumn, setFilterColumn] = useState<PulseColumnKey>("new");
+  const { widths, dragging, gridRef, startDrag } = usePulseColumnResize();
 
   useEffect(() => {
     tokensRef.current = tokens;
@@ -160,7 +162,7 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
 
       {error && <p className="mv-alert-error mb-3 text-sm">{error}</p>}
 
-      <div className="ax-pulse-grid min-h-0 flex-1 overflow-hidden">
+      <div ref={gridRef} className="ax-pulse-resize-grid min-h-0 flex-1 overflow-hidden">
         {COLUMNS.map(({ key, title }, index) => {
           const colTokens = applyPulseColumnFilters(
             tokens.filter((t) => t.column === key),
@@ -169,55 +171,67 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
           const activeFilters = countActivePulseFilters(columnFilters[key]);
 
           return (
-            <div
-              key={key}
-              className={`ax-pulse-col min-h-[320px] md:min-h-0 ${
-                index === 1 ? "md:mx-0.5 md:ring-1 md:ring-[var(--border-strong)]" : ""
-              }`}
-            >
-              <div className="flex items-center gap-2 border-b border-[var(--border-strong)] bg-[var(--bg-elevated)] px-3 py-2.5">
-                <span className="text-sm font-bold uppercase tracking-widest text-[var(--foreground)]">{title}</span>
-                <button
-                  type="button"
-                  onClick={() => { setFilterColumn(key); setFiltersOpen(true); }}
-                  className={`ax-pulse-col-header-filter ml-auto ${activeFilters > 0 ? "active" : ""}`}
-                >
-                  <Filter className="h-3 w-3" />
-                  {activeFilters > 0 && <span className="badge">{activeFilters}</span>}
-                </button>
-                <span className="rounded-sm border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 font-mono text-xs text-[var(--muted)]">
-                  {colTokens.length}/{counts[key]}
-                </span>
-              </div>
+            <Fragment key={key}>
+              {index > 0 && (
+                <div
+                  role="separator"
+                  aria-orientation="vertical"
+                  aria-label={`Resize ${COLUMNS[index - 1].title} and ${title}`}
+                  className={`ax-pulse-resize-handle ${dragging === index - 1 ? "is-dragging" : ""}`}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    startDrag((index - 1) as 0 | 1, e.clientX);
+                  }}
+                />
+              )}
+              <div
+                className="ax-pulse-col min-h-[320px] md:min-h-0"
+                style={{ ["--col-width" as string]: `${widths[index]}%` }}
+              >
+                <div className="flex items-center gap-2 border-b border-[var(--border-strong)] bg-[var(--bg-elevated)] px-3 py-2.5">
+                  <span className="text-sm font-bold uppercase tracking-widest text-[var(--foreground)]">{title}</span>
+                  <button
+                    type="button"
+                    onClick={() => { setFilterColumn(key); setFiltersOpen(true); }}
+                    className={`ax-pulse-col-header-filter ml-auto ${activeFilters > 0 ? "active" : ""}`}
+                  >
+                    <Filter className="h-3 w-3" />
+                    {activeFilters > 0 && <span className="badge">{activeFilters}</span>}
+                  </button>
+                  <span className="rounded-sm border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 font-mono text-xs text-[var(--muted)]">
+                    {colTokens.length}/{counts[key]}
+                  </span>
+                </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto">
-                {loading && !colTokens.length ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="ax-pulse-coin-skeleton" />
-                  ))
-                ) : (
-                  colTokens.map((token) => (
-                    <PulseCoinCard
-                      key={token.id}
-                      token={token}
-                      onTrade={() =>
-                        onNavigate("trade", token.id, {
-                          symbol: token.symbol,
-                          name: token.name,
-                          imageUri: token.imageUri,
-                        })
-                      }
-                    />
-                  ))
-                )}
-                {!loading && colTokens.length === 0 && tokens.length > 0 && (
-                  <p className="px-4 py-10 text-center text-sm text-[var(--muted)]">No coins match filters</p>
-                )}
-                {!loading && tokens.length === 0 && (
-                  <p className="px-4 py-10 text-center text-sm text-[var(--muted)]">No live pump.fun coins — try Refresh</p>
-                )}
+                <div className="min-h-0 flex-1 overflow-y-auto">
+                  {loading && !colTokens.length ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="ax-pulse-coin-skeleton" />
+                    ))
+                  ) : (
+                    colTokens.map((token) => (
+                      <PulseCoinCard
+                        key={token.id}
+                        token={token}
+                        onTrade={() =>
+                          onNavigate("trade", token.id, {
+                            symbol: token.symbol,
+                            name: token.name,
+                            imageUri: token.imageUri,
+                          })
+                        }
+                      />
+                    ))
+                  )}
+                  {!loading && colTokens.length === 0 && tokens.length > 0 && (
+                    <p className="px-4 py-10 text-center text-sm text-[var(--muted)]">No coins match filters</p>
+                  )}
+                  {!loading && tokens.length === 0 && (
+                    <p className="px-4 py-10 text-center text-sm text-[var(--muted)]">No live pump.fun coins — try Refresh</p>
+                  )}
+                </div>
               </div>
-            </div>
+            </Fragment>
           );
         })}
       </div>

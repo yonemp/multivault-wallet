@@ -431,20 +431,65 @@ a {
   zoom: var(--pulse-section-zoom);
 }
 
-.ax-pulse-grid {
-  display: grid;
-  grid-template-columns: 1fr;
+.ax-pulse-resize-grid {
+  display: flex;
+  flex-direction: column;
   gap: 0.5rem;
   padding: 0.125rem;
   min-height: 0;
-  flex: 1;
+}
+
+.ax-pulse-resize-handle {
+  display: none;
 }
 
 @media (min-width: 768px) {
-  .ax-pulse-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.5rem;
+  .ax-pulse-resize-grid {
+    flex-direction: row;
+    gap: 0;
     padding: 0.25rem;
+  }
+
+  .ax-pulse-resize-handle {
+    display: block;
+    position: relative;
+    flex: 0 0 6px;
+    width: 6px;
+    margin: 0 -3px;
+    cursor: col-resize;
+    z-index: 3;
+    touch-action: none;
+    background: transparent;
+    transition: background 0.12s;
+  }
+
+  .ax-pulse-resize-handle::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    transform: translateX(-50%);
+    background: var(--border-strong);
+    transition: background 0.12s, width 0.12s;
+  }
+
+  .ax-pulse-resize-handle:hover::before,
+  .ax-pulse-resize-handle.is-dragging::before {
+    width: 2px;
+    background: var(--primary);
+  }
+
+  .ax-pulse-resize-handle:hover,
+  .ax-pulse-resize-handle.is-dragging {
+    background: var(--primary-soft);
+  }
+
+  .ax-pulse-col {
+    flex: 0 0 var(--col-width, 33.33%);
+    width: var(--col-width, 33.33%);
+    max-width: var(--col-width, 33.33%);
   }
 }
 
