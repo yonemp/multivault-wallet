@@ -1,6 +1,11 @@
 @import "tailwindcss";
 
+html {
+  zoom: 1.25;
+}
+
 :root {
+  --ui-scale: 1.25;
   --bg-base: #07070a;
   --bg-elevated: #0c0c11;
   --surface: #111118;
