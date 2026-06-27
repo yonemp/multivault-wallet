@@ -16,8 +16,8 @@ export default function SignInPage() {
       }
     >
       <div className="mv-premium-page-head">
-        <h1 className="mv-premium-page-title">Sign in</h1>
-        <p className="mv-premium-page-sub">Import or connect to open the terminal.</p>
+        <h1 className="mv-premium-page-title">Import wallet</h1>
+        <p className="mv-premium-page-sub">Restore with your phrase or connect an external wallet.</p>
       </div>
 
       <div className="mv-premium-signin-grid">

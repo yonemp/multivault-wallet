@@ -133,6 +133,14 @@ export default function ImportWalletPage() {
               <Button size="lg" className="w-full" onClick={() => setStep("secure")} disabled={!seedPhrase.trim()}>
                 Continue
               </Button>
+              {!isAdding && (
+                <p className="text-center text-xs text-[var(--muted)]">
+                  Or{" "}
+                  <Link href="/sign-in" className="text-[var(--primary)] hover:underline">
+                    connect MetaMask, Phantom, or Trust
+                  </Link>
+                </p>
+              )}
             </Panel>
           </div>
         )}

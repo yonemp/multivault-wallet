@@ -38,8 +38,8 @@ export function CorporateLanding() {
               Create wallet
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href="/sign-in" className="mv-premium-btn mv-premium-btn--outline">
-              Sign in
+            <Link href="/import" className="mv-premium-btn mv-premium-btn--outline">
+              Import wallet
             </Link>
           </div>
 
@@ -74,11 +74,11 @@ export function CorporateLanding() {
               <ArrowRight className="h-5 w-5 shrink-0" />
             </Link>
 
-            <Link href="/sign-in" className="mv-premium-access-card">
+            <Link href="/import" className="mv-premium-access-card">
               <div>
-                <p className="mv-premium-access-kicker">Returning operator</p>
-                <h3>Sign in</h3>
-                <p>Import your phrase or connect MetaMask, Phantom, or Trust.</p>
+                <p className="mv-premium-access-kicker">Existing wallet</p>
+                <h3>Import wallet</h3>
+                <p>Restore with your recovery phrase and open the terminal.</p>
               </div>
               <ArrowRight className="h-5 w-5 shrink-0" />
             </Link>

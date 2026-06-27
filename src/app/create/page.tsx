@@ -95,8 +95,8 @@ export default function CreateWalletPage() {
       backHref={isAdding ? "/dashboard?tab=overview&wallets=1" : "/"}
       backLabel={isAdding ? "Wallets" : "Home"}
       headerRight={
-        <Link href="/sign-in" className="mv-premium-ghost-link">
-          Sign in
+        <Link href="/import" className="mv-premium-ghost-link">
+          Import wallet
         </Link>
       }
     >
