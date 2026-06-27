@@ -1,0 +1,16 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "multivault-wallet.vercel.app" }],
+      "destination": "https://tackers.xyz/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.tackers.xyz" }],
+      "destination": "https://tackers.xyz/:path*",
+      "permanent": true
+    }
+  ]
+}

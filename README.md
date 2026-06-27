@@ -38,6 +38,8 @@ npm run dev
 
 ## Deploy (Vercel)
 
+Production: [https://tackers.xyz](https://tackers.xyz)
+
 Add these environment variables in Vercel project settings:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
