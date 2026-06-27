@@ -12,11 +12,15 @@ declare global {
     phantom?: {
       solana?: {
         isPhantom?: boolean;
+        publicKey?: { toString: () => string };
         connect: () => Promise<{ publicKey: { toString: () => string } }>;
         signMessage: (
           message: Uint8Array,
           encoding: string,
         ) => Promise<{ signature: Uint8Array }>;
+        signAndSendTransaction: (
+          tx: import("@solana/web3.js").Transaction | import("@solana/web3.js").VersionedTransaction,
+        ) => Promise<{ signature: string }>;
         disconnect: () => Promise<void>;
       };
     };

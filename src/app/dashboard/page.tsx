@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { ActionTabs, DashboardTab } from "@/components/dashboard/ActionTabs";
+import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
+import { ReceivePanel } from "@/components/dashboard/ReceivePanel";
+import { SendPanel } from "@/components/dashboard/SendPanel";
+import { SwapPanel } from "@/components/dashboard/SwapPanel";
 import {
   clearSession,
   loadSession,
@@ -13,10 +18,14 @@ import {
   decryptMnemonic,
   loadEncryptedWallet,
 } from "@/lib/wallet/storage";
+import {
+  clearUnlockedMnemonic,
+  setUnlockedMnemonic,
+} from "@/lib/wallet/unlock-store";
 import { deriveEvmWallet, EVM_CHAINS, getEvmBalance } from "@/lib/wallet/evm";
 import { deriveSolanaKeypair, SOLANA_RPC } from "@/lib/wallet/solana";
-import { Connection } from "@solana/web3.js";
-import { LogOut, Wallet } from "lucide-react";
+import { Connection, PublicKey } from "@solana/web3.js";
+import { LogOut } from "lucide-react";
 
 type Balances = {
   eth?: string;
@@ -31,6 +40,7 @@ export default function DashboardPage() {
   const [unlocked, setUnlocked] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
 
   useEffect(() => {
     const current = loadSession();
@@ -64,9 +74,7 @@ export default function DashboardPage() {
     if (current.solanaAddress) {
       const connection = new Connection(SOLANA_RPC, "confirmed");
       const lamports = await connection.getBalance(
-        await import("@solana/web3.js").then((m) =>
-          new m.PublicKey(current.solanaAddress!),
-        ),
+        new PublicKey(current.solanaAddress),
       );
       next.sol = (lamports / 1e9).toFixed(4);
     }
@@ -95,6 +103,7 @@ export default function DashboardPage() {
         solanaAddress: solanaKeypair.publicKey.toBase58(),
       };
 
+      setUnlockedMnemonic(mnemonic);
       saveSession(updated);
       setSession(updated);
       setUnlocked(true);
@@ -105,9 +114,14 @@ export default function DashboardPage() {
   }
 
   function handleLogout() {
+    clearUnlockedMnemonic();
     clearSession();
     clearEncryptedWallet();
     window.location.href = "/";
+  }
+
+  function refreshBalances() {
+    if (session) loadBalances(session);
   }
 
   if (!session) {
@@ -118,9 +132,11 @@ export default function DashboardPage() {
     );
   }
 
+  const ready = session.mode === "external" || unlocked;
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl px-6 py-12">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm uppercase tracking-[0.2em] text-violet-300">
             MultiVault
@@ -136,6 +152,9 @@ export default function DashboardPage() {
       {session.mode === "local" && !unlocked ? (
         <div className="mt-12 max-w-md space-y-4 rounded-2xl border border-white/10 bg-white/5 p-6">
           <h2 className="text-lg font-semibold text-white">Unlock wallet</h2>
+          <p className="text-sm text-zinc-400">
+            Unlock to send, receive, and swap with your wallet.
+          </p>
           <input
             type="password"
             value={password}
@@ -147,53 +166,26 @@ export default function DashboardPage() {
           <Button onClick={handleUnlock}>Unlock</Button>
         </div>
       ) : (
-        <div className="mt-12 grid gap-6 md:grid-cols-2">
-          {session.evmAddress && (
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
-              <div className="flex items-center gap-3">
-                <Wallet className="h-5 w-5 text-violet-300" />
-                <h2 className="text-lg font-semibold text-white">EVM Wallet</h2>
-              </div>
-              <p className="mt-4 break-all font-mono text-sm text-zinc-300">
-                {session.evmAddress}
-              </p>
-              <div className="mt-6 space-y-2 text-sm text-zinc-400">
-                <p>Ethereum: {balances.eth ?? "..."} ETH</p>
-                <p>Polygon: {balances.matic ?? "..."} MATIC</p>
-                <p>BNB Chain: {balances.bnb ?? "..."} BNB</p>
-              </div>
-              <p className="mt-4 text-xs text-zinc-500">
-                Connected via{" "}
-                {session.walletType === "created"
-                  ? "new wallet"
-                  : session.walletType}
-              </p>
-            </section>
-          )}
+        <>
+          <div className="mt-8">
+            <ActionTabs active={activeTab} onChange={setActiveTab} />
+          </div>
 
-          {session.solanaAddress && (
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
-              <div className="flex items-center gap-3">
-                <Wallet className="h-5 w-5 text-purple-300" />
-                <h2 className="text-lg font-semibold text-white">
-                  Solana Wallet
-                </h2>
-              </div>
-              <p className="mt-4 break-all font-mono text-sm text-zinc-300">
-                {session.solanaAddress}
-              </p>
-              <div className="mt-6 text-sm text-zinc-400">
-                <p>Solana: {balances.sol ?? "..."} SOL</p>
-              </div>
-              <p className="mt-4 text-xs text-zinc-500">
-                Connected via{" "}
-                {session.walletType === "phantom"
-                  ? "Phantom"
-                  : session.walletType}
-              </p>
-            </section>
-          )}
-        </div>
+          <div className="mt-8">
+            {activeTab === "overview" && (
+              <OverviewPanel session={session} balances={balances} />
+            )}
+            {activeTab === "receive" && ready && (
+              <ReceivePanel session={session} />
+            )}
+            {activeTab === "send" && ready && (
+              <SendPanel session={session} onSuccess={refreshBalances} />
+            )}
+            {activeTab === "swap" && ready && (
+              <SwapPanel session={session} onSuccess={refreshBalances} />
+            )}
+          </div>
+        </>
       )}
     </main>
   );
