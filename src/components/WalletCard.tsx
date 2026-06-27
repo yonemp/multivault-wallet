@@ -10,7 +10,7 @@ export function WalletCard({ title, description, href }: WalletCardProps) {
   return (
     <a
       href={href}
-      className="group flex flex-col border border-[var(--border)] bg-[var(--surface)] p-5 backdrop-blur-md transition hover:border-[var(--primary)] hover:bg-[var(--surface-hover)]"
+      className="group flex flex-col border border-[var(--border)] bg-[var(--surface)] p-5 transition hover:border-[var(--primary)] hover:bg-[var(--surface-hover)]"
     >
       <h3 className="text-base font-semibold text-[var(--foreground)]">{title}</h3>
       <p className="mt-2 flex-1 text-sm leading-6 text-[var(--muted)]">{description}</p>

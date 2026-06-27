@@ -1,11 +1,13 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/layout/Logo";
-import { Button } from "@/components/ui/Button";
+
 import { ActionTabs, DashboardTab } from "@/components/dashboard/ActionTabs";
-import { LogOut, User, Crown } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { LogOut, Search, Wallet } from "lucide-react";
+import type { AssetMarketData } from "@/app/api/prices/route";
 
 type AppShellProps = {
   children: ReactNode;
@@ -13,7 +15,7 @@ type AppShellProps = {
   onTabChange?: (tab: DashboardTab) => void;
   showNav?: boolean;
   onLogout?: () => void;
-  maxWidth?: "6xl" | "7xl" | "full";
+  terminal?: boolean;
 };
 
 export function AppShell({
@@ -22,51 +24,88 @@ export function AppShell({
   onTabChange,
   showNav = true,
   onLogout,
-  maxWidth = "7xl",
+  terminal = true,
 }: AppShellProps) {
-  const widthClass =
-    maxWidth === "full" ? "max-w-none" : maxWidth === "6xl" ? "max-w-6xl" : "max-w-7xl";
+  const [solPrice, setSolPrice] = useState<AssetMarketData | null>(null);
+
+  useEffect(() => {
+    fetch("/api/prices?assets=sol")
+      .then((r) => r.json())
+      .then((d) => setSolPrice(d.assets?.sol ?? null))
+      .catch(() => {});
+  }, []);
 
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-xl">
-        <div className={`mx-auto flex w-full ${widthClass} items-center gap-3 px-4 py-3 sm:px-6`}>
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-elevated)]">
+        {/* Preset / price strip — Axiom leading status row */}
+        <div className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-1.5 text-[11px]">
+          <span className="rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 font-medium text-[var(--muted)]">
+            Preset 1
+          </span>
+          <span className="font-mono text-[var(--muted)]">
+            SOL{" "}
+            <span className="text-[var(--foreground)]">
+              ${solPrice?.price.toFixed(2) ?? "—"}
+            </span>
+          </span>
+          <span className="hidden text-[var(--muted-dim)] sm:inline">
+            · Multi-chain terminal
+          </span>
+        </div>
+
+        <div className="flex h-[var(--header-h)] items-center gap-2 px-4">
           <Logo href="/dashboard" compact />
 
           {showNav && activeTab && onTabChange && (
-            <div className="flex flex-1 items-center justify-start overflow-x-auto">
-              <ActionTabs active={activeTab} onChange={onTabChange} />
-            </div>
+            <ActionTabs active={activeTab} onChange={onTabChange} />
           )}
 
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="ml-auto flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              className="hidden items-center gap-2 border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--muted)] transition hover:border-[var(--border-strong)] hover:text-[var(--foreground)] sm:flex"
+            >
+              <Search className="h-3.5 w-3.5" />
+              Search
+            </button>
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-1.5 border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
+            >
+              <Wallet className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Wallet</span>
+            </Link>
             <Link
               href="/profile"
-              className="flex items-center gap-1.5 border border-transparent px-2.5 py-1.5 text-xs font-medium text-[var(--muted)] transition hover:border-[var(--border)] hover:text-[var(--primary)]"
+              className="ax-nav-link hidden sm:inline"
             >
-              <User className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Profile</span>
+              Profile
             </Link>
-            <Link
-              href="/admin"
-              className="flex items-center gap-1.5 border border-transparent px-2.5 py-1.5 text-xs font-medium text-[var(--muted)] transition hover:border-[var(--border)] hover:text-amber-700"
-            >
-              <Crown className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Admin</span>
+            <Link href="/admin" className="ax-nav-link hidden md:inline">
+              Admin
             </Link>
             {onLogout && (
-              <Button variant="ghost" size="sm" onClick={onLogout} className="shrink-0">
-                <LogOut className="mr-1.5 h-4 w-4" />
-                <span className="hidden sm:inline">Log out</span>
+              <Button variant="ghost" size="sm" onClick={onLogout} className="!px-2">
+                <LogOut className="h-3.5 w-3.5" />
               </Button>
             )}
           </div>
         </div>
       </header>
 
-      <main className={`mx-auto w-full ${widthClass} px-4 py-5 sm:px-6`}>
-        {children}
+      <main
+        className={
+          terminal
+            ? "ax-terminal flex-1 overflow-hidden px-0"
+            : "mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6"
+        }
+      >
+        <div className={terminal ? "h-full overflow-auto px-3 py-3 sm:px-4" : ""}>
+          {children}
+        </div>
       </main>
+
     </div>
   );
 }

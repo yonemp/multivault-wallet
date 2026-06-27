@@ -3,12 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Panel } from "@/components/ui/Panel";
 import { TradingChart, ChartLine } from "@/components/charts/TradingChart";
 import type { AssetMarketData } from "@/app/api/prices/route";
 import { MARKET_ASSETS } from "@/lib/market/assets";
 import { SessionData } from "@/lib/wallet/session";
-import { ArrowDownRight, ArrowUpRight, Target, Shield } from "lucide-react";
 
 type TradePanelProps = {
   session: SessionData;
@@ -26,20 +24,16 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
   const [amount, setAmount] = useState("");
   const [takeProfit, setTakeProfit] = useState("");
   const [stopLoss, setStopLoss] = useState("");
-  const [showTpSl, setShowTpSl] = useState(true);
+  const [chartTab, setChartTab] = useState<"chart" | "orders" | "holders">("chart");
   const [orderNote, setOrderNote] = useState<string | null>(null);
 
-  const tradableAssets = useMemo(
-    () => MARKET_ASSETS.filter((a) => a.tradable),
-    [],
-  );
-
-  const asset = useMemo(
-    () => tradableAssets.find((a) => a.id === selectedAsset) ?? tradableAssets[0],
-    [selectedAsset, tradableAssets],
-  );
-
+  const tradableAssets = useMemo(() => MARKET_ASSETS.filter((a) => a.tradable), []);
+  const asset = tradableAssets.find((a) => a.id === selectedAsset) ?? tradableAssets[0];
   const priceData = asset ? market[asset.id] : null;
+
+  useEffect(() => {
+    setSelectedAsset(initialAsset);
+  }, [initialAsset]);
 
   useEffect(() => {
     async function load() {
@@ -61,30 +55,13 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
   const chartLines = useMemo((): ChartLine[] => {
     const lines: ChartLine[] = [];
     if (takeProfit && parseFloat(takeProfit) > 0) {
-      lines.push({
-        id: "tp",
-        price: parseFloat(takeProfit),
-        color: "#059669",
-        label: "Take Profit",
-        style: "dashed",
-      });
+      lines.push({ id: "tp", price: parseFloat(takeProfit), color: "#00c076", label: "TP", style: "dashed" });
     }
     if (stopLoss && parseFloat(stopLoss) > 0) {
-      lines.push({
-        id: "sl",
-        price: parseFloat(stopLoss),
-        color: "#dc2626",
-        label: "Stop Loss",
-        style: "dashed",
-      });
+      lines.push({ id: "sl", price: parseFloat(stopLoss), color: "#ff4d6a", label: "SL", style: "dashed" });
     }
     if (priceData?.price) {
-      lines.push({
-        id: "entry",
-        price: priceData.price,
-        color: "#2f6fed",
-        label: "Market",
-      });
+      lines.push({ id: "entry", price: priceData.price, color: "#526fff", label: "Market" });
     }
     return lines;
   }, [takeProfit, stopLoss, priceData?.price]);
@@ -104,34 +81,57 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
       setOrderNote("Enter a valid amount");
       return;
     }
-    const label = side === "buy" ? "Buy" : "Sell";
-    const tp = takeProfit ? ` · TP $${takeProfit}` : "";
-    const sl = stopLoss ? ` · SL $${stopLoss}` : "";
     setOrderNote(
-      `${label} order staged: ${amount} ${asset?.symbol} @ $${priceData?.price.toFixed(2) ?? "—"}${tp}${sl}. Execute via Swap tab for on-chain settlement.`,
+      `${side === "buy" ? "Buy" : "Sell"} staged · ${amount} ${asset?.symbol} · execute via Swap for on-chain settlement`,
     );
     onSuccess?.();
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border)] pb-4">
+    <div className="flex h-full flex-col gap-0 overflow-hidden">
+      {/* Pair summary — Axiom top bar */}
+      <div className="mv-panel flex flex-wrap items-center gap-4 px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <span
+            className="flex h-9 w-9 items-center justify-center text-xs font-bold"
+            style={{ background: "var(--surface-active)", border: "1px solid var(--border)", color: asset?.color }}
+          >
+            {asset?.symbol.slice(0, 3)}
+          </span>
+          <div>
+            <p className="text-sm font-semibold">{asset?.symbol}/USD</p>
+            <p className="text-[10px] text-[var(--muted)]">{asset?.name}</p>
+          </div>
+        </div>
+        <div className="h-8 w-px bg-[var(--border)]" />
         <div>
-          <h1 className="text-xl font-semibold text-[var(--foreground)]">Trade</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Chart, take-profit & stop-loss levels · swap execution on-chain
+          <p className="text-[10px] uppercase tracking-wider text-[var(--muted)]">Price</p>
+          <p className="font-mono text-sm font-semibold">
+            ${priceData?.price.toLocaleString(undefined, { maximumFractionDigits: 4 }) ?? "—"}
           </p>
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          {tradableAssets.map((a) => (
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-[var(--muted)]">24h</p>
+          <p className={`font-mono text-sm font-semibold ${(priceData?.change24h ?? 0) >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
+            {(priceData?.change24h ?? 0) >= 0 ? "+" : ""}{(priceData?.change24h ?? 0).toFixed(2)}%
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-[var(--muted)]">4h</p>
+          <p className={`font-mono text-sm font-semibold ${(priceData?.change4h ?? 0) >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
+            {(priceData?.change4h ?? 0) >= 0 ? "+" : ""}{(priceData?.change4h ?? 0).toFixed(2)}%
+          </p>
+        </div>
+        <div className="ml-auto flex flex-wrap gap-1">
+          {tradableAssets.slice(0, 6).map((a) => (
             <button
               key={a.id}
               type="button"
               onClick={() => setSelectedAsset(a.id)}
-              className={`border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
+              className={`px-2 py-1 text-[10px] font-semibold uppercase ${
                 selectedAsset === a.id
-                  ? "border-[var(--primary)] bg-[var(--primary)] text-white shadow-[var(--shadow-glow)]"
-                  : "border-[var(--border)] bg-[var(--surface-solid)] text-[var(--muted)] hover:border-[var(--primary)]"
+                  ? "bg-[var(--primary-soft)] text-[var(--primary)]"
+                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
               }`}
             >
               {a.symbol}
@@ -140,160 +140,107 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1fr_340px]">
-        <Panel className="overflow-hidden p-0">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
-            <div className="flex items-center gap-3">
-              <span
-                className="flex h-10 w-10 items-center justify-center text-sm font-bold"
-                style={{
-                  backgroundColor: `${asset?.color}18`,
-                  color: asset?.color,
-                  border: `1px solid ${asset?.color}40`,
-                }}
+      {/* Main terminal grid */}
+      <div className="mt-2 grid min-h-0 flex-1 gap-2 lg:grid-cols-[1fr_300px]">
+        <div className="mv-panel flex min-h-0 flex-col overflow-hidden">
+          <div className="flex border-b border-[var(--border)]">
+            {(["chart", "orders", "holders"] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setChartTab(tab)}
+                className={`px-4 py-2 text-[11px] font-semibold uppercase tracking-wide ${
+                  chartTab === tab
+                    ? "border-b-2 border-[var(--primary)] text-[var(--foreground)]"
+                    : "text-[var(--muted)]"
+                }`}
               >
-                {asset?.symbol.slice(0, 3)}
-              </span>
-              <div>
-                <p className="font-semibold text-[var(--foreground)]">
-                  {asset?.name} / USD
-                </p>
-                <p className="font-mono text-lg font-semibold text-[var(--foreground)]">
-                  {loading ? "…" : `$${priceData?.price.toLocaleString(undefined, { maximumFractionDigits: 2 }) ?? "—"}`}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-4 text-sm">
-              <div>
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted)]">24h</p>
-                <p className={`font-mono font-semibold ${(priceData?.change24h ?? 0) >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
-                  {(priceData?.change24h ?? 0) >= 0 ? "+" : ""}
-                  {(priceData?.change24h ?? 0).toFixed(2)}%
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted)]">4h</p>
-                <p className={`font-mono font-semibold ${(priceData?.change4h ?? 0) >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
-                  {(priceData?.change4h ?? 0) >= 0 ? "+" : ""}
-                  {(priceData?.change4h ?? 0).toFixed(2)}%
-                </p>
-              </div>
-            </div>
+                {tab}
+              </button>
+            ))}
           </div>
 
-          {priceData?.sparkline24h?.length ? (
-            <TradingChart
-              data={priceData.sparkline24h}
-              lines={showTpSl ? chartLines : chartLines.filter((l) => l.id === "entry")}
-              onPriceClick={handleChartClick}
-            />
-          ) : (
-            <div className="flex h-[380px] items-center justify-center text-sm text-[var(--muted)]">
-              {loading ? "Loading chart…" : "Chart unavailable"}
+          {chartTab === "chart" && (
+            <>
+              {priceData?.sparkline24h?.length ? (
+                <TradingChart
+                  data={priceData.sparkline24h}
+                  lines={chartLines}
+                  onPriceClick={handleChartClick}
+                  height={380}
+                />
+              ) : (
+                <div className="flex flex-1 items-center justify-center text-sm text-[var(--muted)]">
+                  {loading ? "Loading…" : "No data"}
+                </div>
+              )}
+              <div className="flex gap-4 border-t border-[var(--border)] px-3 py-1.5 text-[10px] text-[var(--muted)]">
+                <span><span className="text-[#526fff]">━</span> Market</span>
+                <span><span className="text-[#00c076]">┄</span> Take profit</span>
+                <span><span className="text-[#ff4d6a]">┄</span> Stop loss</span>
+                <span className="ml-auto">Click chart to set levels</span>
+              </div>
+            </>
+          )}
+          {chartTab !== "chart" && (
+            <div className="flex flex-1 items-center justify-center p-8 text-sm text-[var(--muted)]">
+              {chartTab === "orders" ? "Open orders appear here" : "Holder data · coming soon"}
             </div>
           )}
+        </div>
 
-          <div className="flex flex-wrap gap-4 border-t border-[var(--border)] px-4 py-2 text-[11px] text-[var(--muted)]">
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-0.5 w-4 bg-[#2f6fed]" /> Market
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-0.5 w-4 border-t-2 border-dashed border-[#059669]" /> Take profit
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-0.5 w-4 border-t-2 border-dashed border-[#dc2626]" /> Stop loss
-            </span>
-            <span>Click chart to set TP/SL levels</span>
-          </div>
-        </Panel>
+        {/* Order panel */}
+        <div className="flex flex-col gap-2">
+          <div className="mv-panel p-3">
+            <div className="grid grid-cols-2 gap-1.5">
+              <Button variant="buy" size="lg" className="w-full" onClick={() => setSide("buy")}>
+                Buy
+              </Button>
+              <Button variant="sell" size="lg" className="w-full" onClick={() => setSide("sell")}>
+                Sell
+              </Button>
+            </div>
 
-        <div className="space-y-4">
-          <Panel className="p-4">
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setSide("buy")}
-                className={`flex items-center justify-center gap-2 border py-2.5 text-sm font-semibold transition ${
-                  side === "buy"
-                    ? "border-[var(--gain)] bg-[var(--gain-soft)] text-[var(--gain)]"
-                    : "border-[var(--border)] text-[var(--muted)]"
-                }`}
-              >
-                <ArrowUpRight className="h-4 w-4" /> Buy
+            <div className="mt-3 grid grid-cols-2 gap-1.5">
+              <button type="button" className="border border-[var(--border)] py-1.5 text-[10px] font-semibold uppercase text-[var(--muted)] hover:bg-[var(--surface-hover)]">
+                Buy dip
               </button>
-              <button
-                type="button"
-                onClick={() => setSide("sell")}
-                className={`flex items-center justify-center gap-2 border py-2.5 text-sm font-semibold transition ${
-                  side === "sell"
-                    ? "border-[var(--loss)] bg-[var(--loss-soft)] text-[var(--loss)]"
-                    : "border-[var(--border)] text-[var(--muted)]"
-                }`}
-              >
-                <ArrowDownRight className="h-4 w-4" /> Sell
+              <button type="button" className="border border-[var(--border)] py-1.5 text-[10px] font-semibold uppercase text-[var(--muted)] hover:bg-[var(--surface-hover)]">
+                Breakout
               </button>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-3 space-y-2">
               <div>
                 <label className="mv-label">Amount ({asset?.symbol})</label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                />
+                <Input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" type="number" step="any" />
               </div>
               <div>
-                <label className="mv-label flex items-center gap-1.5">
-                  <Target className="h-3 w-3" /> Take profit (USD)
-                </label>
-                <Input
-                  type="number"
-                  value={takeProfit}
-                  onChange={(e) => setTakeProfit(e.target.value)}
-                  placeholder="Optional"
-                />
+                <label className="mv-label">Take profit</label>
+                <Input value={takeProfit} onChange={(e) => setTakeProfit(e.target.value)} placeholder="USD" type="number" />
               </div>
               <div>
-                <label className="mv-label flex items-center gap-1.5">
-                  <Shield className="h-3 w-3" /> Stop loss (USD)
-                </label>
-                <Input
-                  type="number"
-                  value={stopLoss}
-                  onChange={(e) => setStopLoss(e.target.value)}
-                  placeholder="Optional"
-                />
+                <label className="mv-label">Stop loss</label>
+                <Input value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} placeholder="USD" type="number" />
               </div>
             </div>
 
-            <label className="mt-3 flex items-center gap-2 text-xs text-[var(--muted)]">
-              <input
-                type="checkbox"
-                checked={showTpSl}
-                onChange={(e) => setShowTpSl(e.target.checked)}
-                className="accent-[var(--primary)]"
-              />
-              Show TP/SL on chart
-            </label>
-
-            <Button className="mt-4 w-full" size="lg" onClick={handlePlaceOrder}>
-              {side === "buy" ? "Stage buy order" : "Stage sell order"}
+            <Button
+              className="mt-3 w-full"
+              variant={side === "buy" ? "buy" : "sell"}
+              size="lg"
+              onClick={handlePlaceOrder}
+            >
+              {side === "buy" ? "Buy now" : "Sell now"}
             </Button>
+            {orderNote && <p className="mv-alert-info mt-2 text-[10px]">{orderNote}</p>}
+          </div>
 
-            {orderNote && <p className="mv-alert-info mt-3 text-xs">{orderNote}</p>}
-          </Panel>
-
-          <Panel className="p-4 text-xs text-[var(--muted)]">
+          <div className="mv-panel p-3 text-[10px] text-[var(--muted)]">
             <p className="font-medium text-[var(--foreground)]">Wallet</p>
             <p className="mt-1 capitalize">{session.walletType} · {session.mode}</p>
-            <p className="mt-2">
-              Orders are staged locally. Use <strong>Swap</strong> to execute on-chain via Jupiter / LI.FI.
-            </p>
-          </Panel>
+            <p className="mt-2">Stage orders here · settle on-chain via Swap tab</p>
+          </div>
         </div>
       </div>
     </div>

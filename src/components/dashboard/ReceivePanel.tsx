@@ -26,7 +26,7 @@ export function ReceivePanel({ session }: ReceivePanelProps) {
     QRCode.toDataURL(address, {
       margin: 2,
       width: 220,
-      color: { dark: "#1a1f2e", light: "#f7f8fa" },
+      color: { dark: "#ececf1", light: "#101016" },
     }).then(setQrDataUrl);
   }, [address]);
 
@@ -66,7 +66,7 @@ export function ReceivePanel({ session }: ReceivePanelProps) {
             <img
               src={qrDataUrl}
               alt="QR code"
-              className="border border-[var(--border)] bg-white p-2"
+              className="border border-[var(--border)] bg-[var(--surface-solid)] p-2"
             />
           ) : (
             <div className="h-[220px] w-[220px] animate-pulse bg-[var(--border)]" />

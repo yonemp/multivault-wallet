@@ -13,26 +13,23 @@ const features = [
   {
     icon: Globe,
     title: "Multi-chain",
-    description: "BTC, LTC, ETH, SOL, TON, XMR & XRP in one place.",
+    description: "BTC, LTC, ETH, SOL, TON, XMR & XRP in one terminal.",
   },
   {
     icon: Zap,
-    title: "Instant access",
-    description: "Send, receive, and swap from one dashboard.",
+    title: "Pro trading UI",
+    description: "Pulse discovery, charts, TP/SL — Axiom-style terminal.",
   },
 ];
 
 export default function HomePage() {
   return (
-    <div className="relative min-h-screen">
-      <header className="border-b border-[var(--border)] bg-[var(--surface)] backdrop-blur-md">
+    <div className="relative min-h-screen pb-[var(--status-h)]">
+      <header className="border-b border-[var(--border)] bg-[var(--bg-elevated)]">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <Logo />
-          <a
-            href="/dashboard"
-            className="border border-[var(--border)] bg-[var(--surface-solid)] px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-[var(--muted)] transition hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
-          >
-            Dashboard
+          <a href="/dashboard" className="ax-nav-link border border-[var(--border)] px-4 py-2 !text-[var(--foreground)]">
+            Launch terminal
           </a>
         </div>
       </header>
@@ -40,21 +37,23 @@ export default function HomePage() {
       <main className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
         <section className="mx-auto max-w-3xl text-center">
           <span className="inline-block border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--primary)]">
-            Multi-chain web wallet
+            Multi-chain trading terminal
           </span>
           <h1 className="mt-6 text-4xl font-semibold tracking-tight text-[var(--foreground)] sm:text-5xl">
-            One vault.{" "}
-            <span className="text-[var(--primary)]">Seven networks.</span>
+            Trade like{" "}
+            <span className="text-[var(--primary)]">Axiom.</span>
+            <br />
+            Custody like a vault.
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[var(--muted)]">
-            Bitcoin, Litecoin, Ethereum, Solana, TON, Monero & XRP — unified
-            interface. Keys never leave your device.
+            Pulse discovery, live charts, portfolio tracking, and on-chain swap —
+            seven networks, one dark terminal. Your keys never leave your device.
           </p>
         </section>
 
         <section className="mt-14 grid gap-px border border-[var(--border)] bg-[var(--border)] sm:grid-cols-3">
           {features.map(({ icon: Icon, title, description }) => (
-            <div key={title} className="bg-[var(--surface)] px-5 py-5 backdrop-blur-md">
+            <div key={title} className="bg-[var(--surface)] px-5 py-5">
               <Icon className="h-4 w-4 text-[var(--primary)]" />
               <h3 className="mt-3 text-sm font-semibold text-[var(--foreground)]">{title}</h3>
               <p className="mt-1.5 text-sm leading-6 text-[var(--muted)]">{description}</p>
@@ -80,23 +79,19 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="mt-14">
-          <Panel className="mx-auto max-w-xl p-6">
-            <h2 className="text-center text-base font-semibold text-[var(--foreground)]">
-              Connect existing wallet
+        <section className="mt-12">
+          <Panel className="p-5">
+            <h2 className="text-sm font-semibold text-[var(--foreground)]">
+              Connect external wallet
             </h2>
-            <p className="mt-1 text-center text-sm text-[var(--muted)]">
-              MetaMask, Phantom, or Trust Wallet
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              MetaMask, Phantom, or Trust Wallet — no seed phrase required.
             </p>
-            <div className="mt-5">
+            <div className="mt-4">
               <ConnectExternal />
             </div>
           </Panel>
         </section>
-
-        <footer className="mt-20 text-center text-xs text-[var(--muted)]">
-          MultiVault stores only public addresses after signature verification.
-        </footer>
       </main>
     </div>
   );

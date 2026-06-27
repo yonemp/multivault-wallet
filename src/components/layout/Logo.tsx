@@ -11,25 +11,37 @@ export function Logo({ href = "/", compact = false }: LogoProps) {
       href={href}
       className="group inline-flex items-center gap-2.5 transition-opacity hover:opacity-90"
     >
-      <div className="relative flex h-9 w-9 items-center justify-center border border-[var(--border-strong)] bg-[var(--surface-solid)]">
-        <div className="absolute inset-0 bg-[var(--primary-soft)]" />
-        <div className="relative flex flex-col items-center leading-none">
-          <span className="text-[10px] font-bold tracking-tighter text-[var(--primary)]">
-            MV
-          </span>
-          <span className="mt-0.5 h-px w-4 bg-[var(--primary)]" />
-        </div>
+      <div className="relative flex h-8 w-8 items-center justify-center">
+        <svg viewBox="0 0 32 32" className="h-8 w-8" aria-hidden>
+          <path
+            d="M16 4 L28 26 L4 26 Z"
+            fill="none"
+            stroke="var(--primary)"
+            strokeWidth="1.5"
+          />
+          <circle cx="16" cy="14" r="3" fill="var(--primary)" opacity="0.9" />
+          <line x1="16" y1="17" x2="16" y2="22" stroke="var(--primary)" strokeWidth="1.2" />
+        </svg>
       </div>
       {!compact && (
         <div className="leading-tight">
-          <p className="text-sm font-semibold tracking-tight text-[var(--foreground)]">
+          <p className="text-sm font-semibold tracking-wide text-[var(--foreground)]">
             MultiVault
           </p>
-          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
-            Multi-chain
+          <p className="text-[9px] font-medium uppercase tracking-[0.2em] text-[var(--muted)]">
+            Terminal
           </p>
         </div>
       )}
     </a>
+  );
+}
+
+export function LogoMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className={clsx("h-6 w-6", className)} aria-hidden>
+      <path d="M16 4 L28 26 L4 26 Z" fill="none" stroke="var(--primary)" strokeWidth="1.5" />
+      <circle cx="16" cy="14" r="3" fill="var(--primary)" />
+    </svg>
   );
 }

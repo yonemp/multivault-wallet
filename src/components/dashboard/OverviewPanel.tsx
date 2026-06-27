@@ -118,7 +118,7 @@ export function OverviewPanel({
 
   function renderChange(assetId: string) {
     const m = market[assetId];
-    if (!m) return <span className="text-slate-400">—</span>;
+    if (!m) return <span className="text-[var(--muted)]">—</span>;
     const change = timeframe === "24h" ? m.change24h : m.change4h;
     const positive = change >= 0;
     return (
@@ -276,7 +276,7 @@ export function OverviewPanel({
                     <td className="px-4 py-3 text-[var(--muted)]">{chain.family.toUpperCase()}</td>
                     <td className="px-4 py-3 text-right font-mono">
                       {isMonero ? "—" : loading && connected ? (
-                        <span className="inline-block h-4 w-16 animate-pulse bg-slate-100" />
+                        <span className="inline-block h-4 w-16 animate-pulse bg-[var(--surface-active)]" />
                       ) : connected ? (
                         `${balance ?? "0"} ${chain.symbol}`
                       ) : (

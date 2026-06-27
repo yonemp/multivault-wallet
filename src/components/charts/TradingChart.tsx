@@ -32,7 +32,7 @@ type TradingChartProps = {
 export function TradingChart({
   data,
   lines = [],
-  height = 380,
+  height = 420,
   onPriceClick,
 }: TradingChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -46,23 +46,24 @@ export function TradingChart({
     const chart = createChart(containerRef.current, {
       height,
       layout: {
-        background: { type: ColorType.Solid, color: "transparent" },
-        textColor: "#5c6478",
-        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+        background: { type: ColorType.Solid, color: "#101016" },
+        textColor: "#8b8b9a",
+        fontFamily: "var(--font-geist-mono), monospace",
+        fontSize: 11,
       },
       grid: {
-        vertLines: { color: "rgba(26,31,46,0.06)" },
-        horzLines: { color: "rgba(26,31,46,0.06)" },
+        vertLines: { color: "#1a1a24" },
+        horzLines: { color: "#1a1a24" },
       },
       crosshair: { mode: CrosshairMode.Normal },
-      rightPriceScale: { borderColor: "rgba(26,31,46,0.1)" },
-      timeScale: { borderColor: "rgba(26,31,46,0.1)" },
+      rightPriceScale: { borderColor: "#232330" },
+      timeScale: { borderColor: "#232330" },
     });
 
     const series = chart.addSeries(AreaSeries, {
-      lineColor: "#2f6fed",
-      topColor: "rgba(47,111,237,0.35)",
-      bottomColor: "rgba(47,111,237,0.02)",
+      lineColor: "#526fff",
+      topColor: "rgba(82,111,255,0.28)",
+      bottomColor: "rgba(82,111,255,0.02)",
       lineWidth: 2,
     });
 
@@ -95,7 +96,6 @@ export function TradingChart({
 
   useEffect(() => {
     if (!seriesRef.current || !data.length) return;
-
     seriesRef.current.setData(
       data.map((d) => ({
         time: Math.floor(d.t / 1000) as UTCTimestamp,
@@ -107,7 +107,6 @@ export function TradingChart({
 
   useEffect(() => {
     if (!chartRef.current) return;
-
     for (const line of lineRefs.current) {
       chartRef.current.removeSeries(line);
     }
@@ -125,25 +124,16 @@ export function TradingChart({
 
       if (data.length >= 2) {
         ls.setData([
-          {
-            time: Math.floor(data[0].t / 1000) as UTCTimestamp,
-            value: line.price,
-          },
+          { time: Math.floor(data[0].t / 1000) as UTCTimestamp, value: line.price },
           {
             time: Math.floor(data[data.length - 1].t / 1000) as UTCTimestamp,
             value: line.price,
           },
         ]);
       }
-
       lineRefs.current.push(ls);
     }
   }, [lines, data]);
 
-  return (
-    <div
-      ref={containerRef}
-      className="w-full overflow-hidden border border-[var(--border)] bg-[var(--surface-solid)]"
-    />
-  );
+  return <div ref={containerRef} className="w-full bg-[#101016]" />;
 }

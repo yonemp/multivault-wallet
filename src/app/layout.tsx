@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppBackground } from "@/components/layout/AppBackground";
+import { StatusBar } from "@/components/layout/StatusBar";
 import { PageTransition } from "@/components/layout/PageTransition";
 import "./globals.css";
 
@@ -15,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MultiVault | Multi-Chain Web Wallet",
+  title: "MultiVault | Multi-Chain Trading Terminal",
   description:
-    "Create, import, or connect a multi-chain crypto wallet in your browser.",
+    "Axiom-style trading terminal with Pulse discovery, charts, and self-custody multi-chain wallet.",
 };
 
 export default function RootLayout({
@@ -30,9 +31,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="relative min-h-full flex flex-col text-[var(--foreground)]">
+      <body className="relative min-h-full flex flex-col pb-[var(--status-h)] text-[var(--foreground)]">
         <AppBackground />
         <PageTransition>{children}</PageTransition>
+        <StatusBar />
       </body>
     </html>
   );

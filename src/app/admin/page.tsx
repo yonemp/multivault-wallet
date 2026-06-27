@@ -141,7 +141,7 @@ export default function AdminPage() {
   }
 
   return (
-    <AppShell showNav={false} maxWidth="full">
+    <AppShell showNav={false} terminal={false}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-[var(--muted)] hover:text-[var(--primary)]">
@@ -237,11 +237,11 @@ export default function AdminPage() {
                   <td className="px-4 py-3 capitalize">{w.wallet_type}</td>
                   <td className="px-4 py-3">
                     {w.is_frozen ? (
-                      <span className="border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-800">
+                      <span className="border border-[var(--loss)] bg-[var(--loss-soft)] px-2 py-0.5 text-xs font-medium text-[var(--loss)]">
                         Frozen
                       </span>
                     ) : (
-                      <span className="border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                      <span className="border border-[var(--gain)] bg-[var(--gain-soft)] px-2 py-0.5 text-xs font-medium text-[var(--gain)]">
                         Active
                       </span>
                     )}
@@ -289,7 +289,7 @@ export default function AdminPage() {
                   </p>
                 </div>
                 <span className={`border px-2 py-0.5 text-[10px] font-semibold uppercase ${
-                  t.status === "open" ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  t.status === "open" ? "border-[var(--warning)] bg-[rgba(245,166,35,0.1)] text-[var(--warning)]" : "border-[var(--gain)] bg-[var(--gain-soft)] text-[var(--gain)]"
                 }`}>
                   {t.status}
                 </span>
