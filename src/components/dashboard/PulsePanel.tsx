@@ -152,7 +152,7 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="mb-3 flex flex-wrap items-center gap-3 border-b border-[var(--border-strong)] pb-3">
+      <div className="mb-2 flex flex-wrap items-center gap-2 border-b border-[var(--border-strong)] pb-2">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-[var(--primary)]" />
           <span className="text-base font-semibold">Pulse</span>
@@ -208,8 +208,8 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
                 index === 1 ? "md:mx-0.5 md:ring-1 md:ring-[var(--border-strong)]" : ""
               }`}
             >
-              <div className="flex items-center gap-2 border-b border-[var(--border-strong)] bg-[var(--bg-elevated)] px-4 py-3">
-                <span className="text-xs font-bold uppercase tracking-widest text-[var(--foreground)]">{title}</span>
+              <div className="flex items-center gap-2 border-b border-[var(--border-strong)] bg-[var(--bg-elevated)] px-3 py-2.5">
+                <span className="text-sm font-bold uppercase tracking-widest text-[var(--foreground)]">{title}</span>
                 <button
                   type="button"
                   onClick={() => { setFilterColumn(key); setFiltersOpen(true); }}

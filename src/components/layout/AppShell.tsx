@@ -82,7 +82,7 @@ export function AppShell({
       </header>
 
       <main className={terminal ? "ax-terminal flex-1 overflow-hidden px-0" : "mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6"}>
-        <div className={terminal ? "h-full overflow-auto px-3 py-3 sm:px-4" : ""}>
+        <div className={terminal ? "h-full overflow-auto px-2 py-2 sm:px-3" : ""}>
           {children}
         </div>
       </main>
