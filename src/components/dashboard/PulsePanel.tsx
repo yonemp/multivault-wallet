@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PulseToken } from "@/app/api/pulse/route";
 import { DashboardTab } from "@/components/dashboard/ActionTabs.types";
-import { formatCompactUsd } from "@/lib/format/numbers";
+import { formatCompactUsd, safeFixed, safeNumber } from "@/lib/format/numbers";
 import { ChevronDown, Filter, RefreshCw, Search, Zap } from "lucide-react";
 
 const COLUMNS: { key: PulseToken["column"]; title: string }[] = [
@@ -110,10 +110,10 @@ function PulseRow({ token, onTrade }: { token: PulseToken; onTrade: () => void }
         </div>
       </button>
       <span className="font-mono text-[10px] text-[var(--foreground)]">{formatCompactUsd(token.mcap)}</span>
-      <span className="font-mono text-[10px] text-[var(--muted)]">{token.txCount}</span>
+      <span className="font-mono text-[10px] text-[var(--muted)]">{safeNumber(token.txCount)}</span>
       <span className="font-mono text-[10px] text-[var(--muted)]">{formatCompactUsd(token.volume)}</span>
       <span className="font-mono text-[10px] font-semibold text-[var(--primary)]">
-        {token.bondingProgress.toFixed(0)}%
+        {safeFixed(token.bondingProgress, 0, "0")}%
       </span>
       <a
         href={token.pairUrl}

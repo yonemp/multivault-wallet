@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { safeFixed, safeNumber } from "@/lib/format/numbers";
 import { GripVertical, Star } from "lucide-react";
 
 export type WalletCardData = {
@@ -55,7 +56,7 @@ export function WalletDragCard({ wallet, onSetActive, compact }: WalletDragCardP
         <p className="font-mono text-[9px] text-[var(--muted)]">{truncate(wallet.address)}</p>
       </div>
       <div className="text-right">
-        <p className="font-mono text-[11px] font-semibold">{wallet.balance.toFixed(3)}</p>
+        <p className="font-mono text-[11px] font-semibold">{safeFixed(wallet.balance, 3, "0.000")}</p>
         <p className="text-[8px] text-[var(--muted)]">SOL</p>
       </div>
       {onSetActive && !wallet.isActive && (

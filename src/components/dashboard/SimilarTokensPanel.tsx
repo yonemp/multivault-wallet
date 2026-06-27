@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { MARKET_ASSETS } from "@/lib/market/assets";
 import type { AssetMarketData } from "@/app/api/prices/route";
+import { safeFixed, safeNumber } from "@/lib/format/numbers";
 import { DashboardTab } from "./ActionTabs.types";
 
 type SimilarTokensPanelProps = {
@@ -69,9 +70,9 @@ export function SimilarTokensPanel({
             >
               <p className="font-semibold">{a.symbol}</p>
               <p className="text-xs text-[var(--muted)]">{a.name}</p>
-              <p className="mt-2 font-mono text-sm">${m?.price.toFixed(2) ?? "—"}</p>
-              <p className={`text-xs font-mono ${(m?.change24h ?? 0) >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
-                {(m?.change24h ?? 0) >= 0 ? "+" : ""}{(m?.change24h ?? 0).toFixed(2)}% 24h
+              <p className="mt-2 font-mono text-sm">${safeFixed(m?.price, 2)}</p>
+              <p className={`text-xs font-mono ${safeNumber(m?.change24h) >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
+                {safeNumber(m?.change24h) >= 0 ? "+" : ""}{safeFixed(m?.change24h, 2)}% 24h
               </p>
             </button>
           );

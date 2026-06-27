@@ -8,6 +8,7 @@ import { HeaderWalletLock } from "@/components/wallet/HeaderWalletLock";
 import { Button } from "@/components/ui/Button";
 import { LogOut, Search, Wallet } from "lucide-react";
 import type { AssetMarketData } from "@/app/api/prices/route";
+import { safeFixed, safeNumber } from "@/lib/format/numbers";
 
 type AppShellProps = {
   children: ReactNode;
@@ -55,10 +56,10 @@ export function AppShell({
           <span className="mv-preset-pill">Preset 1</span>
           <span className="font-mono text-[var(--muted)]">
             SOL{" "}
-            <span className="text-[var(--foreground)]">${solPrice?.price.toFixed(2) ?? "—"}</span>
-            {solPrice && (
-              <span className={`ml-1 ${solPrice.change24h >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
-                {solPrice.change24h >= 0 ? "+" : ""}{solPrice.change24h.toFixed(2)}%
+            <span className="text-[var(--foreground)]">${safeFixed(solPrice?.price, 2)}</span>
+            {solPrice && Number.isFinite(safeNumber(solPrice.change24h, NaN)) && (
+              <span className={`ml-1 ${safeNumber(solPrice.change24h) >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
+                {safeNumber(solPrice.change24h) >= 0 ? "+" : ""}{safeFixed(solPrice.change24h, 2)}%
               </span>
             )}
           </span>

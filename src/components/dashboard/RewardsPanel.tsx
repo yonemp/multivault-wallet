@@ -10,6 +10,7 @@ import {
   RewardsState,
 } from "@/lib/platform/rewards";
 import { Copy, Gift, Trophy } from "lucide-react";
+import { safeFixed } from "@/lib/format/numbers";
 
 const RANKS = [
   { name: "Bronze", min: 0 },
@@ -75,7 +76,7 @@ export function RewardsPanel() {
         <div className="mv-panel p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">SOL earned</p>
           <p className="mt-2 font-mono text-2xl font-bold text-[var(--gain)]">
-            {state.solEarned.toFixed(4)}
+            {safeFixed(state.solEarned, 4, "0.0000")}
           </p>
           <p className="mt-1 text-xs text-[var(--muted)]">{state.tradesCount} trades</p>
         </div>

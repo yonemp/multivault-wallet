@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { safeFixed, safeNumber } from "@/lib/format/numbers";
 
 type LiveTradesFeedProps = {
   symbol: string;
@@ -86,7 +87,7 @@ export function LiveTradesFeed({ symbol, tokenAddress }: LiveTradesFeedProps) {
           </div>
           <div className="bg-[var(--surface)] px-2 py-2">
             <p className={`font-bold ${snap.change5m >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
-              {snap.change5m >= 0 ? "+" : ""}{snap.change5m.toFixed(1)}%
+              {safeNumber(snap.change5m) >= 0 ? "+" : ""}{safeFixed(snap.change5m, 1, "0.0")}%
             </p>
             <p className="text-[var(--muted)]">5m</p>
           </div>

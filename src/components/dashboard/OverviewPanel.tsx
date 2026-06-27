@@ -11,6 +11,7 @@ import { CHAIN_LIST } from "@/lib/wallet/chains";
 import { ChainBalances } from "@/lib/wallet/balances-client";
 import { getAddress, getSessionChains, SessionData } from "@/lib/wallet/session";
 import { loadSnapshots, recordSnapshot } from "@/lib/platform/portfolio-snapshots";
+import { safeFixed, safeNumber } from "@/lib/format/numbers";
 import { Calendar, RefreshCw, TrendingDown, TrendingUp } from "lucide-react";
 
 type OverviewPanelProps = {
@@ -74,8 +75,8 @@ export function OverviewPanel({
         symbol: chain.symbol,
         chain: chain.name,
         balance: bal,
-        usd: bal * market[asset.id].price,
-        change24h: market[asset.id].change24h,
+        usd: bal * safeNumber(market[asset.id].price),
+        change24h: safeNumber(market[asset.id].change24h),
         assetId: asset.id,
       });
     }
@@ -86,8 +87,8 @@ export function OverviewPanel({
           symbol: "BNB",
           chain: "BNB Chain",
           balance: bnbBal,
-          usd: bnbBal * market.bnb.price,
-          change24h: market.bnb.change24h,
+          usd: bnbBal * safeNumber(market.bnb.price),
+          change24h: safeNumber(market.bnb.change24h),
           assetId: "bnb",
         });
       }
@@ -181,7 +182,7 @@ export function OverviewPanel({
         <div className="mv-panel p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">24h Change</p>
           <p className={`mt-1 font-mono text-2xl font-bold ${(dailyChange ?? 0) >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
-            {dailyChange === null ? "—" : `${dailyChange >= 0 ? "+" : ""}$${dailyChange.toFixed(2)}`}
+            {dailyChange === null ? "—" : `${safeNumber(dailyChange) >= 0 ? "+" : ""}$${safeFixed(dailyChange, 2)}`}
           </p>
           <p className="mt-1 text-[10px] text-[var(--muted)]">From recorded daily snapshots</p>
         </div>
@@ -189,7 +190,7 @@ export function OverviewPanel({
           <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">Performance</p>
           <p className={`mt-1 flex items-center gap-1 font-mono text-2xl font-bold ${performance >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
             {performance >= 0 ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
-            {performance >= 0 ? "+" : ""}{performance.toFixed(2)}%
+            {safeNumber(performance) >= 0 ? "+" : ""}{safeFixed(performance, 2)}%
           </p>
           <p className="mt-1 text-[10px] text-[var(--muted)]">Weighted 24h (holdings)</p>
         </div>
@@ -234,9 +235,9 @@ export function OverviewPanel({
                       <p className="text-[10px] text-[var(--muted)]">{h.chain}</p>
                     </td>
                     <td className="px-4 py-2.5 text-right font-mono">{h.balance}</td>
-                    <td className="px-4 py-2.5 text-right font-mono">${h.usd.toFixed(2)}</td>
-                    <td className={`px-4 py-2.5 text-right font-mono ${h.change24h >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
-                      {h.change24h >= 0 ? "+" : ""}{h.change24h.toFixed(2)}%
+                    <td className="px-4 py-2.5 text-right font-mono">${safeFixed(h.usd, 2)}</td>
+                    <td className={`px-4 py-2.5 text-right font-mono ${safeNumber(h.change24h) >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
+                      {safeNumber(h.change24h) >= 0 ? "+" : ""}{safeFixed(h.change24h, 2)}%
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <button type="button" onClick={() => onNavigate("trade", h.assetId)} className="text-[10px] font-semibold text-[var(--primary)]">Trade</button>

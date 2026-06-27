@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { AssetMarketData } from "@/app/api/prices/route";
+import { safeFixed, safeNumber } from "@/lib/format/numbers";
 
 export function StatusBar() {
   const [solPrice, setSolPrice] = useState<AssetMarketData | null>(null);
@@ -40,14 +41,14 @@ export function StatusBar() {
         <span className="font-mono text-[var(--foreground)]">
           SOL{" "}
           <span className="text-[var(--primary)]">
-            ${solPrice?.price.toFixed(2) ?? "—"}
+            ${safeFixed(solPrice?.price, 2)}
           </span>
-          {solPrice && (
+          {solPrice && Number.isFinite(safeNumber(solPrice.change24h, NaN)) && (
             <span
-              className={`ml-1 ${solPrice.change24h >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}
+              className={`ml-1 ${safeNumber(solPrice.change24h) >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}
             >
-              {solPrice.change24h >= 0 ? "+" : ""}
-              {solPrice.change24h.toFixed(2)}%
+              {safeNumber(solPrice.change24h) >= 0 ? "+" : ""}
+              {safeFixed(solPrice.change24h, 2)}%
             </span>
           )}
         </span>

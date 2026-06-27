@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AssetMarketData } from "@/app/api/prices/route";
 import { MARKET_ASSETS } from "@/lib/market/assets";
-import { formatCompactUsd } from "@/lib/format/numbers";
+import { formatCompactUsd, safeFixed, safeNumber } from "@/lib/format/numbers";
 import { TradingViewWidget } from "@/components/charts/TradingViewWidget";
 import { PumpFunChart } from "@/components/charts/PumpFunChart";
 import { FloatingInstantTrade } from "@/components/trade/FloatingInstantTrade";
@@ -63,14 +63,14 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
   const displaySymbol = tokenPair?.baseToken.symbol ?? asset?.symbol ?? "SOL";
   const displayName = tokenPair?.baseToken.name ?? asset?.name ?? "Solana";
   const price = tokenPair
-    ? parseFloat(tokenPair.priceUsd ?? "0")
-    : priceData?.price ?? 0;
-  const liquidity = tokenPair?.liquidity?.usd ?? 0;
-  const mcap = tokenPair?.marketCap ?? 0;
+    ? safeNumber(tokenPair.priceUsd)
+    : safeNumber(priceData?.price);
+  const liquidity = safeNumber(tokenPair?.liquidity?.usd);
+  const mcap = safeNumber(tokenPair?.marketCap);
   const txCount = tokenPair
-    ? (tokenPair.txns?.m5?.buys ?? 0) + (tokenPair.txns?.m5?.sells ?? 0)
+    ? safeNumber(tokenPair.txns?.m5?.buys) + safeNumber(tokenPair.txns?.m5?.sells)
     : 0;
-  const bondingProgress = tokenPair?.bondingProgress ?? 0;
+  const bondingProgress = safeNumber(tokenPair?.bondingProgress);
 
   const solAddress = getAddress(session, "solana");
   const tvSymbol = TV_SYMBOLS[asset?.id ?? "sol"] ?? "BINANCE:SOLUSDT";
@@ -124,15 +124,15 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
 
   const stats = tokenAddress
     ? [
-        { label: "Price", value: price < 0.01 ? `$${price.toFixed(8)}` : `$${price.toLocaleString(undefined, { maximumFractionDigits: 6 })}` },
+        { label: "Price", value: price < 0.01 ? `$${safeFixed(price, 8)}` : `$${price.toLocaleString(undefined, { maximumFractionDigits: 6 })}` },
         { label: "MC", value: formatCompactUsd(mcap) },
         { label: "Liquidity", value: formatCompactUsd(liquidity) },
         { label: "Replies", value: String(txCount) },
-        { label: "Curve", value: `${bondingProgress.toFixed(0)}%` },
+        { label: "Curve", value: `${safeFixed(bondingProgress, 0, "0")}%` },
       ]
     : [
         { label: "Price", value: `$${price.toLocaleString(undefined, { maximumFractionDigits: 4 })}` },
-        { label: "24h", value: `${(priceData?.change24h ?? 0) >= 0 ? "+" : ""}${(priceData?.change24h ?? 0).toFixed(2)}%` },
+        { label: "24h", value: `${safeNumber(priceData?.change24h) >= 0 ? "+" : ""}${safeFixed(priceData?.change24h, 2)}%` },
         { label: "Source", value: "CoinGecko" },
       ];
 
