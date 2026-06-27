@@ -1,20 +1,28 @@
 @import "tailwindcss";
 
 :root {
-  --bg-base: #c8ccd2;
+  --bg-base: #b8c0cc;
   --bg-swirl: #e8ebf0;
   --bg-fade: rgba(255, 255, 255, 0.72);
-  --surface: rgba(255, 255, 255, 0.82);
-  --surface-solid: #f7f8fa;
-  --surface-hover: rgba(255, 255, 255, 0.95);
-  --foreground: #1a1f2e;
+  --surface: rgba(255, 255, 255, 0.88);
+  --surface-solid: #f4f6f9;
+  --surface-hover: rgba(255, 255, 255, 0.97);
+  --foreground: #12151f;
   --muted: #5c6478;
-  --border: rgba(26, 31, 46, 0.12);
-  --border-strong: rgba(26, 31, 46, 0.22);
+  --border: rgba(18, 21, 31, 0.1);
+  --border-strong: rgba(18, 21, 31, 0.2);
   --primary: #2f6fed;
-  --primary-hover: #255fd4;
-  --primary-soft: rgba(47, 111, 237, 0.12);
+  --primary-hover: #1d5ad8;
+  --primary-soft: rgba(47, 111, 237, 0.14);
+  --gain: #059669;
+  --gain-soft: rgba(5, 150, 105, 0.12);
+  --loss: #dc2626;
+  --loss-soft: rgba(220, 38, 38, 0.1);
   --spot: rgba(10, 12, 18, 0.55);
+  --shadow-sm: 0 2px 8px rgba(18, 21, 31, 0.06);
+  --shadow-md: 0 8px 24px rgba(18, 21, 31, 0.08);
+  --shadow-xl: 0 20px 50px rgba(18, 21, 31, 0.12);
+  --shadow-glow: 0 0 20px rgba(47, 111, 237, 0.25);
 }
 
 @theme inline {
@@ -61,6 +69,24 @@ a {
   border: 1px solid var(--border);
   background: var(--surface);
   backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-sm);
+}
+
+.mv-hero-card {
+  border: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(239, 246, 255, 0.85) 100%);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-md);
+}
+
+.mv-stat-tile {
+  background: var(--surface);
+  backdrop-filter: blur(12px);
+  transition: background 0.15s;
+}
+
+.mv-stat-tile:hover {
+  background: var(--surface-hover);
 }
 
 .mv-input {

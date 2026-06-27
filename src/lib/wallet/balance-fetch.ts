@@ -4,7 +4,7 @@ import { ChainId } from "./chains";
 import { EVM_CHAINS } from "./evm";
 import { getSolanaRpcEndpoints } from "./solana";
 
-export type ChainBalances = Partial<Record<ChainId, string>>;
+export type ChainBalances = Partial<Record<ChainId | "bsc", string>>;
 
 async function fetchBtcBalance(address: string) {
   const res = await fetch(`https://blockstream.info/api/address/${address}`, {
@@ -113,6 +113,15 @@ export async function fetchChainBalances(
         balances.ethereum = formatEther(raw);
       })().catch(() => {
         balances.ethereum = "0";
+      }),
+    );
+    tasks.push(
+      (async () => {
+        const provider = new JsonRpcProvider(EVM_CHAINS.bsc.rpc);
+        const raw = await provider.getBalance(addresses.ethereum!);
+        balances.bsc = formatEther(raw);
+      })().catch(() => {
+        balances.bsc = "0";
       }),
     );
   }

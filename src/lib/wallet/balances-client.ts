@@ -1,6 +1,6 @@
 import { ChainId } from "./chains";
 
-export type ChainBalances = Partial<Record<ChainId, string>>;
+export type ChainBalances = Partial<Record<ChainId | "bsc", string>>;
 
 export async function fetchChainBalances(
   addresses: Partial<Record<ChainId, string>>,

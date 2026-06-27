@@ -3,13 +3,15 @@ import {
   ArrowDownLeft,
   ArrowLeftRight,
   ArrowUpRight,
+  CandlestickChart,
   LayoutGrid,
 } from "lucide-react";
 
-export type DashboardTab = "overview" | "send" | "receive" | "swap";
+export type DashboardTab = "overview" | "trade" | "send" | "receive" | "swap";
 
 const tabs: { id: DashboardTab; label: string; icon: typeof LayoutGrid }[] = [
   { id: "overview", label: "Overview", icon: LayoutGrid },
+  { id: "trade", label: "Trade", icon: CandlestickChart },
   { id: "send", label: "Send", icon: ArrowUpRight },
   { id: "receive", label: "Receive", icon: ArrowDownLeft },
   { id: "swap", label: "Swap", icon: ArrowLeftRight },
