@@ -5,42 +5,53 @@ A multi-chain web wallet built with Next.js. Create or import a wallet in the br
 ## Security
 
 - Seed phrases and private keys are generated and encrypted **locally in the browser**
-- Only **public wallet addresses** are stored in a local SQLite database after signature verification
+- Only **public wallet addresses** are stored in Supabase after signature verification
 - Seed phrases are **never** uploaded to any server
-
-## Features
-
-- Create a new 12-word wallet (Ethereum + Solana addresses)
-- Import an existing recovery phrase
-- Connect MetaMask, Phantom, or Trust Wallet
-- View balances on Ethereum, Polygon, BNB Chain, and Solana
-- Encrypted local storage with password
-- Local SQLite database at `data/multivault.db`
 
 ## Setup
 
+1. Install dependencies:
+
 ```bash
 npm install
+```
+
+2. Add environment variables:
+
+```bash
+cp .env.example .env.local
+```
+
+Fill in your Supabase project URL and anon key.
+
+3. Run the database schema in Supabase SQL Editor:
+
+```bash
+# paste contents of supabase/schema.sql
+```
+
+4. Start the dev server:
+
+```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+## Deploy (Vercel)
 
-The SQLite database is created automatically on first wallet registration.
+Add these environment variables in Vercel project settings:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 ## API
 
 - `POST /api/wallet/register` — verify signature and save public address
-- `GET /api/wallets` — list registered wallet addresses (local dev)
-
-## Deploy note
-
-SQLite persists on your machine when running locally. Serverless hosts like Vercel use ephemeral filesystems, so use local/self-hosted deployment for the database to persist.
+- `GET /api/wallets` — list registered wallet addresses
 
 ## Tech stack
 
 - Next.js 16
-- better-sqlite3
+- Supabase
 - ethers.js
 - @solana/web3.js
 - bip39

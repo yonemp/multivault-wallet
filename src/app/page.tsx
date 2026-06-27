@@ -55,9 +55,9 @@ export default function HomePage() {
         </section>
 
         <footer className="mt-auto pt-16 text-sm text-zinc-500">
-          MultiVault stores only public wallet addresses in a local SQLite
-          database after you sign a verification message. Seed phrases and
-          private keys are never uploaded.
+          MultiVault stores only public wallet addresses in Supabase after you
+          sign a verification message. Seed phrases and private keys are never
+          uploaded.
         </footer>
       </div>
     </main>
