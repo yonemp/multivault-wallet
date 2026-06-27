@@ -1,17 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { FriendsPanel } from "@/components/dashboard/FriendsPanel";
+import { getAccountUsername } from "@/lib/platform/account-username";
+import { syncFriendsToWatched } from "@/lib/platform/friend-tracker-sync";
+import type { FriendProfile } from "@/lib/platform/friends";
 import {
   addWatchedWallet,
   loadWatchedWallets,
   removeWatchedWallet,
   WatchedWallet,
 } from "@/lib/platform/watched-wallets";
-import { AtSign, Download, Plus, Trash2, Upload, Wallet } from "lucide-react";
+import { AtSign, Download, Plus, Trash2, Upload, Users, Wallet } from "lucide-react";
 
-const SUB_TABS = ["Wallet Manager", "Live Trades", "Monitor", "KOLs"] as const;
+const SUB_TABS = ["Wallet Manager", "Friends", "Live Trades", "Monitor", "KOLs"] as const;
 
 function truncate(addr: string) {
   if (!addr || addr.length < 12) return addr || "—";
@@ -27,20 +31,45 @@ function EmptyState({ title, desc }: { title: string; desc: string }) {
   );
 }
 
+function isVisibleWallet(w: WatchedWallet) {
+  return w.source !== "friend" || w.active !== false;
+}
+
 export function TrackersPanel() {
   const [subTab, setSubTab] = useState<(typeof SUB_TABS)[number]>("Wallet Manager");
   const [wallets, setWallets] = useState<WatchedWallet[]>([]);
+  const [hiddenFriendCount, setHiddenFriendCount] = useState(0);
   const [address, setAddress] = useState("");
   const [label, setLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  function refresh() {
-    setWallets(loadWatchedWallets());
-  }
+  const refreshWallets = useCallback(() => {
+    const all = loadWatchedWallets();
+    setWallets(all.filter(isVisibleWallet));
+    setHiddenFriendCount(all.filter((w) => w.source === "friend" && w.active === false).length);
+  }, []);
+
+  const syncFriends = useCallback(async () => {
+    const username = getAccountUsername();
+    if (!username) {
+      refreshWallets();
+      return;
+    }
+    try {
+      const res = await fetch(`/api/friends?username=${encodeURIComponent(username)}`);
+      if (res.ok) {
+        const data = (await res.json()) as { friends?: FriendProfile[] };
+        if (data.friends) syncFriendsToWatched(data.friends);
+      }
+    } catch {
+      /* FriendsPanel handles local fallback */
+    }
+    refreshWallets();
+  }, [refreshWallets]);
 
   useEffect(() => {
-    refresh();
-  }, []);
+    void syncFriends();
+  }, [syncFriends]);
 
   function handleAdd() {
     setError(null);
@@ -49,14 +78,14 @@ export function TrackersPanel() {
       addWatchedWallet({ address: address.trim(), label: label.trim() || "Wallet", chain: "solana" });
       setAddress("");
       setLabel("");
-      refresh();
+      refreshWallets();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
     }
   }
 
   function handleExport() {
-    const blob = new Blob([JSON.stringify(wallets, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(loadWatchedWallets(), null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -76,7 +105,7 @@ export function TrackersPanel() {
         const data = JSON.parse(await file.text()) as WatchedWallet[];
         if (Array.isArray(data)) {
           localStorage.setItem("multivault_watched_wallets", JSON.stringify(data));
-          refresh();
+          refreshWallets();
         }
       } catch {
         setError("Invalid import file");
@@ -94,12 +123,13 @@ export function TrackersPanel() {
               key={tab}
               type="button"
               onClick={() => setSubTab(tab)}
-              className={`px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+              className={`flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
                 subTab === tab
                   ? "bg-[var(--primary-soft)] text-[var(--primary)]"
                   : "text-[var(--muted)] hover:text-[var(--foreground)]"
               }`}
             >
+              {tab === "Friends" && <Users className="h-3 w-3" />}
               {tab}
             </button>
           ))}
@@ -113,6 +143,10 @@ export function TrackersPanel() {
           </div>
         </div>
 
+        {subTab === "Friends" && (
+          <FriendsPanel onFriendsChanged={() => void syncFriends()} />
+        )}
+
         {subTab === "Wallet Manager" && (
           <>
             <div className="grid gap-2 border-b border-[var(--border)] p-3 sm:grid-cols-[1fr_1fr_auto]">
@@ -123,12 +157,18 @@ export function TrackersPanel() {
               </Button>
             </div>
             {error && <p className="mv-alert-error mx-3 text-xs">{error}</p>}
+            {hiddenFriendCount > 0 && (
+              <p className="mx-3 mt-2 text-[10px] text-[var(--muted)]">
+                {hiddenFriendCount} inactive friend wallet{hiddenFriendCount === 1 ? "" : "s"} hidden (no activity in 30 days)
+              </p>
+            )}
 
             <div className="min-h-0 flex-1 overflow-auto">
               <table className="w-full text-left text-xs">
                 <thead className="sticky top-0 z-10 bg-[var(--surface-solid)]">
                   <tr className="border-b border-[var(--border)] text-[9px] uppercase tracking-wider text-[var(--muted)]">
                     <th className="px-3 py-2">Wallet</th>
+                    <th className="px-3 py-2">Source</th>
                     <th className="px-3 py-2">Chain</th>
                     <th className="px-3 py-2">Added</th>
                     <th className="px-3 py-2" />
@@ -141,23 +181,38 @@ export function TrackersPanel() {
                         <p className="font-semibold">{w.label}</p>
                         <p className="font-mono text-[9px] text-[var(--muted)]">{truncate(w.address)}</p>
                       </td>
+                      <td className="px-3 py-2 text-[10px] capitalize text-[var(--muted)]">
+                        {w.source === "friend" ? (
+                          <span className="text-[var(--primary)]">Friend</span>
+                        ) : (
+                          "Manual"
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-[10px] capitalize text-[var(--muted)]">{w.chain}</td>
                       <td className="px-3 py-2 font-mono text-[10px] text-[var(--muted)]">
                         {new Date(w.addedAt).toLocaleDateString()}
                       </td>
                       <td className="px-3 py-2 text-right">
-                        <button type="button" onClick={() => { removeWatchedWallet(w.id); refresh(); }} className="text-[var(--muted)] hover:text-[var(--loss)]">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        {w.source !== "friend" && (
+                          <button
+                            type="button"
+                            onClick={() => { removeWatchedWallet(w.id); refreshWallets(); }}
+                            className="text-[var(--muted)] hover:text-[var(--loss)]"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
                   {!wallets.length && (
                     <tr>
-                      <td colSpan={4} className="px-3 py-12 text-center">
+                      <td colSpan={5} className="px-3 py-12 text-center">
                         <Wallet className="mx-auto mb-2 h-8 w-8 text-[var(--muted-dim)]" />
-                        <p className="text-[var(--muted)]">Add Solana wallets to track</p>
-                        <p className="mt-1 text-[10px] text-[var(--muted-dim)]">Live trade feed requires an on-chain indexer</p>
+                        <p className="text-[var(--muted)]">Add wallets or friends to track</p>
+                        <p className="mt-1 text-[10px] text-[var(--muted-dim)]">
+                          Friends&apos; active wallets appear here automatically
+                        </p>
                       </td>
                     </tr>
                   )}
@@ -170,7 +225,7 @@ export function TrackersPanel() {
         {subTab === "Live Trades" && (
           <EmptyState
             title="Live trades feed"
-            desc="Per-wallet buy/sell stream needs a Solana transaction indexer. Add wallets in Wallet Manager — trades will appear here when the indexer is connected."
+            desc="Per-wallet buy/sell stream needs a Solana transaction indexer. Tracked wallets (including friends) will appear here when the indexer is connected."
           />
         )}
 

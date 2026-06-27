@@ -4,16 +4,18 @@ import { normalizeUsername, validateUsername } from "@/lib/platform/username";
 
 export async function GET(req: NextRequest) {
   const address = req.nextUrl.searchParams.get("address");
-  if (!address) {
-    return NextResponse.json({ error: "address required" }, { status: 400 });
+  const usernameParam = req.nextUrl.searchParams.get("username");
+
+  if (!address && !usernameParam) {
+    return NextResponse.json({ error: "address or username required" }, { status: 400 });
   }
 
   const supabase = createServerClient();
-  const { data, error } = await supabase
-    .from("user_profiles")
-    .select("*")
-    .eq("primary_address", address)
-    .maybeSingle();
+  const query = supabase.from("user_profiles").select("*");
+
+  const { data, error } = usernameParam
+    ? await query.eq("username", normalizeUsername(usernameParam)).maybeSingle()
+    : await query.eq("primary_address", address!).maybeSingle();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

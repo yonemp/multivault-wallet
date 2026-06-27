@@ -6,6 +6,9 @@ export type WatchedWallet = {
   label: string;
   chain: "solana" | "ethereum";
   addedAt: number;
+  source?: "manual" | "friend";
+  friendUsername?: string;
+  active?: boolean;
   pnl?: string;
   winRate?: number;
 };
@@ -34,6 +37,8 @@ export function addWatchedWallet(input: {
   const next: WatchedWallet = {
     id,
     ...input,
+    source: "manual",
+    active: true,
     addedAt: Date.now(),
   };
   saveWatchedWallets([...wallets, next]);
