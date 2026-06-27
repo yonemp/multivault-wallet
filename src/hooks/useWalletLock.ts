@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { deriveAllAddresses } from "@/lib/wallet/derive-all";
 import { loadSession, saveSession, SessionData } from "@/lib/wallet/session";
 import { decryptMnemonic, loadEncryptedWallet } from "@/lib/wallet/storage";
+import { getActiveWalletId, getVaultWallet } from "@/lib/wallet/wallet-vault";
 import {
   clearUnlockedMnemonic,
   restoreUnlockFromSession,
@@ -72,7 +73,9 @@ export function useWalletLock(session: SessionData | null) {
   async function unlock() {
     setError(null);
     try {
-      const encrypted = loadEncryptedWallet();
+      const activeId = getActiveWalletId() ?? session?.activeWalletId;
+      const vaultWallet = activeId ? getVaultWallet(activeId) : undefined;
+      const encrypted = vaultWallet?.encryptedPayload ?? loadEncryptedWallet();
       if (!encrypted) throw new Error("No local wallet found");
       const mnemonic = await decryptMnemonic(encrypted, password);
       const addresses = await deriveAllAddresses(mnemonic);

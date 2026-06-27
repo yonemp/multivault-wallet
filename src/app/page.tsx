@@ -69,12 +69,12 @@ export default function HomePage() {
             <WalletCard
               href="/create"
               title="Create new wallet"
-              description="Generate a secure 12-word seed phrase and encrypt it locally on your device."
+              description="Step-by-step setup with seed backup, encryption, and multi-wallet vault support."
             />
             <WalletCard
               href="/import"
               title="Import wallet"
-              description="Restore an existing wallet using your 12 or 24-word recovery phrase."
+              description="Restore any wallet by phrase — add more trading wallets anytime from Portfolio."
             />
           </div>
         </section>

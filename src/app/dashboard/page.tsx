@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { DashboardTab } from "@/components/dashboard/ActionTabs";
@@ -38,15 +39,28 @@ import {
   SessionData,
 } from "@/lib/wallet/session";
 import { clearUnlockedMnemonic } from "@/lib/wallet/unlock-store";
-import { clearEncryptedWallet } from "@/lib/wallet/storage";
+import { migrateLegacyWallet } from "@/lib/wallet/wallet-vault";
+
+function tabFromParam(value: string | null): DashboardTab | null {
+  if (!value) return null;
+  const valid: DashboardTab[] = [
+    "pulse", "trackers", "overview", "rewards", "trade", "similar",
+    "tweets", "scan", "instant", "swap", "buy", "fees", "faqs",
+    "support", "send", "receive",
+  ];
+  return valid.includes(value as DashboardTab) ? (value as DashboardTab) : null;
+}
 
 export default function DashboardPage() {
+  const searchParams = useSearchParams();
   const [session, setSession] = useState<SessionData | null>(null);
   const [balances, setBalances] = useState<ChainBalances>({});
   const [activeTab, setActiveTab] = useState<DashboardTab>("pulse");
   const [tradeAsset, setTradeAsset] = useState("sol");
   const [booting, setBooting] = useState(true);
   const [loadingBalances, setLoadingBalances] = useState(false);
+  const [openWalletsTab, setOpenWalletsTab] = useState(false);
+  const [showWalletWelcome, setShowWalletWelcome] = useState(false);
 
   const lock = useWalletLock(session);
 
@@ -56,9 +70,16 @@ export default function DashboardPage() {
       window.location.href = "/";
       return;
     }
+    migrateLegacyWallet(current);
     setSession(current);
+
+    const tab = tabFromParam(searchParams.get("tab"));
+    if (tab) setActiveTab(tab);
+    if (searchParams.get("wallets") === "1") setOpenWalletsTab(true);
+    if (searchParams.get("welcome") === "1") setShowWalletWelcome(true);
+
     if (Object.keys(current.addresses).length > 0) loadBalances(current);
-  }, []);
+  }, [searchParams]);
 
   async function loadBalances(current: SessionData) {
     setLoadingBalances(true);
@@ -73,13 +94,18 @@ export default function DashboardPage() {
     lock.lock();
     clearUnlockedMnemonic();
     clearSession();
-    clearEncryptedWallet();
     window.location.href = "/";
   }
 
   function handleNavigate(tab: DashboardTab, asset?: string) {
     if (asset) setTradeAsset(asset);
     setActiveTab(tab);
+  }
+
+  function handleSessionChange(next: SessionData) {
+    setSession(next);
+    loadBalances(next);
+    lock.syncLockState();
   }
 
   const isTerminal = TERMINAL_TABS.includes(activeTab);
@@ -130,6 +156,9 @@ export default function DashboardPage() {
               loading={loadingBalances}
               onNavigate={handleNavigate}
               onRefresh={() => session && loadBalances(session)}
+              onSessionChange={handleSessionChange}
+              initialWalletsTab={openWalletsTab}
+              showWalletWelcome={showWalletWelcome}
             />
           )}
           {activeTab === "trade" && (

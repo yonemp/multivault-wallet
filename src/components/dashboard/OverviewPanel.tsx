@@ -19,6 +19,9 @@ type OverviewPanelProps = {
   loading?: boolean;
   onNavigate: (tab: DashboardTab, asset?: string) => void;
   onRefresh?: () => void;
+  onSessionChange?: (session: SessionData) => void;
+  initialWalletsTab?: boolean;
+  showWalletWelcome?: boolean;
 };
 
 const PORTFOLIO_TABS = ["Spot", "Wallets"] as const;
@@ -30,10 +33,15 @@ export function OverviewPanel({
   loading,
   onNavigate,
   onRefresh,
+  onSessionChange,
+  initialWalletsTab,
+  showWalletWelcome,
 }: OverviewPanelProps) {
   const [market, setMarket] = useState<Record<string, AssetMarketData>>({});
   const [priceLoading, setPriceLoading] = useState(true);
-  const [portfolioTab, setPortfolioTab] = useState<(typeof PORTFOLIO_TABS)[number]>("Spot");
+  const [portfolioTab, setPortfolioTab] = useState<(typeof PORTFOLIO_TABS)[number]>(
+    initialWalletsTab ? "Wallets" : "Spot",
+  );
   const [bottomTab, setBottomTab] = useState<(typeof BOTTOM_TABS)[number]>("Holdings");
   const [calendarOpen, setCalendarOpen] = useState(false);
 
@@ -129,7 +137,13 @@ export function OverviewPanel({
             </button>
           ))}
         </div>
-        <WalletsPanel session={session} balances={balances} onNavigate={onNavigate} onRefresh={onRefresh} />
+        <WalletsPanel
+          session={session}
+          onNavigate={onNavigate}
+          onRefresh={onRefresh}
+          onSessionChange={onSessionChange}
+          welcome={showWalletWelcome}
+        />
       </div>
     );
   }

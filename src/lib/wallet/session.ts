@@ -6,6 +6,8 @@ export type SessionData = {
   mode: "local" | "external";
   walletType: "created" | "imported" | "metamask" | "phantom" | "trust";
   addresses: WalletAddresses;
+  /** Vault wallet used for signing and balances */
+  activeWalletId?: string;
   /** @deprecated use addresses.ethereum */
   evmAddress?: string;
   /** @deprecated use addresses.solana */

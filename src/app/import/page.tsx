@@ -1,96 +1,64 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Panel } from "@/components/ui/Panel";
+import { Logo } from "@/components/layout/Logo";
+import { OnboardingStepper } from "@/components/wallet/OnboardingStepper";
 import { isValidSeedPhrase } from "@/lib/wallet/mnemonic";
-import { deriveAllAddresses } from "@/lib/wallet/derive-all";
-import { deriveEvmWallet } from "@/lib/wallet/evm";
-import { deriveSolanaKeypair } from "@/lib/wallet/solana";
-import {
-  encryptMnemonic,
-  saveEncryptedWallet,
-} from "@/lib/wallet/storage";
-import { registerWallet } from "@/lib/wallet/register";
-import { buildSignInMessage } from "@/lib/auth/message";
-import { saveSession } from "@/lib/wallet/session";
-import { setUnlockedMnemonic } from "@/lib/wallet/unlock-store";
-import nacl from "tweetnacl";
+import { setupLocalWallet } from "@/lib/wallet/setup-wallet";
+import { vaultWalletCount } from "@/lib/wallet/wallet-vault";
+import { CheckCircle2, Download, KeyRound, Shield } from "lucide-react";
 
-function toBase64(bytes: Uint8Array) {
-  return btoa(String.fromCharCode(...Array.from(bytes)));
-}
+const STEPS = [
+  { id: "phrase", label: "Phrase" },
+  { id: "secure", label: "Secure" },
+  { id: "done", label: "Ready" },
+];
 
 export default function ImportWalletPage() {
+  const searchParams = useSearchParams();
+  const isAdding = searchParams.get("add") === "1" || vaultWalletCount() > 0;
+
+  const [step, setStep] = useState("phrase");
   const [seedPhrase, setSeedPhrase] = useState("");
+  const [label, setLabel] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [importedAddress, setImportedAddress] = useState<string | null>(null);
 
   async function handleImport() {
     const normalized = seedPhrase.trim().toLowerCase();
-
     if (!isValidSeedPhrase(normalized)) {
       setError("Invalid seed phrase. Check the words and order.");
       return;
     }
-
     if (password.length < 8) {
       setError("Password must be at least 8 characters");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Passwords do not match");
       return;
     }
 
     setLoading(true);
     setError(null);
-
     try {
-      const evmWallet = deriveEvmWallet(normalized);
-      const solanaKeypair = deriveSolanaKeypair(normalized);
-      const encrypted = await encryptMnemonic(normalized, password);
-      saveEncryptedWallet(encrypted);
-
-      const evmMessage = buildSignInMessage(evmWallet.address, "ethereum");
-      const evmSignature = await evmWallet.signMessage(evmMessage);
-
-      await registerWallet({
-        address: evmWallet.address,
-        chain: "ethereum",
+      const { vaultWallet } = await setupLocalWallet({
+        mnemonic: normalized,
+        password,
         walletType: "imported",
-        message: evmMessage,
-        signature: evmSignature,
+        label: label.trim() || undefined,
+        makeActive: !isAdding,
       });
-
-      const solMessage = buildSignInMessage(
-        solanaKeypair.publicKey.toBase58(),
-        "solana",
-      );
-      const solSignature = toBase64(
-        nacl.sign.detached(
-          new TextEncoder().encode(solMessage),
-          solanaKeypair.secretKey,
-        ),
-      );
-
-      await registerWallet({
-        address: solanaKeypair.publicKey.toBase58(),
-        chain: "solana",
-        walletType: "imported",
-        message: solMessage,
-        signature: solSignature,
-      });
-
-      const addresses = await deriveAllAddresses(normalized);
-      saveSession({
-        mode: "local",
-        walletType: "imported",
-        addresses,
-        evmAddress: evmWallet.address,
-        solanaAddress: solanaKeypair.publicKey.toBase58(),
-      });
-      setUnlockedMnemonic(normalized);
-
-      window.location.href = "/dashboard";
+      setImportedAddress(vaultWallet.addresses.solana ?? null);
+      setStep("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to import wallet");
     } finally {
@@ -99,38 +67,113 @@ export default function ImportWalletPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-12 sm:px-6">
-      <a href="/" className="text-sm font-medium text-[var(--muted)] hover:text-[var(--primary)]">
-        ← Back to home
-      </a>
+    <div className="relative min-h-screen">
+      <header className="border-b border-[var(--border)] bg-[var(--bg-elevated)]/80 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
+          <Logo href="/" compact />
+          <Link href={isAdding ? "/dashboard?tab=overview&wallets=1" : "/"} className="text-xs text-[var(--muted)] hover:text-[var(--primary)]">
+            {isAdding ? "← Back to wallets" : "← Home"}
+          </Link>
+        </div>
+      </header>
 
-      <h1 className="mt-8 text-2xl font-semibold text-[var(--foreground)]">Import wallet</h1>
-      <p className="mt-3 text-[var(--muted)]">
-        Enter your 12 or 24-word recovery phrase. It stays on your device and
-        is encrypted with your password.
-      </p>
+      <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
+        <div className="mb-8 flex justify-center">
+          <OnboardingStepper steps={STEPS} current={step} />
+        </div>
 
-      <Panel className="mt-10 space-y-4 p-5">
-        <label className="mv-label">Recovery phrase</label>
-        <textarea
-          value={seedPhrase}
-          onChange={(e) => setSeedPhrase(e.target.value)}
-          rows={4}
-          placeholder="word1 word2 word3 ..."
-          className="mv-input resize-none"
-        />
-        <label className="mv-label">Encryption password</label>
-        <Input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Minimum 8 characters"
-        />
-        {error && <p className="mv-alert-error">{error}</p>}
-        <Button size="lg" onClick={handleImport} disabled={loading}>
-          {loading ? "Importing..." : "Import wallet"}
-        </Button>
-      </Panel>
-    </main>
+        {step === "phrase" && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-[var(--primary)]/30 bg-[var(--primary-soft)]">
+                <Download className="h-7 w-7 text-[var(--primary)]" />
+              </div>
+              <h1 className="text-2xl font-semibold">
+                {isAdding ? "Import another wallet" : "Import wallet"}
+              </h1>
+              <p className="mx-auto mt-3 max-w-lg text-sm text-[var(--muted)]">
+                Restore a wallet with your 12 or 24-word recovery phrase. Encrypted locally on your device.
+              </p>
+            </div>
+
+            <Panel className="space-y-4 p-5">
+              <label className="mv-label">Recovery phrase</label>
+              <textarea
+                value={seedPhrase}
+                onChange={(e) => setSeedPhrase(e.target.value)}
+                rows={4}
+                placeholder="word1 word2 word3 …"
+                className="mv-input resize-none"
+              />
+              <label className="mv-label">Wallet name (optional)</label>
+              <Input
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder="e.g. Old Trading Wallet"
+              />
+              <div className="flex items-start gap-2 text-[10px] text-[var(--muted)]">
+                <Shield className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                Phrase never leaves your browser — encrypted with your password before storage.
+              </div>
+              <Button size="lg" className="w-full" onClick={() => setStep("secure")} disabled={!seedPhrase.trim()}>
+                Continue
+              </Button>
+            </Panel>
+          </div>
+        )}
+
+        {step === "secure" && (
+          <Panel className="space-y-4 p-6">
+            <div className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-[var(--primary)]" />
+              <h2 className="text-lg font-semibold">Set encryption password</h2>
+            </div>
+            <label className="mv-label">Password</label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Minimum 8 characters"
+            />
+            <label className="mv-label">Confirm password</label>
+            <Input
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              placeholder="Re-enter password"
+            />
+            {error && <p className="mv-alert-error">{error}</p>}
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setStep("phrase")}>Back</Button>
+              <Button size="lg" className="flex-1" onClick={handleImport} disabled={loading}>
+                {loading ? "Importing…" : "Import wallet"}
+              </Button>
+            </div>
+          </Panel>
+        )}
+
+        {step === "done" && (
+          <div className="space-y-6 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[var(--gain)]/40 bg-[var(--gain-soft)]">
+              <CheckCircle2 className="h-8 w-8 text-[var(--gain)]" />
+            </div>
+            <h2 className="text-xl font-semibold">Wallet imported</h2>
+            {importedAddress && (
+              <p className="font-mono text-xs text-[var(--primary)]">
+                SOL {importedAddress.slice(0, 6)}…{importedAddress.slice(-4)}
+              </p>
+            )}
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+              <Button size="lg" onClick={() => { window.location.href = "/dashboard?tab=overview&wallets=1"; }}>
+                Open Portfolio → Wallets
+              </Button>
+              <Button variant="secondary" size="lg" onClick={() => { window.location.href = "/import?add=1"; }}>
+                Import another
+              </Button>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
   );
 }
