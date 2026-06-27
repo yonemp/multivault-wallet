@@ -1,36 +1,37 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ChevronDown, X } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import type { PulseToken } from "@/app/api/pulse/route";
+import { ChevronDown, RefreshCw, X } from "lucide-react";
 
+export type PulseColumnKey = PulseToken["column"];
 export type PulseFilterTab = "protocols" | "audit" | "metrics" | "socials";
+
+export type PulseAuditFilters = {
+  ageMinMins: number;
+  ageMaxMins: number;
+  top10HoldersPctMin: number;
+  top10HoldersPctMax: number;
+  devHoldingPctMin: number;
+  devHoldingPctMax: number;
+  snipersPctMin: number;
+  snipersPctMax: number;
+  insidersPctMin: number;
+  insidersPctMax: number;
+  bundlePctMin: number;
+  bundlePctMax: number;
+  holdersMin: number;
+  holdersMax: number;
+  proTradersMin: number;
+  proTradersMax: number;
+};
 
 export type PulseColumnFilterState = {
   searchKeywords: string;
   excludeKeywords: string;
   protocols: string[];
   quoteTokens: string[];
-  audit: {
-    dexPaid: boolean;
-    caEndsInPump: boolean;
-    recentVisitorsMin: number;
-    recentVisitorsMax: number;
-    ageMinMins: number;
-    ageMaxMins: number;
-    top10HoldersPctMin: number;
-    devHoldingPctMin: number;
-    snipersPctMin: number;
-    insidersPctMin: number;
-    bundlePctMin: number;
-    holdersMin: number;
-    holdersMax: number;
-    proTradersMin: number;
-    proTradersMax: number;
-    devMigrationsMin: number;
-    devMigrationsMax: number;
-    devPairsCreatedMin: number;
-    devPairsCreatedMax: number;
-  };
+  audit: PulseAuditFilters;
   metrics: {
     mcapMin: number;
     mcapMax: number;
@@ -45,35 +46,40 @@ export type PulseColumnFilterState = {
   };
 };
 
+export const DEFAULT_AUDIT_FILTERS: PulseAuditFilters = {
+  ageMinMins: 0,
+  ageMaxMins: 0,
+  top10HoldersPctMin: 0,
+  top10HoldersPctMax: 0,
+  devHoldingPctMin: 0,
+  devHoldingPctMax: 0,
+  snipersPctMin: 0,
+  snipersPctMax: 0,
+  insidersPctMin: 0,
+  insidersPctMax: 0,
+  bundlePctMin: 0,
+  bundlePctMax: 0,
+  holdersMin: 0,
+  holdersMax: 0,
+  proTradersMin: 0,
+  proTradersMax: 0,
+};
+
 export const DEFAULT_PULSE_FILTERS: PulseColumnFilterState = {
   searchKeywords: "",
   excludeKeywords: "",
   protocols: [],
   quoteTokens: [],
-  audit: {
-    dexPaid: false,
-    caEndsInPump: false,
-    recentVisitorsMin: 0,
-    recentVisitorsMax: 0,
-    ageMinMins: 0,
-    ageMaxMins: 0,
-    top10HoldersPctMin: 0,
-    devHoldingPctMin: 0,
-    snipersPctMin: 0,
-    insidersPctMin: 0,
-    bundlePctMin: 0,
-    holdersMin: 0,
-    holdersMax: 0,
-    proTradersMin: 0,
-    proTradersMax: 0,
-    devMigrationsMin: 0,
-    devMigrationsMax: 0,
-    devPairsCreatedMin: 0,
-    devPairsCreatedMax: 0,
-  },
+  audit: { ...DEFAULT_AUDIT_FILTERS },
   metrics: { mcapMin: 0, mcapMax: 0, volMin: 0, volMax: 0, ageMaxMins: 0 },
   socials: { twitter: false, telegram: false, website: false },
 };
+
+const COLUMN_TABS: { key: PulseColumnKey; label: string }[] = [
+  { key: "new", label: "New Pairs" },
+  { key: "final", label: "Final Stretch" },
+  { key: "migrated", label: "Migrated" },
+];
 
 const PROTOCOLS = [
   { id: "pump", label: "Pump", color: "#22c55e", bg: "rgba(34,197,94,0.18)" },
@@ -98,8 +104,6 @@ const PROTOCOLS = [
   { id: "boop", label: "Boop", color: "#a78bfa", bg: "rgba(167,139,250,0.15)" },
   { id: "launchlab", label: "LaunchLab", color: "#38bdf8", bg: "rgba(56,189,248,0.15)" },
   { id: "dynamic", label: "Dynamic BC", color: "#4ade80", bg: "rgba(74,222,128,0.15)" },
-  { id: "moonshotapp", label: "Moonshot App", color: "#c026d3", bg: "rgba(192,38,211,0.15)" },
-  { id: "jupstudio", label: "Jup Studio", color: "#2dd4bf", bg: "rgba(45,212,191,0.15)" },
 ] as const;
 
 const QUOTE_TOKENS = [
@@ -115,28 +119,11 @@ const SOCIAL_OPTIONS = [
 ];
 
 function parseKeywords(raw: string) {
-  return raw
-    .split(",")
-    .map((k) => k.trim().toLowerCase())
-    .filter(Boolean);
+  return raw.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean);
 }
 
-function countAuditFilters(a: PulseColumnFilterState["audit"]) {
-  let n = 0;
-  if (a.dexPaid) n++;
-  if (a.caEndsInPump) n++;
-  if (a.recentVisitorsMin || a.recentVisitorsMax) n++;
-  if (a.ageMinMins || a.ageMaxMins) n++;
-  if (a.top10HoldersPctMin) n++;
-  if (a.devHoldingPctMin) n++;
-  if (a.snipersPctMin) n++;
-  if (a.insidersPctMin) n++;
-  if (a.bundlePctMin) n++;
-  if (a.holdersMin || a.holdersMax) n++;
-  if (a.proTradersMin || a.proTradersMax) n++;
-  if (a.devMigrationsMin || a.devMigrationsMax) n++;
-  if (a.devPairsCreatedMin || a.devPairsCreatedMax) n++;
-  return n;
+function countAuditFilters(a: PulseAuditFilters) {
+  return Object.values(a).filter((v) => v > 0).length;
 }
 
 function activeFilterCount(f: PulseColumnFilterState) {
@@ -151,134 +138,95 @@ function activeFilterCount(f: PulseColumnFilterState) {
   return n;
 }
 
-function AuditToggle({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
+function TabBadge({ count }: { count: number }) {
+  if (!count) return null;
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-md border px-3 py-2 text-[11px] font-semibold transition ${
-        active
-          ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)]"
-          : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--border-strong)]"
-      }`}
-    >
-      {label}
-    </button>
+    <span className="ml-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#3b82f6] px-1 text-[10px] font-bold text-white">
+      {count}
+    </span>
   );
 }
 
-function AuditMinMax({
+function AuditGridRow({
   label,
   min,
   max,
   onMin,
   onMax,
-  suffix,
-  minPlaceholder,
+  unit,
+  maxPlaceholder,
 }: {
   label: string;
   min: number;
   max: number;
   onMin: (v: number) => void;
   onMax: (v: number) => void;
-  suffix?: string;
-  minPlaceholder?: string;
+  unit?: "m";
+  maxPlaceholder?: string;
 }) {
   return (
-    <div className="ax-pulse-audit-row">
-      <span className="ax-pulse-audit-label">{label}</span>
-      <div className="flex items-center gap-1.5">
-        <span className="text-[9px] font-semibold uppercase text-[var(--muted-dim)]">Min</span>
+    <div className="ax-pulse-audit-grid-row">
+      <span className="ax-pulse-audit-grid-label">{label}</span>
+      <div className="ax-pulse-audit-grid-cell">
         <input
           type="number"
           min="0"
           value={min || ""}
           onChange={(e) => onMin(Number(e.target.value) || 0)}
-          placeholder={minPlaceholder ?? "0"}
-          className="ax-pulse-audit-input"
+          className="ax-pulse-audit-grid-input"
         />
-        {suffix && <span className="text-[10px] text-[var(--muted-dim)]">{suffix}</span>}
-        <span className="ml-1 text-[9px] font-semibold uppercase text-[var(--muted-dim)]">Max</span>
+        {unit && (
+          <select className="ax-pulse-audit-unit" defaultValue="m" aria-label={`${label} min unit`}>
+            <option value="m">m</option>
+          </select>
+        )}
+      </div>
+      <div className="ax-pulse-audit-grid-cell">
         <input
           type="number"
           min="0"
           value={max || ""}
           onChange={(e) => onMax(Number(e.target.value) || 0)}
-          placeholder="0"
-          className="ax-pulse-audit-input"
+          placeholder={maxPlaceholder}
+          className="ax-pulse-audit-grid-input"
         />
-        {suffix && <span className="text-[10px] text-[var(--muted-dim)]">{suffix}</span>}
+        {unit && (
+          <select className="ax-pulse-audit-unit" defaultValue="m" aria-label={`${label} max unit`}>
+            <option value="m">m</option>
+          </select>
+        )}
       </div>
     </div>
   );
 }
 
-function AuditMinOnly({
-  label,
-  min,
-  onMin,
-  placeholder,
-  suffix,
-}: {
-  label: string;
-  min: number;
-  onMin: (v: number) => void;
-  placeholder?: string;
-  suffix?: string;
-}) {
-  return (
-    <div className="ax-pulse-audit-row">
-      <span className="ax-pulse-audit-label">{label}</span>
-      <div className="flex items-center gap-1.5">
-        <span className="text-[9px] font-semibold uppercase text-[var(--muted-dim)]">Min</span>
-        <input
-          type="number"
-          min="0"
-          value={min || ""}
-          onChange={(e) => onMin(Number(e.target.value) || 0)}
-          placeholder={placeholder ?? "0"}
-          className="ax-pulse-audit-input"
-        />
-        {suffix && <span className="text-[10px] text-[var(--muted-dim)]">{suffix}</span>}
-      </div>
-    </div>
-  );
-}
-
-function TabBadge({ count }: { count: number }) {
-  if (!count) return null;
-  return (
-    <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#3b82f6] px-1 text-[9px] font-bold text-white">
-      {count}
-    </span>
-  );
-}
-
-type PulseColumnFiltersProps = {
+type PulseFiltersModalProps = {
   open: boolean;
-  columnTitle: string;
-  filters: PulseColumnFilterState;
-  onChange: (f: PulseColumnFilterState) => void;
+  activeColumn: PulseColumnKey;
+  columnCounts: Record<PulseColumnKey, number>;
+  allFilters: Record<PulseColumnKey, PulseColumnFilterState>;
+  onColumnChange: (col: PulseColumnKey) => void;
+  onChange: (col: PulseColumnKey, f: PulseColumnFilterState) => void;
   onClose: () => void;
+  onRefresh?: () => void;
 };
 
-export function PulseColumnFilters({
+export function PulseFiltersModal({
   open,
-  columnTitle,
-  filters,
+  activeColumn,
+  columnCounts,
+  allFilters,
+  onColumnChange,
   onChange,
   onClose,
-}: PulseColumnFiltersProps) {
-  const [tab, setTab] = useState<PulseFilterTab>("protocols");
+  onRefresh,
+}: PulseFiltersModalProps) {
+  const [tab, setTab] = useState<PulseFilterTab>("audit");
   const [showAllProtocols, setShowAllProtocols] = useState(false);
+  const importRef = useRef<HTMLInputElement>(null);
+
+  const filters = allFilters[activeColumn];
+  const setFilters = (f: PulseColumnFilterState) => onChange(activeColumn, f);
 
   const protocolCount = filters.protocols.length;
   const auditCount = countAuditFilters(filters.audit);
@@ -298,23 +246,58 @@ export function PulseColumnFilters({
 
   if (!open) return null;
 
+  function patchAudit(patch: Partial<PulseAuditFilters>) {
+    setFilters({ ...filters, audit: { ...filters.audit, ...patch } });
+  }
+
   function toggleProtocol(id: string) {
     const next = filters.protocols.includes(id)
       ? filters.protocols.filter((p) => p !== id)
       : [...filters.protocols, id];
-    onChange({ ...filters, protocols: next });
+    setFilters({ ...filters, protocols: next });
   }
 
   function toggleQuote(id: string) {
     const next = filters.quoteTokens.includes(id)
       ? filters.quoteTokens.filter((q) => q !== id)
       : [...filters.quoteTokens, id];
-    onChange({ ...filters, quoteTokens: next });
+    setFilters({ ...filters, quoteTokens: next });
+  }
+
+  function exportFilters() {
+    const blob = new Blob([JSON.stringify(allFilters, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "multivault-pulse-filters.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function shareFilters() {
+    const payload = btoa(JSON.stringify(allFilters));
+    const url = `${window.location.origin}${window.location.pathname}?tab=pulse&filters=${payload}`;
+    void navigator.clipboard.writeText(url);
+  }
+
+  function importFilters(file: File) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result as string) as Record<PulseColumnKey, PulseColumnFilterState>;
+        for (const col of COLUMN_TABS) {
+          if (parsed[col.key]) onChange(col.key, { ...DEFAULT_PULSE_FILTERS, ...parsed[col.key] });
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    reader.readAsText(file);
   }
 
   return (
-    <div className="ax-pulse-filter-overlay">
-      <div className="ax-pulse-filter-panel">
+    <div className="ax-pulse-filter-overlay ax-pulse-filter-overlay--global">
+      <div className="ax-pulse-filter-panel ax-pulse-filter-panel--wide">
         <div className="flex items-center justify-between border-b border-[var(--border-strong)] px-4 py-3">
           <h3 className="text-sm font-semibold text-[var(--foreground)]">Filters</h3>
           <button
@@ -326,18 +309,40 @@ export function PulseColumnFilters({
           </button>
         </div>
 
-        <p className="border-b border-[var(--border)] px-4 py-2 text-[10px] text-[var(--muted)]">
-          {columnTitle}
-        </p>
+        <div className="flex items-center gap-1 border-b border-[var(--border-strong)] px-3 py-2">
+          {COLUMN_TABS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onColumnChange(key)}
+              className={`flex items-center px-3 py-1.5 text-[11px] font-semibold transition ${
+                activeColumn === key
+                  ? "border-b-2 border-[var(--foreground)] text-[var(--foreground)]"
+                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
+              }`}
+            >
+              {label}
+              <TabBadge count={columnCounts[key]} />
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="ml-auto flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
+            title="Refresh"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </button>
+        </div>
 
-        <div className="max-h-[min(70vh,520px)] overflow-y-auto px-4 py-3">
+        <div className="max-h-[min(72vh,560px)] overflow-y-auto px-4 py-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1.5 block text-[11px] font-medium text-[var(--muted)]">Search Keywords</label>
               <input
                 value={filters.searchKeywords}
-                onChange={(e) => onChange({ ...filters, searchKeywords: e.target.value })}
-                placeholder="keyword1, keyword2"
+                onChange={(e) => setFilters({ ...filters, searchKeywords: e.target.value })}
+                placeholder="keyword1, keyword2..."
                 className="ax-pulse-filter-input w-full"
               />
             </div>
@@ -345,18 +350,18 @@ export function PulseColumnFilters({
               <label className="mb-1.5 block text-[11px] font-medium text-[var(--muted)]">Exclude Keywords</label>
               <input
                 value={filters.excludeKeywords}
-                onChange={(e) => onChange({ ...filters, excludeKeywords: e.target.value })}
-                placeholder="keyword1, keyword2"
+                onChange={(e) => setFilters({ ...filters, excludeKeywords: e.target.value })}
+                placeholder="keyword1, keyword2..."
                 className="ax-pulse-filter-input w-full"
               />
             </div>
           </div>
 
-          <div className="mt-4 flex gap-4 border-b border-[var(--border)] pb-2">
+          <div className="mt-4 flex gap-5 border-b border-[var(--border)] pb-2">
             {([
-              { id: "protocols" as const, label: "Protocols", count: protocolCount },
+              { id: "protocols" as const, label: "Protocols", count: protocolCount || PROTOCOLS.length },
               { id: "audit" as const, label: "Audit", count: auditCount },
-              { id: "metrics" as const, label: "$ Metrics", count: metricsCount },
+              { id: "metrics" as const, label: "Metrics", count: metricsCount },
               { id: "socials" as const, label: "Socials", count: socialCount },
             ]).map(({ id, label, count }) => (
               <button
@@ -379,11 +384,7 @@ export function PulseColumnFilters({
             <div className="mt-3 space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-semibold text-[var(--foreground)]">Protocols</span>
-                <button
-                  type="button"
-                  onClick={() => onChange({ ...filters, protocols: [] })}
-                  className="text-[10px] font-medium text-[var(--muted)] hover:text-[var(--primary)]"
-                >
+                <button type="button" onClick={() => setFilters({ ...filters, protocols: [] })} className="text-[10px] font-medium text-[var(--muted)] hover:text-[var(--primary)]">
                   Unselect All
                 </button>
               </div>
@@ -403,10 +404,7 @@ export function PulseColumnFilters({
                         boxShadow: active ? `0 0 0 1px ${p.color}44` : undefined,
                       }}
                     >
-                      <span
-                        className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold"
-                        style={{ background: p.bg, color: p.color }}
-                      >
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold" style={{ background: p.bg, color: p.color }}>
                         {p.label.slice(0, 1)}
                       </span>
                       {p.label}
@@ -415,24 +413,15 @@ export function PulseColumnFilters({
                 })}
               </div>
               {PROTOCOLS.length > 12 && (
-                <button
-                  type="button"
-                  onClick={() => setShowAllProtocols((v) => !v)}
-                  className="flex items-center gap-1 text-[11px] font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
-                >
+                <button type="button" onClick={() => setShowAllProtocols((v) => !v)} className="flex items-center gap-1 text-[11px] font-medium text-[var(--muted)] hover:text-[var(--foreground)]">
                   {showAllProtocols ? "Show less" : `Show more ${PROTOCOLS.length - 12}`}
                   <ChevronDown className={`h-3.5 w-3.5 transition ${showAllProtocols ? "rotate-180" : ""}`} />
                 </button>
               )}
-
               <div>
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-[var(--foreground)]">Quote Tokens</span>
-                  <button
-                    type="button"
-                    onClick={() => onChange({ ...filters, quoteTokens: [] })}
-                    className="text-[10px] font-medium text-[var(--muted)] hover:text-[var(--primary)]"
-                  >
+                  <button type="button" onClick={() => setFilters({ ...filters, quoteTokens: [] })} className="text-[10px] font-medium text-[var(--muted)] hover:text-[var(--primary)]">
                     Unselect All
                   </button>
                 </div>
@@ -461,109 +450,69 @@ export function PulseColumnFilters({
           )}
 
           {tab === "audit" && (
-            <div className="mt-3 space-y-3">
-              <div className="flex flex-wrap gap-2">
-                <AuditToggle
-                  label="Dex Paid"
-                  active={filters.audit.dexPaid}
-                  onClick={() =>
-                    onChange({
-                      ...filters,
-                      audit: { ...filters.audit, dexPaid: !filters.audit.dexPaid },
-                    })
-                  }
-                />
-                <AuditToggle
-                  label={"CA ends in 'pump'"}
-                  active={filters.audit.caEndsInPump}
-                  onClick={() =>
-                    onChange({
-                      ...filters,
-                      audit: { ...filters.audit, caEndsInPump: !filters.audit.caEndsInPump },
-                    })
-                  }
-                />
+            <div className="mt-3">
+              <div className="ax-pulse-audit-grid-header">
+                <span />
+                <span>Min</span>
+                <span>Max</span>
               </div>
-
-              <AuditMinMax
-                label="Recent Visitors"
-                min={filters.audit.recentVisitorsMin}
-                max={filters.audit.recentVisitorsMax}
-                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, recentVisitorsMin: v } })}
-                onMax={(v) => onChange({ ...filters, audit: { ...filters.audit, recentVisitorsMax: v } })}
-              />
-
-              <AuditMinMax
+              <AuditGridRow
                 label="Age"
                 min={filters.audit.ageMinMins}
                 max={filters.audit.ageMaxMins}
-                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, ageMinMins: v } })}
-                onMax={(v) => onChange({ ...filters, audit: { ...filters.audit, ageMaxMins: v } })}
-                suffix="m"
+                onMin={(v) => patchAudit({ ageMinMins: v })}
+                onMax={(v) => patchAudit({ ageMaxMins: v })}
+                unit="m"
               />
-
-              <AuditMinOnly
+              <AuditGridRow
                 label="Top 10 Holders %"
                 min={filters.audit.top10HoldersPctMin}
-                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, top10HoldersPctMin: v } })}
-                placeholder="20"
+                max={filters.audit.top10HoldersPctMax}
+                onMin={(v) => patchAudit({ top10HoldersPctMin: v })}
+                onMax={(v) => patchAudit({ top10HoldersPctMax: v })}
+                maxPlaceholder="20"
               />
-              <AuditMinOnly
+              <AuditGridRow
                 label="Dev Holding %"
                 min={filters.audit.devHoldingPctMin}
-                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, devHoldingPctMin: v } })}
-                placeholder="10"
+                max={filters.audit.devHoldingPctMax}
+                onMin={(v) => patchAudit({ devHoldingPctMin: v })}
+                onMax={(v) => patchAudit({ devHoldingPctMax: v })}
               />
-              <AuditMinOnly
+              <AuditGridRow
                 label="Snipers %"
                 min={filters.audit.snipersPctMin}
-                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, snipersPctMin: v } })}
-                placeholder="30"
+                max={filters.audit.snipersPctMax}
+                onMin={(v) => patchAudit({ snipersPctMin: v })}
+                onMax={(v) => patchAudit({ snipersPctMax: v })}
               />
-              <AuditMinOnly
+              <AuditGridRow
                 label="Insiders %"
                 min={filters.audit.insidersPctMin}
-                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, insidersPctMin: v } })}
-                placeholder="15"
+                max={filters.audit.insidersPctMax}
+                onMin={(v) => patchAudit({ insidersPctMin: v })}
+                onMax={(v) => patchAudit({ insidersPctMax: v })}
               />
-              <AuditMinOnly
+              <AuditGridRow
                 label="Bundle %"
                 min={filters.audit.bundlePctMin}
-                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, bundlePctMin: v } })}
-                placeholder="30"
+                max={filters.audit.bundlePctMax}
+                onMin={(v) => patchAudit({ bundlePctMin: v })}
+                onMax={(v) => patchAudit({ bundlePctMax: v })}
               />
-
-              <AuditMinMax
+              <AuditGridRow
                 label="Holders"
                 min={filters.audit.holdersMin}
                 max={filters.audit.holdersMax}
-                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, holdersMin: v } })}
-                onMax={(v) => onChange({ ...filters, audit: { ...filters.audit, holdersMax: v } })}
+                onMin={(v) => patchAudit({ holdersMin: v })}
+                onMax={(v) => patchAudit({ holdersMax: v })}
               />
-
-              <AuditMinMax
+              <AuditGridRow
                 label="Pro Traders"
                 min={filters.audit.proTradersMin}
                 max={filters.audit.proTradersMax}
-                minPlaceholder="5"
-                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, proTradersMin: v } })}
-                onMax={(v) => onChange({ ...filters, audit: { ...filters.audit, proTradersMax: v } })}
-              />
-
-              <AuditMinMax
-                label="Dev Migrations"
-                min={filters.audit.devMigrationsMin}
-                max={filters.audit.devMigrationsMax}
-                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, devMigrationsMin: v } })}
-                onMax={(v) => onChange({ ...filters, audit: { ...filters.audit, devMigrationsMax: v } })}
-              />
-
-              <AuditMinMax
-                label="Dev Pairs Created"
-                min={filters.audit.devPairsCreatedMin}
-                max={filters.audit.devPairsCreatedMax}
-                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, devPairsCreatedMin: v } })}
-                onMax={(v) => onChange({ ...filters, audit: { ...filters.audit, devPairsCreatedMax: v } })}
+                onMin={(v) => patchAudit({ proTradersMin: v })}
+                onMax={(v) => patchAudit({ proTradersMax: v })}
               />
             </div>
           )}
@@ -578,19 +527,12 @@ export function PulseColumnFilters({
                 { key: "ageMaxMins" as const, label: "Max age (mins)" },
               ]).map(({ key, label }) => (
                 <div key={key} className={key === "ageMaxMins" ? "col-span-2" : ""}>
-                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-[var(--muted-dim)]">
-                    {label}
-                  </label>
+                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-[var(--muted-dim)]">{label}</label>
                   <input
                     type="number"
                     min="0"
                     value={filters.metrics[key] || ""}
-                    onChange={(e) =>
-                      onChange({
-                        ...filters,
-                        metrics: { ...filters.metrics, [key]: Number(e.target.value) || 0 },
-                      })
-                    }
+                    onChange={(e) => setFilters({ ...filters, metrics: { ...filters.metrics, [key]: Number(e.target.value) || 0 } })}
                     placeholder="0"
                     className="ax-pulse-filter-input w-full"
                   />
@@ -602,19 +544,11 @@ export function PulseColumnFilters({
           {tab === "socials" && (
             <div className="mt-3 space-y-2">
               {SOCIAL_OPTIONS.map(({ key, label }) => (
-                <label
-                  key={key}
-                  className="flex cursor-pointer items-center gap-2.5 rounded-md border border-[var(--border)] px-3 py-2.5 text-xs transition hover:border-[var(--border-strong)]"
-                >
+                <label key={key} className="flex cursor-pointer items-center gap-2.5 rounded-md border border-[var(--border)] px-3 py-2.5 text-xs transition hover:border-[var(--border-strong)]">
                   <input
                     type="checkbox"
                     checked={filters.socials[key]}
-                    onChange={(e) =>
-                      onChange({
-                        ...filters,
-                        socials: { ...filters.socials, [key]: e.target.checked },
-                      })
-                    }
+                    onChange={(e) => setFilters({ ...filters, socials: { ...filters.socials, [key]: e.target.checked } })}
                     className="accent-[var(--primary)]"
                   />
                   <span className="text-[var(--muted)]">{label}</span>
@@ -624,20 +558,16 @@ export function PulseColumnFilters({
           )}
         </div>
 
-        <div className="flex gap-2 border-t border-[var(--border-strong)] px-4 py-3">
-          <button
-            type="button"
-            onClick={() => onChange(DEFAULT_PULSE_FILTERS)}
-            className="flex-1 rounded-md border border-[var(--border)] py-2 text-xs font-semibold text-[var(--muted)] transition hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
-          >
-            Reset all
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 rounded-md bg-[var(--primary)] py-2 text-xs font-semibold text-white transition hover:brightness-110"
-          >
-            Apply
+        <input ref={importRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) importFilters(f); e.target.value = ""; }} />
+
+        <div className="flex items-center justify-between border-t border-[var(--border-strong)] px-4 py-3">
+          <div className="flex gap-2">
+            <button type="button" onClick={() => importRef.current?.click()} className="ax-pulse-filter-footer-btn">Import</button>
+            <button type="button" onClick={exportFilters} className="ax-pulse-filter-footer-btn">Export</button>
+            <button type="button" onClick={shareFilters} className="ax-pulse-filter-footer-btn">Share</button>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-md bg-[#3b82f6] px-5 py-2 text-xs font-semibold text-white transition hover:brightness-110">
+            Apply All
           </button>
         </div>
       </div>
@@ -645,26 +575,19 @@ export function PulseColumnFilters({
   );
 }
 
+/** @deprecated use PulseFiltersModal */
+export const PulseColumnFilters = PulseFiltersModal;
+
 export function countActivePulseFilters(f: PulseColumnFilterState) {
   return activeFilterCount(f);
 }
 
-function passesMinMax(
-  value: number | undefined,
-  min: number,
-  max: number,
-): boolean {
+function passesMinMax(value: number | undefined, min: number, max: number): boolean {
   if (!min && !max) return true;
   if (value == null) return false;
   if (min && value < min) return false;
   if (max && value > max) return false;
   return true;
-}
-
-function passesMin(value: number | undefined, min: number): boolean {
-  if (!min) return true;
-  if (value == null) return false;
-  return value >= min;
 }
 
 export function applyPulseColumnFilters<
@@ -675,17 +598,12 @@ export function applyPulseColumnFilters<
     mcap: number;
     volume: number;
     ageMs: number;
-    txCount: number;
     protocol: string;
     quoteToken?: string;
-    column: string;
     isLive?: boolean;
     hasTwitter?: boolean;
     hasTelegram?: boolean;
     hasWebsite?: boolean;
-    dexPaid?: boolean;
-    caEndsInPump?: boolean;
-    recentVisitors?: number;
     top10HoldersPct?: number;
     devHoldingPct?: number;
     snipersPct?: number;
@@ -693,23 +611,20 @@ export function applyPulseColumnFilters<
     bundlePct?: number;
     holders?: number;
     proTraders?: number;
-    devMigrations?: number;
-    devPairsCreated?: number;
   },
 >(tokens: T[], f: PulseColumnFilterState): T[] {
   const include = parseKeywords(f.searchKeywords);
   const exclude = parseKeywords(f.excludeKeywords);
+  const a = f.audit;
 
   return tokens.filter((t) => {
     const hay = `${t.symbol} ${t.name} ${t.address}`.toLowerCase();
-
     if (include.length && !include.some((k) => hay.includes(k))) return false;
     if (exclude.length && exclude.some((k) => hay.includes(k))) return false;
 
     if (f.protocols.length) {
       const proto = t.protocol.toLowerCase().replace(/\.fun$/, "").replace(/\s/g, "");
-      const match = f.protocols.some((p) => proto.includes(p) || p.includes(proto));
-      if (!match) return false;
+      if (!f.protocols.some((p) => proto.includes(p) || p.includes(proto))) return false;
     }
 
     if (f.quoteTokens.length) {
@@ -717,25 +632,17 @@ export function applyPulseColumnFilters<
       if (!f.quoteTokens.includes(qt)) return false;
     }
 
-    const a = f.audit;
-    if (a.dexPaid && !t.dexPaid) return false;
-    if (a.caEndsInPump && !t.caEndsInPump) return false;
-
-    if (!passesMinMax(t.recentVisitors, a.recentVisitorsMin, a.recentVisitorsMax)) return false;
-
     const ageMins = t.ageMs / 60_000;
     if (a.ageMinMins && ageMins < a.ageMinMins) return false;
     if (a.ageMaxMins && ageMins > a.ageMaxMins) return false;
 
-    if (!passesMin(t.top10HoldersPct, a.top10HoldersPctMin)) return false;
-    if (!passesMin(t.devHoldingPct, a.devHoldingPctMin)) return false;
-    if (!passesMin(t.snipersPct, a.snipersPctMin)) return false;
-    if (!passesMin(t.insidersPct, a.insidersPctMin)) return false;
-    if (!passesMin(t.bundlePct, a.bundlePctMin)) return false;
+    if (!passesMinMax(t.top10HoldersPct, a.top10HoldersPctMin, a.top10HoldersPctMax)) return false;
+    if (!passesMinMax(t.devHoldingPct, a.devHoldingPctMin, a.devHoldingPctMax)) return false;
+    if (!passesMinMax(t.snipersPct, a.snipersPctMin, a.snipersPctMax)) return false;
+    if (!passesMinMax(t.insidersPct, a.insidersPctMin, a.insidersPctMax)) return false;
+    if (!passesMinMax(t.bundlePct, a.bundlePctMin, a.bundlePctMax)) return false;
     if (!passesMinMax(t.holders, a.holdersMin, a.holdersMax)) return false;
     if (!passesMinMax(t.proTraders, a.proTradersMin, a.proTradersMax)) return false;
-    if (!passesMinMax(t.devMigrations, a.devMigrationsMin, a.devMigrationsMax)) return false;
-    if (!passesMinMax(t.devPairsCreated, a.devPairsCreatedMin, a.devPairsCreatedMax)) return false;
 
     if (f.metrics.mcapMin && t.mcap < f.metrics.mcapMin) return false;
     if (f.metrics.mcapMax && t.mcap > f.metrics.mcapMax) return false;

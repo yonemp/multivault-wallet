@@ -7,8 +7,9 @@ import {
   applyPulseColumnFilters,
   countActivePulseFilters,
   DEFAULT_PULSE_FILTERS,
-  PulseColumnFilters,
+  PulseFiltersModal,
   type PulseColumnFilterState,
+  type PulseColumnKey,
 } from "@/components/dashboard/PulseColumnFilters";
 import { formatCompactUsd } from "@/lib/format/numbers";
 import { Filter, RefreshCw, Zap } from "lucide-react";
@@ -139,7 +140,8 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
     final: { ...DEFAULT_PULSE_FILTERS },
     migrated: { ...DEFAULT_PULSE_FILTERS },
   });
-  const [openFilterColumn, setOpenFilterColumn] = useState<PulseToken["column"] | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filterColumn, setFilterColumn] = useState<PulseColumnKey>("new");
 
   useEffect(() => {
     tokensRef.current = tokens;
@@ -246,14 +248,33 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
         </div>
         <button
           type="button"
+          onClick={() => setFiltersOpen(true)}
+          className="ml-auto flex items-center gap-1.5 rounded-sm border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
+        >
+          <Filter className="h-3.5 w-3.5" />
+          Filters
+        </button>
+        <button
+          type="button"
           onClick={() => void loadPulse()}
           disabled={loading}
-          className="ml-auto flex items-center gap-1.5 rounded-sm border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
+          className="flex items-center gap-1.5 rounded-sm border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
           {updatedAt ? new Date(updatedAt).toLocaleTimeString() : "—"}
         </button>
       </div>
+
+      <PulseFiltersModal
+        open={filtersOpen}
+        activeColumn={filterColumn}
+        columnCounts={counts}
+        allFilters={columnFilters}
+        onColumnChange={setFilterColumn}
+        onChange={(col, f) => setColumnFilters((prev) => ({ ...prev, [col]: f }))}
+        onClose={() => setFiltersOpen(false)}
+        onRefresh={() => void loadPulse()}
+      />
 
       {error && <p className="mv-alert-error mb-3 text-sm">{error}</p>}
 
@@ -268,7 +289,7 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
           return (
             <div
               key={key}
-              className={`ax-pulse-col relative min-h-[320px] md:min-h-0 ${
+              className={`ax-pulse-col min-h-[320px] md:min-h-0 ${
                 index === 1 ? "md:mx-0.5 md:ring-1 md:ring-[var(--border-strong)]" : ""
               }`}
             >
@@ -276,25 +297,16 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
                 <span className="text-xs font-bold uppercase tracking-widest text-[var(--foreground)]">{title}</span>
                 <button
                   type="button"
-                  onClick={() => setOpenFilterColumn(key)}
-                  className={`ax-pulse-col-header-filter ml-auto ${openFilterColumn === key ? "active" : ""}`}
+                  onClick={() => { setFilterColumn(key); setFiltersOpen(true); }}
+                  className={`ax-pulse-col-header-filter ml-auto ${activeFilters > 0 ? "active" : ""}`}
                 >
                   <Filter className="h-3 w-3" />
-                  Filters
                   {activeFilters > 0 && <span className="badge">{activeFilters}</span>}
                 </button>
                 <span className="rounded-sm border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 font-mono text-xs text-[var(--muted)]">
                   {colTokens.length}/{counts[key]}
                 </span>
               </div>
-
-              <PulseColumnFilters
-                open={openFilterColumn === key}
-                columnTitle={title}
-                filters={columnFilters[key]}
-                onChange={(f) => setColumnFilters((prev) => ({ ...prev, [key]: f }))}
-                onClose={() => setOpenFilterColumn(null)}
-              />
 
               <div
                 className={`${ROW_GRID} gap-3 border-b border-[var(--border-strong)] bg-[var(--surface)] px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]`}
