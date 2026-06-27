@@ -62,7 +62,7 @@ export function AppShell({
               </span>
             )}
           </span>
-          <span className="hidden text-[var(--muted-dim)] sm:inline">· Live · CoinGecko + DexScreener</span>
+          <span className="hidden text-[var(--muted-dim)] sm:inline">· Live · CoinGecko + pump.fun</span>
         </div>
 
         <div className="flex h-[var(--header-h)] items-center gap-2 px-4">

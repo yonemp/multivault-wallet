@@ -95,10 +95,10 @@ export function LiveTradesFeed({ symbol, tokenAddress }: LiveTradesFeedProps) {
 
       <div className="flex-1 overflow-y-auto">
         {!tokenAddress && (
-          <p className="px-3 py-6 text-center text-[10px] text-[var(--muted)]">Select a live Solana pair for real txn data</p>
+          <p className="px-3 py-6 text-center text-[10px] text-[var(--muted)]">Select a pump.fun coin from Pulse</p>
         )}
         {tokenAddress && !history.length && (
-          <p className="px-3 py-6 text-center text-[10px] text-[var(--muted)]">Polling DexScreener for 5m buy/sell counts…</p>
+          <p className="px-3 py-6 text-center text-[10px] text-[var(--muted)]">Polling pump.fun for activity…</p>
         )}
         {history.map((h, i) => (
           <div key={i} className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-1.5 text-[10px]">

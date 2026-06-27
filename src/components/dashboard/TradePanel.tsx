@@ -5,7 +5,7 @@ import type { AssetMarketData } from "@/app/api/prices/route";
 import { MARKET_ASSETS } from "@/lib/market/assets";
 import { formatCompactUsd } from "@/lib/format/numbers";
 import { TradingViewWidget } from "@/components/charts/TradingViewWidget";
-import { DexScreenerChart } from "@/components/charts/DexScreenerChart";
+import { PumpFunChart } from "@/components/charts/PumpFunChart";
 import { FloatingInstantTrade } from "@/components/trade/FloatingInstantTrade";
 import { WalletBubbleMap } from "@/components/trade/WalletBubbleMap";
 import { LiveTradesFeed } from "@/components/trade/LiveTradesFeed";
@@ -24,6 +24,7 @@ type DexPair = {
   priceChange?: { m5?: number; h1?: number; h24?: number };
   url?: string;
   dexId?: string;
+  bondingProgress?: number;
 };
 
 const TV_SYMBOLS: Record<string, string> = {
@@ -69,7 +70,7 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
   const txCount = tokenPair
     ? (tokenPair.txns?.m5?.buys ?? 0) + (tokenPair.txns?.m5?.sells ?? 0)
     : 0;
-  const change5m = tokenPair?.priceChange?.m5 ?? priceData?.change24h ?? 0;
+  const bondingProgress = tokenPair?.bondingProgress ?? 0;
 
   const solAddress = getAddress(session, "solana");
   const tvSymbol = TV_SYMBOLS[asset?.id ?? "sol"] ?? "BINANCE:SOLUSDT";
@@ -126,8 +127,8 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
         { label: "Price", value: price < 0.01 ? `$${price.toFixed(8)}` : `$${price.toLocaleString(undefined, { maximumFractionDigits: 6 })}` },
         { label: "MC", value: formatCompactUsd(mcap) },
         { label: "Liquidity", value: formatCompactUsd(liquidity) },
-        { label: "TX 5m", value: String(txCount) },
-        { label: "5m", value: `${change5m >= 0 ? "+" : ""}${change5m.toFixed(1)}%` },
+        { label: "Replies", value: String(txCount) },
+        { label: "Curve", value: `${bondingProgress.toFixed(0)}%` },
       ]
     : [
         { label: "Price", value: `$${price.toLocaleString(undefined, { maximumFractionDigits: 4 })}` },
@@ -163,18 +164,14 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
             </p>
           </div>
         </div>
-        {stats.map((s) => {
-          const isChange = s.label === "5m" || s.label === "24h";
-          const changeVal = s.label === "5m" ? change5m : (priceData?.change24h ?? 0);
-          return (
-            <div key={s.label}>
-              <p className="text-[9px] uppercase tracking-wider text-[var(--muted)]">{s.label}</p>
-              <p className={`font-mono text-xs font-semibold ${isChange ? (changeVal >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]") : ""}`}>
-                {s.value}
-              </p>
-            </div>
-          );
-        })}
+        {stats.map((s) => (
+          <div key={s.label}>
+            <p className="text-[9px] uppercase tracking-wider text-[var(--muted)]">{s.label}</p>
+            <p className={`font-mono text-xs font-semibold ${s.label === "Curve" ? "text-[var(--primary)]" : s.label === "24h" ? ((priceData?.change24h ?? 0) >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]") : ""}`}>
+              {s.value}
+            </p>
+          </div>
+        ))}
         <div className="ml-auto flex flex-wrap items-center gap-1">
           {!showInstant && (
             <button
@@ -192,7 +189,7 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
               rel="noopener noreferrer"
               className="px-2 py-0.5 text-[9px] font-semibold text-[var(--primary)] hover:underline"
             >
-              DexScreener
+              pump.fun
             </a>
           )}
           {tradableAssets.slice(0, 5).map((a) => (
@@ -213,8 +210,8 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
       <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[1fr_260px]">
         <div className="flex min-h-0 flex-col gap-2">
           <div className="mv-panel min-h-[280px] flex-1 overflow-hidden">
-            {tokenAddress && tokenPair?.pairAddress ? (
-              <DexScreenerChart pairAddress={tokenPair.pairAddress} height={320} />
+            {tokenAddress ? (
+              <PumpFunChart mint={tokenAddress} height={320} />
             ) : (
               <TradingViewWidget symbol={tvSymbol} height={320} />
             )}
@@ -292,7 +289,7 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
 
       {(loading || tokenLoading) && (
         <p className="text-[9px] text-[var(--muted)]">
-          {tokenLoading ? "Syncing pair from DexScreener…" : "Syncing prices…"}
+          {tokenLoading ? "Syncing from pump.fun…" : "Syncing prices…"}
         </p>
       )}
     </div>

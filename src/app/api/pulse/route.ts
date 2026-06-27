@@ -5,41 +5,60 @@ export type PulseToken = {
   symbol: string;
   name: string;
   address: string;
-  pairAddress: string;
   mcap: number;
-  liquidity: number;
   volume: number;
   age: string;
   ageMs: number;
   txCount: number;
-  holders: number;
-  change5m: number;
-  change1h: number;
-  change6h: number;
-  change24h: number;
-  volume5m: number;
-  volume1h: number;
-  volume24h: number;
+  bondingProgress: number;
   column: "new" | "final" | "migrated";
   protocol: string;
   priceUsd: number;
   pairUrl: string;
+  imageUri?: string;
+  isLive?: boolean;
 };
 
-type DexPair = {
-  chainId: string;
-  dexId: string;
-  pairAddress: string;
-  baseToken: { address: string; name: string; symbol: string };
-  priceUsd?: string;
-  marketCap?: number;
-  liquidity?: { usd?: number };
-  volume?: { h24?: number; h1?: number; m5?: number };
-  txns?: { m5?: { buys?: number; sells?: number }; h1?: { buys?: number; sells?: number }; h24?: { buys?: number; sells?: number } };
-  priceChange?: { m5?: number; h1?: number; h6?: number; h24?: number };
-  pairCreatedAt?: number;
-  url?: string;
+type PumpV3Coin = {
+  mint: string;
+  name: string;
+  symbol: string;
+  usd_market_cap?: number;
+  market_cap?: number;
+  created_timestamp?: number;
+  complete?: boolean;
+  real_sol_reserves?: number;
+  real_quote_reserves?: number;
+  virtual_sol_reserves?: number;
+  reply_count?: number;
+  is_currently_live?: boolean;
+  image_uri?: string;
+  pump_swap_pool?: string | null;
+  raydium_pool?: string | null;
+  protocol?: string;
+  total_supply?: number;
 };
+
+type PumpV2Coin = {
+  coinMint: string;
+  name: string;
+  ticker: string;
+  marketCap?: number;
+  volume?: number;
+  transactions?: number;
+  bondingCurveProgress?: number;
+  creationTime?: number;
+  graduationDate?: number;
+  imageUrl?: string;
+};
+
+const PUMP_HEADERS = {
+  Accept: "application/json",
+  Origin: "https://pump.fun",
+  Referer: "https://pump.fun/",
+};
+
+const GRADUATION_LAMPORTS = 85_000_000_000;
 
 function formatAge(ms: number) {
   const sec = Math.floor(ms / 1000);
@@ -51,132 +70,147 @@ function formatAge(ms: number) {
   return `${Math.floor(hr / 24)}d`;
 }
 
-function classifyPair(pair: DexPair): PulseToken["column"] {
-  const ageMs = pair.pairCreatedAt ? Date.now() - pair.pairCreatedAt : 0;
-  const liq = pair.liquidity?.usd ?? 0;
-  const dex = pair.dexId?.toLowerCase() ?? "";
-
-  if (dex.includes("raydium") || dex.includes("orca") || dex.includes("pumpswap") || liq > 80_000) return "migrated";
-  if (ageMs < 20 * 60_000 || liq < 15_000) return "new";
-  return "final";
+function bondingProgress(coin: PumpV3Coin | PumpV2Coin): number {
+  if ("complete" in coin && coin.complete) return 100;
+  if ("bondingCurveProgress" in coin && coin.bondingCurveProgress != null) {
+    return Math.min(100, coin.bondingCurveProgress);
+  }
+  const lamports = (coin as PumpV3Coin).real_sol_reserves ?? (coin as PumpV3Coin).real_quote_reserves ?? 0;
+  if (lamports > 0) return Math.min(99, (lamports / GRADUATION_LAMPORTS) * 100);
+  return 0;
 }
 
-function mapPair(pair: DexPair): PulseToken | null {
-  if (pair.chainId !== "solana" || !pair.baseToken?.symbol) return null;
-  const ageMs = pair.pairCreatedAt ? Date.now() - pair.pairCreatedAt : 0;
-  const tx5m = (pair.txns?.m5?.buys ?? 0) + (pair.txns?.m5?.sells ?? 0);
-  const tx24 = (pair.txns?.h24?.buys ?? 0) + (pair.txns?.h24?.sells ?? 0);
+function classify(progress: number, graduated: boolean): PulseToken["column"] {
+  if (graduated || progress >= 100) return "migrated";
+  if (progress >= 25) return "final";
+  return "new";
+}
+
+function mapV3Coin(coin: PumpV3Coin, extra?: Partial<PulseToken>): PulseToken | null {
+  if (!coin.mint || !coin.symbol) return null;
+  const ageMs = coin.created_timestamp ? Date.now() - coin.created_timestamp : 0;
+  const progress = bondingProgress(coin);
+  const graduated = Boolean(coin.complete || coin.pump_swap_pool || coin.raydium_pool);
+  const mcap = coin.usd_market_cap ?? (coin.market_cap ? coin.market_cap * 140 : 0);
 
   return {
-    id: `sol-${pair.baseToken.address}`,
-    symbol: pair.baseToken.symbol,
-    name: pair.baseToken.name ?? pair.baseToken.symbol,
-    address: pair.baseToken.address,
-    pairAddress: pair.pairAddress,
-    mcap: pair.marketCap ?? 0,
-    liquidity: pair.liquidity?.usd ?? 0,
-    volume: pair.volume?.h24 ?? pair.volume?.m5 ?? 0,
-    age: pair.pairCreatedAt ? formatAge(ageMs) : "—",
+    id: `sol-${coin.mint}`,
+    symbol: coin.symbol,
+    name: coin.name ?? coin.symbol,
+    address: coin.mint,
+    mcap,
+    volume: extra?.volume ?? 0,
+    age: coin.created_timestamp ? formatAge(ageMs) : "—",
     ageMs,
-    txCount: tx5m || tx24,
-    holders: 0,
-    change5m: pair.priceChange?.m5 ?? 0,
-    change1h: pair.priceChange?.h1 ?? 0,
-    change6h: pair.priceChange?.h6 ?? 0,
-    change24h: pair.priceChange?.h24 ?? 0,
-    volume5m: pair.volume?.m5 ?? 0,
-    volume1h: pair.volume?.h1 ?? 0,
-    volume24h: pair.volume?.h24 ?? 0,
-    column: classifyPair(pair),
-    protocol: pair.dexId ?? "unknown",
-    priceUsd: parseFloat(pair.priceUsd ?? "0"),
-    pairUrl: pair.url ?? `https://dexscreener.com/solana/${pair.pairAddress}`,
+    txCount: extra?.txCount ?? coin.reply_count ?? 0,
+    bondingProgress: progress,
+    column: classify(progress, graduated),
+    protocol: "pump.fun",
+    priceUsd: mcap > 0 && coin.total_supply ? mcap / (coin.total_supply / 1e6) : 0,
+    pairUrl: `https://pump.fun/coin/${coin.mint}`,
+    imageUri: coin.image_uri,
+    isLive: coin.is_currently_live,
+    ...extra,
   };
 }
 
-async function fetchDex(url: string) {
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) return null;
-  return res.json();
+function mapV2Coin(coin: PumpV2Coin): PulseToken | null {
+  if (!coin.coinMint || !coin.ticker) return null;
+  const ageMs = coin.creationTime ? Date.now() - coin.creationTime : 0;
+  const progress = bondingProgress(coin);
+  const graduated = Boolean(coin.graduationDate) || progress >= 100;
+
+  return {
+    id: `sol-${coin.coinMint}`,
+    symbol: coin.ticker,
+    name: coin.name ?? coin.ticker,
+    address: coin.coinMint,
+    mcap: coin.marketCap ?? 0,
+    volume: coin.volume ?? 0,
+    age: coin.creationTime ? formatAge(ageMs) : "—",
+    ageMs,
+    txCount: coin.transactions ?? 0,
+    bondingProgress: progress,
+    column: classify(progress, graduated),
+    protocol: "pump.fun",
+    priceUsd: 0,
+    pairUrl: `https://pump.fun/coin/${coin.coinMint}`,
+    imageUri: coin.imageUrl,
+  };
 }
 
-async function fetchPairsForTokens(addresses: string[]): Promise<DexPair[]> {
-  const chunks: string[][] = [];
-  for (let i = 0; i < addresses.length; i += 30) {
-    chunks.push(addresses.slice(i, i + 30));
+async function fetchPump<T>(url: string): Promise<T | null> {
+  try {
+    const res = await fetch(url, { headers: PUMP_HEADERS, cache: "no-store" });
+    if (!res.ok) return null;
+    const text = await res.text();
+    if (!text) return null;
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
   }
-
-  const all: DexPair[] = [];
-  for (const chunk of chunks) {
-    const data = await fetchDex(`https://api.dexscreener.com/latest/dex/tokens/${chunk.join(",")}`);
-    if (data?.pairs) all.push(...(data.pairs as DexPair[]));
-  }
-  return all;
-}
-
-async function collectAddresses(search?: string): Promise<string[]> {
-  const addresses = new Set<string>();
-
-  if (search) {
-    const data = await fetchDex(
-      `https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(search)}`,
-    );
-    for (const p of (data?.pairs ?? []) as DexPair[]) {
-      if (p.chainId === "solana" && p.baseToken?.address) addresses.add(p.baseToken.address);
-    }
-    return [...addresses].slice(0, 40);
-  }
-
-  const [boosts, profiles, topBoosts, searchPump] = await Promise.all([
-    fetchDex("https://api.dexscreener.com/token-boosts/latest/v1"),
-    fetchDex("https://api.dexscreener.com/token-profiles/latest/v1"),
-    fetchDex("https://api.dexscreener.com/token-boosts/top/v1"),
-    fetchDex("https://api.dexscreener.com/latest/dex/search?q=pump"),
-  ]);
-
-  for (const list of [boosts, profiles, topBoosts]) {
-    if (!Array.isArray(list)) continue;
-    for (const t of list as Array<{ chainId: string; tokenAddress: string }>) {
-      if (t.chainId === "solana" && t.tokenAddress) addresses.add(t.tokenAddress);
-    }
-  }
-
-  for (const p of ((searchPump?.pairs ?? []) as DexPair[])) {
-    if (p.chainId === "solana" && p.baseToken?.address) addresses.add(p.baseToken.address);
-  }
-
-  return [...addresses].slice(0, 80);
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const search = req.nextUrl.searchParams.get("q")?.trim();
-    const addresses = await collectAddresses(search);
+    const search = req.nextUrl.searchParams.get("q")?.trim().toLowerCase();
 
-    if (!addresses.length) {
-      return NextResponse.json({ tokens: [], source: "dexscreener", updatedAt: Date.now() });
+    const [latest, graduated, live] = await Promise.all([
+      fetchPump<PumpV3Coin[]>(
+        "https://frontend-api-v3.pump.fun/coins?limit=60&offset=0&includeNsfw=false&sort=created_timestamp&order=DESC",
+      ),
+      fetchPump<{ coins: PumpV2Coin[] }>("https://advanced-api-v2.pump.fun/coins/graduated"),
+      fetchPump<PumpV3Coin[]>("https://frontend-api-v3.pump.fun/coins/currently-live?limit=20"),
+    ]);
+
+    const v2ByMint = new Map<string, PumpV2Coin>();
+    for (const c of graduated?.coins ?? []) {
+      v2ByMint.set(c.coinMint, c);
     }
 
-    const pairs = await fetchPairsForTokens(addresses);
+    const byId = new Map<string, PulseToken>();
 
-    const bestByToken = new Map<string, DexPair>();
-    for (const pair of pairs) {
-      const addr = pair.baseToken?.address;
-      if (!addr) continue;
-      const existing = bestByToken.get(addr);
-      const liq = pair.liquidity?.usd ?? 0;
-      const existingLiq = existing?.liquidity?.usd ?? 0;
-      if (!existing || liq > existingLiq) bestByToken.set(addr, pair);
+    for (const coin of latest ?? []) {
+      const v2 = v2ByMint.get(coin.mint);
+      const mapped = mapV3Coin(coin, {
+        volume: v2?.volume,
+        txCount: v2?.transactions ?? coin.reply_count,
+      });
+      if (!mapped) continue;
+      if (!search || mapped.symbol.toLowerCase().includes(search) || mapped.name.toLowerCase().includes(search) || mapped.address.toLowerCase().includes(search)) {
+        byId.set(mapped.id, mapped);
+      }
     }
 
-    const tokens = [...bestByToken.values()]
-      .map(mapPair)
-      .filter((t): t is PulseToken => t !== null)
-      .sort((a, b) => b.volume - a.volume);
+    for (const coin of graduated?.coins ?? []) {
+      const mapped = mapV2Coin(coin);
+      if (!mapped) continue;
+      mapped.column = "migrated";
+      mapped.bondingProgress = 100;
+      if (!search || mapped.symbol.toLowerCase().includes(search) || mapped.name.toLowerCase().includes(search)) {
+        byId.set(mapped.id, mapped);
+      }
+    }
 
-    return NextResponse.json({ tokens, source: "dexscreener", updatedAt: Date.now() });
+    for (const coin of live ?? []) {
+      const mapped = mapV3Coin(coin);
+      if (!mapped) continue;
+      mapped.isLive = true;
+      if (!search || mapped.symbol.toLowerCase().includes(search) || mapped.name.toLowerCase().includes(search)) {
+        const existing = byId.get(mapped.id);
+        byId.set(mapped.id, existing ? { ...existing, isLive: true } : mapped);
+      }
+    }
+
+    const tokens = [...byId.values()].sort((a, b) => {
+      if (a.isLive && !b.isLive) return -1;
+      if (!a.isLive && b.isLive) return 1;
+      return b.mcap - a.mcap;
+    });
+
+    return NextResponse.json({ tokens, source: "pump.fun", updatedAt: Date.now() });
   } catch (err) {
     console.error("Pulse API error:", err);
-    return NextResponse.json({ error: "Failed to fetch live pulse data" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch pump.fun coins" }, { status: 500 });
   }
 }
