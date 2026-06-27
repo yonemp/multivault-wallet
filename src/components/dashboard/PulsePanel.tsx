@@ -12,6 +12,9 @@ const COLUMNS: { key: PulseToken["column"]; title: string }[] = [
   { key: "migrated", title: "Migrated" },
 ];
 
+const ROW_GRID =
+  "grid grid-cols-[minmax(0,1.5fr)_minmax(0,0.85fr)_minmax(0,0.85fr)_auto] items-center gap-3";
+
 export type ColumnFilters = {
   mcapMin: number;
   volMin: number;
@@ -46,41 +49,41 @@ function ColumnFilterBar({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="border-b border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1">
+    <div className="border-b border-[var(--border-strong)] bg-[var(--bg-elevated)] px-4 py-2">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-1 text-[9px] font-semibold text-[var(--muted)] hover:text-[var(--foreground)]"
+        className="flex w-full items-center gap-2 text-xs font-semibold text-[var(--muted)] hover:text-[var(--foreground)]"
       >
-        <Filter className="h-3 w-3" />
+        <Filter className="h-3.5 w-3.5" />
         Filters
-        <ChevronDown className={`ml-auto h-3 w-3 transition ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`ml-auto h-4 w-4 transition ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div className="mt-1.5 space-y-1.5 pb-1">
-          <div className="grid grid-cols-2 gap-1">
+        <div className="mt-3 space-y-2 pb-1">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[8px] uppercase text-[var(--muted-dim)]">MC min ($)</label>
+              <label className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted-dim)]">MC min ($)</label>
               <input
                 type="number"
                 value={filters.mcapMin || ""}
                 onChange={(e) => onChange({ ...filters, mcapMin: Number(e.target.value) || 0 })}
                 placeholder="0"
-                className="mv-input mt-0.5 !py-1 text-[9px]"
+                className="mv-input mt-1 !py-2 text-sm"
               />
             </div>
             <div>
-              <label className="text-[8px] uppercase text-[var(--muted-dim)]">Vol min ($)</label>
+              <label className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted-dim)]">Vol min ($)</label>
               <input
                 type="number"
                 value={filters.volMin || ""}
                 onChange={(e) => onChange({ ...filters, volMin: Number(e.target.value) || 0 })}
                 placeholder="0"
-                className="mv-input mt-0.5 !py-1 text-[9px]"
+                className="mv-input mt-1 !py-2 text-sm"
               />
             </div>
           </div>
-          <button type="button" onClick={() => onChange(DEFAULT_FILTERS)} className="w-full py-0.5 text-[8px] text-[var(--primary)] hover:underline">
+          <button type="button" onClick={() => onChange(DEFAULT_FILTERS)} className="text-xs font-medium text-[var(--primary)] hover:underline">
             Reset filters
           </button>
         </div>
@@ -91,32 +94,43 @@ function ColumnFilterBar({
 
 function PulseRow({ token, onTrade }: { token: PulseToken; onTrade: () => void }) {
   return (
-    <div className="ax-table-row group grid grid-cols-[minmax(0,1.4fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_auto] items-center gap-1 px-2 py-1.5">
-      <button type="button" onClick={onTrade} className="flex min-w-0 items-center gap-2 text-left">
+    <div className={`ax-pulse-row group ${ROW_GRID} px-4 py-3`}>
+      <button type="button" onClick={onTrade} className="flex min-w-0 items-center gap-3 text-left">
         {token.imageUri ? (
-          <img src={token.imageUri} alt="" className="h-7 w-7 shrink-0 border border-[var(--border)] object-cover" />
+          <img
+            src={token.imageUri}
+            alt=""
+            className="h-10 w-10 shrink-0 rounded-sm border-2 border-[var(--border-strong)] object-cover"
+          />
         ) : (
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center text-[9px] font-bold" style={{ background: "var(--surface-active)", border: "1px solid var(--border)", color: "var(--primary)" }}>
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border-2 border-[var(--border-strong)] text-xs font-bold"
+            style={{ background: "var(--surface-active)", color: "var(--primary)" }}
+          >
             {token.symbol.slice(0, 2)}
           </div>
         )}
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="truncate text-[11px] font-semibold">{token.symbol}</span>
-            {token.isLive && <span className="rounded bg-[var(--loss)]/20 px-1 text-[8px] font-bold text-[var(--loss)]">LIVE</span>}
-            <span className="truncate text-[9px] text-[var(--muted)]">pump.fun</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="truncate text-sm font-semibold">{token.symbol}</span>
+            {token.isLive && (
+              <span className="rounded border border-[var(--loss)]/40 bg-[var(--loss)]/15 px-1.5 py-0.5 text-[10px] font-bold text-[var(--loss)]">
+                LIVE
+              </span>
+            )}
+            <span className="truncate text-xs text-[var(--muted)]">pump.fun</span>
           </div>
-          <span className="font-mono text-[9px] text-[var(--muted-dim)]">{token.age}</span>
+          <span className="font-mono text-xs text-[var(--muted-dim)]">{token.age}</span>
         </div>
       </button>
-      <span className="font-mono text-[10px] text-[var(--foreground)]">{formatCompactUsd(token.mcap)}</span>
-      <span className="font-mono text-[10px] text-[var(--muted)]">{formatCompactUsd(token.volume)}</span>
+      <span className="font-mono text-sm font-medium text-[var(--foreground)]">{formatCompactUsd(token.mcap)}</span>
+      <span className="font-mono text-sm text-[var(--muted)]">{formatCompactUsd(token.volume)}</span>
       <a
         href={token.pairUrl}
         target="_blank"
         rel="noopener noreferrer"
         onClick={(e) => e.stopPropagation()}
-        className="shrink-0 bg-[var(--primary)] px-2 py-1 text-[9px] font-bold text-white opacity-0 transition group-hover:opacity-100"
+        className="shrink-0 rounded-sm border border-[var(--primary)] bg-[var(--primary)] px-3 py-1.5 text-xs font-bold text-white opacity-100 transition hover:brightness-110 md:opacity-0 md:group-hover:opacity-100"
       >
         Pump
       </a>
@@ -169,50 +183,72 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
   }), [tokens]);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-2 flex flex-wrap items-center gap-2 border-b border-[var(--border)] pb-2">
-        <div className="flex items-center gap-1.5">
-          <Zap className="h-3.5 w-3.5 text-[var(--primary)]" />
-          <span className="text-sm font-semibold">Pulse</span>
-          <span className="ax-live-dot h-1.5 w-1.5 rounded-full bg-[var(--gain)]" />
-          <span className="text-[9px] text-[var(--muted)]">pump.fun live · {tokens.length} coins</span>
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="mb-3 flex flex-wrap items-center gap-3 border-b border-[var(--border-strong)] pb-3">
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 text-[var(--primary)]" />
+          <span className="text-base font-semibold">Pulse</span>
+          <span className="ax-live-dot h-2 w-2 rounded-full bg-[var(--gain)]" />
+          <span className="text-xs text-[var(--muted)]">pump.fun live · {tokens.length} coins</span>
         </div>
-        <button type="button" onClick={loadPulse} disabled={loading} className="ml-auto flex items-center gap-1 text-[10px] text-[var(--muted)] hover:text-[var(--primary)]">
-          <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
+        <button
+          type="button"
+          onClick={loadPulse}
+          disabled={loading}
+          className="ml-auto flex items-center gap-1.5 rounded-sm border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
           {updatedAt ? new Date(updatedAt).toLocaleTimeString() : "—"}
         </button>
       </div>
 
-      {error && <p className="mv-alert-error mb-2 text-xs">{error}</p>}
+      {error && <p className="mv-alert-error mb-3 text-sm">{error}</p>}
 
-      <div className="mv-panel grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-3">
-        {COLUMNS.map(({ key, title }) => {
+      <div className="ax-pulse-grid min-h-0 flex-1 overflow-hidden">
+        {COLUMNS.map(({ key, title }, index) => {
           const colTokens = applyFilters(
             tokens.filter((t) => t.column === key),
             columnFilters[key],
             columnSearch[key],
           );
           return (
-            <div key={key} className="ax-pulse-col min-h-[300px] md:min-h-0">
-              <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--surface-solid)] px-2 py-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wider">{title}</span>
-                <span className="ml-auto font-mono text-[9px] text-[var(--muted)]">{colTokens.length}/{counts[key]}</span>
+            <div
+              key={key}
+              className={`ax-pulse-col min-h-[320px] md:min-h-0 ${
+                index === 1 ? "md:mx-0.5 md:ring-1 md:ring-[var(--border-strong)]" : ""
+              }`}
+            >
+              <div className="flex items-center gap-2 border-b border-[var(--border-strong)] bg-[var(--bg-elevated)] px-4 py-3">
+                <span className="text-xs font-bold uppercase tracking-widest text-[var(--foreground)]">{title}</span>
+                <span className="ml-auto rounded-sm border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 font-mono text-xs text-[var(--muted)]">
+                  {colTokens.length}/{counts[key]}
+                </span>
               </div>
-              <ColumnFilterBar filters={columnFilters[key]} onChange={(f) => setColumnFilters((prev) => ({ ...prev, [key]: f }))} />
-              <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_auto] gap-1 border-b border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1 text-[8px] font-semibold uppercase tracking-wider text-[var(--muted-dim)]">
+              <ColumnFilterBar
+                filters={columnFilters[key]}
+                onChange={(f) => setColumnFilters((prev) => ({ ...prev, [key]: f }))}
+              />
+              <div
+                className={`${ROW_GRID} gap-3 border-b border-[var(--border-strong)] bg-[var(--surface)] px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]`}
+              >
                 <span>Token</span>
                 <span>MC</span>
                 <span>Vol</span>
                 <span />
               </div>
-              <div className="relative border-b border-[var(--border)] px-2 py-1">
-                <Search className="absolute left-4 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--muted-dim)]" />
-                <input value={columnSearch[key]} onChange={(e) => setColumnSearch((prev) => ({ ...prev, [key]: e.target.value }))} placeholder="Search..." className="w-full bg-transparent py-1 pl-6 text-[10px] outline-none" />
+              <div className="relative border-b border-[var(--border-strong)] px-4 py-2.5">
+                <Search className="absolute left-7 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-dim)]" />
+                <input
+                  value={columnSearch[key]}
+                  onChange={(e) => setColumnSearch((prev) => ({ ...prev, [key]: e.target.value }))}
+                  placeholder="Search symbol or address…"
+                  className="w-full rounded-sm border border-[var(--border)] bg-[var(--surface-solid)] py-2 pl-9 pr-3 text-sm outline-none focus:border-[var(--primary)]"
+                />
               </div>
-              <div className="flex-1 overflow-y-auto">
+              <div className="min-h-0 flex-1 overflow-y-auto">
                 {loading && !colTokens.length ? (
                   Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="h-12 animate-pulse border-b border-[var(--border)] bg-[var(--surface-hover)]" />
+                    <div key={i} className="h-16 animate-pulse border-b border-[var(--border)] bg-[var(--surface-hover)]" />
                   ))
                 ) : (
                   colTokens.map((token) => (
@@ -220,10 +256,10 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
                   ))
                 )}
                 {!loading && colTokens.length === 0 && tokens.length > 0 && (
-                  <p className="px-3 py-6 text-center text-[10px] text-[var(--muted)]">No coins in this column match filters</p>
+                  <p className="px-4 py-10 text-center text-sm text-[var(--muted)]">No coins match filters</p>
                 )}
                 {!loading && tokens.length === 0 && (
-                  <p className="px-3 py-6 text-center text-[10px] text-[var(--muted)]">No live pump.fun coins — try Refresh</p>
+                  <p className="px-4 py-10 text-center text-sm text-[var(--muted)]">No live pump.fun coins — try Refresh</p>
                 )}
               </div>
             </div>
