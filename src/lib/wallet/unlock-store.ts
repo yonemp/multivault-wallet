@@ -1,7 +1,6 @@
 import {
   clearUnlockSession,
   getUnlockMnemonic,
-  touchUnlockActivity,
   unlockWalletSession,
 } from "./wallet-lock";
 
@@ -13,10 +12,7 @@ export function setUnlockedMnemonic(mnemonic: string) {
 }
 
 export function getUnlockedMnemonic() {
-  if (unlockedMnemonic) {
-    touchUnlockActivity();
-    return unlockedMnemonic;
-  }
+  if (unlockedMnemonic) return unlockedMnemonic;
   const restored = getUnlockMnemonic();
   if (restored) unlockedMnemonic = restored;
   return unlockedMnemonic;

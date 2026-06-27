@@ -169,8 +169,8 @@ export default function ImportWalletPage() {
 
         {step === "username" && importedAddress && (
           <UsernamePicker
-            onSubmit={async (username) => {
-              await saveUsernameForWallet(importedAddress, username);
+            onSubmit={async (username, profileVisibility) => {
+              await saveUsernameForWallet(importedAddress, username, "#526fff", profileVisibility);
               setStep("done");
             }}
           />

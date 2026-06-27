@@ -1,4 +1,8 @@
-import { saveLocalProfile, loadLocalProfile } from "@/lib/platform/user-profile";
+import {
+  saveLocalProfile,
+  loadLocalProfile,
+  type ProfileVisibility,
+} from "@/lib/platform/user-profile";
 import { normalizeUsername, validateUsername } from "@/lib/platform/username";
 
 const ACCOUNT_USERNAME_KEY = "mv_account_username";
@@ -40,6 +44,7 @@ export async function saveUsernameForWallet(
   primaryAddress: string,
   username: string,
   avatarColor = "#526fff",
+  profileVisibility: ProfileVisibility = "public",
 ): Promise<void> {
   const err = validateUsername(username);
   if (err) throw new Error(err);
@@ -61,6 +66,7 @@ export async function saveUsernameForWallet(
     primaryAddress,
     displayName: normalized,
     avatarColor,
+    profileVisibility,
   });
 
   const res = await fetch("/api/profile", {
@@ -71,6 +77,7 @@ export async function saveUsernameForWallet(
       displayName: normalized,
       username: normalized,
       avatarColor,
+      profileVisibility,
     }),
   });
 

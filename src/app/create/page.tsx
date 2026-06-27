@@ -214,7 +214,7 @@ export default function CreateWalletPage() {
           <Panel className="space-y-4 p-6">
             <h2 className="text-lg font-semibold">Encrypt your wallet</h2>
             <p className="text-sm text-[var(--muted)]">
-              This password unlocks signing and exports. It is separate from your seed phrase.
+              Used for withdrawals, deleting wallets, and changing contact info. Not required for browsing or trading.
             </p>
             {isAdding && (
               <>
@@ -249,8 +249,8 @@ export default function CreateWalletPage() {
 
         {step === "username" && createdAddress && (
           <UsernamePicker
-            onSubmit={async (username) => {
-              await saveUsernameForWallet(createdAddress, username);
+            onSubmit={async (username, profileVisibility) => {
+              await saveUsernameForWallet(createdAddress, username, "#526fff", profileVisibility);
               setStep("done");
             }}
           />

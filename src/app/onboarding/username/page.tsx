@@ -27,9 +27,9 @@ export default function OnboardingUsernamePage() {
     setAddress(addr);
   }, []);
 
-  async function handleSubmit(username: string) {
+  async function handleSubmit(username: string, profileVisibility: "public" | "private") {
     if (!address) return;
-    await saveUsernameForWallet(address, username);
+    await saveUsernameForWallet(address, username, "#526fff", profileVisibility);
     window.location.href = redirect;
   }
 

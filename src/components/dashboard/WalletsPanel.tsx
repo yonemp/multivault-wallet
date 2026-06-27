@@ -4,16 +4,20 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { DashboardTab } from "@/components/dashboard/ActionTabs.types";
 import { WalletCardData, WalletDropZone } from "@/components/wallet/WalletDragCard";
+import { PasswordConfirmModal } from "@/components/wallet/PasswordConfirmModal";
+import { usePasswordPrompt } from "@/hooks/usePasswordPrompt";
 import { fetchChainBalances } from "@/lib/wallet/balances-client";
-import { saveSession, SessionData } from "@/lib/wallet/session";
+import { clearSession, saveSession, SessionData } from "@/lib/wallet/session";
 import { sessionFromVaultWallet } from "@/lib/wallet/setup-wallet";
-
 import {
   getActiveWalletId,
   loadVault,
+  removeVaultWallet,
   setActiveWalletId,
   VaultWallet,
 } from "@/lib/wallet/wallet-vault";
+import { clearUnlockedMnemonic } from "@/lib/wallet/unlock-store";
+import { verifyWalletPassword } from "@/lib/wallet/verify-password";
 import {
   getActiveWalletIds,
   loadWalletLayout,
@@ -55,6 +59,9 @@ export function WalletsPanel({
   const [note, setNote] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<VaultWallet | null>(null);
+
+  const passwordPrompt = usePasswordPrompt();
 
   const refreshVault = useCallback(() => {
     const vault = loadVault();
@@ -161,6 +168,34 @@ export function WalletsPanel({
     onNavigate("send");
   }
 
+  function promptDeleteWallet(wallet: VaultWallet) {
+    setDeleteTarget(wallet);
+    passwordPrompt.requestPassword({
+      title: "Delete wallet",
+      description: `Enter your password to permanently remove "${wallet.label}" from this device. This cannot be undone.`,
+      confirmLabel: "Delete wallet",
+      action: async (password) => {
+        await verifyWalletPassword(password);
+        removeVaultWallet(wallet.id);
+        setDeleteTarget(null);
+        refreshVault();
+        const remaining = loadVault();
+        if (!remaining.length) {
+          clearUnlockedMnemonic();
+          clearSession();
+          window.location.href = "/";
+          return;
+        }
+        const next = remaining.find((w) => w.id === getActiveWalletId()) ?? remaining[0];
+        const nextSession = sessionFromVaultWallet(next);
+        saveSession(nextSession);
+        onSessionChange?.(nextSession);
+        setNote(`"${wallet.label}" removed from vault`);
+        onRefresh?.();
+      },
+    });
+  }
+
   function handleExport() {
     const blob = new Blob([JSON.stringify(vaultWallets.map((w) => ({
       label: w.label,
@@ -253,6 +288,10 @@ export function WalletsPanel({
               onDrop={handleDrop}
               onSetActive={handleSetActive}
               activeWalletId={activeId}
+              onDelete={(id) => {
+                const w = vaultWallets.find((v) => v.id === id);
+                if (w) promptDeleteWallet(w);
+              }}
               headerRight={
                 <div className="flex gap-1">
                   <button type="button" onClick={() => onNavigate("receive")} title="Receive" className="border border-[var(--border)] p-1 text-[var(--muted)]">
@@ -310,6 +349,21 @@ export function WalletsPanel({
       <p className="text-[9px] text-[var(--muted-dim)]">
         Pick up any wallet card and drop it on Active, Source, or Destinations · Moving from Source goes to Active or Destinations
       </p>
+
+      <PasswordConfirmModal
+        open={passwordPrompt.open}
+        title={passwordPrompt.title}
+        description={passwordPrompt.description}
+        confirmLabel={passwordPrompt.confirmLabel}
+        onClose={() => {
+          passwordPrompt.close();
+          setDeleteTarget(null);
+        }}
+        onConfirm={passwordPrompt.confirm}
+      />
+      {deleteTarget && (
+        <p className="sr-only">Deleting {deleteTarget.label}</p>
+      )}
     </div>
   );
 }

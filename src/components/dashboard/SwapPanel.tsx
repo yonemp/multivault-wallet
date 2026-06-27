@@ -160,7 +160,7 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
       if (isSolana) {
         if (session.mode === "local") {
           const mnemonic = getUnlockedMnemonic();
-          if (!mnemonic) throw new Error("Unlock your wallet first");
+          if (!mnemonic) throw new Error("Start a new browser session — create or import your wallet to enable signing");
           hash = await executeSolanaSwapLocal(mnemonic, quoteData);
         } else {
           const sol = getAddress(session, "solana");
@@ -169,7 +169,7 @@ export function SwapPanel({ session, onSuccess }: SwapPanelProps) {
         }
       } else if (session.mode === "local") {
         const mnemonic = getUnlockedMnemonic();
-        if (!mnemonic) throw new Error("Unlock your wallet first");
+        if (!mnemonic) throw new Error("Start a new browser session — create or import your wallet to enable signing");
         hash = await executeEvmSwapLocal(
           mnemonic,
           evmChain,

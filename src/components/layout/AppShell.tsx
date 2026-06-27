@@ -4,7 +4,6 @@ import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/layout/Logo";
 import { ActionTabs, DashboardTab } from "@/components/dashboard/ActionTabs";
-import { HeaderWalletLock } from "@/components/wallet/HeaderWalletLock";
 import { Button } from "@/components/ui/Button";
 import { LogOut, Search, Wallet } from "lucide-react";
 import type { AssetMarketData } from "@/app/api/prices/route";
@@ -17,16 +16,6 @@ type AppShellProps = {
   showNav?: boolean;
   onLogout?: () => void;
   terminal?: boolean;
-  lockProps?: {
-    show: boolean;
-    locked: boolean;
-    password: string;
-    onPasswordChange: (v: string) => void;
-    onUnlock: () => void;
-    onLock?: () => void;
-    error?: string | null;
-    remaining?: string;
-  };
 };
 
 export function AppShell({
@@ -36,7 +25,6 @@ export function AppShell({
   showNav = true,
   onLogout,
   terminal = true,
-  lockProps,
 }: AppShellProps) {
   const [solPrice, setSolPrice] = useState<AssetMarketData | null>(null);
 
@@ -74,9 +62,6 @@ export function AppShell({
           )}
 
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            {lockProps && (
-              <HeaderWalletLock {...lockProps} />
-            )}
             <button type="button" className="mv-header-btn hidden sm:flex">
               <Search className="h-3.5 w-3.5" />
               Search

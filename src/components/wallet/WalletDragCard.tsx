@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { safeFixed, safeNumber } from "@/lib/format/numbers";
-import { GripVertical, Star } from "lucide-react";
+import { GripVertical, Star, Trash2 } from "lucide-react";
 
 export type WalletCardData = {
   id: string;
@@ -17,6 +17,7 @@ export type WalletCardData = {
 type WalletDragCardProps = {
   wallet: WalletCardData;
   onSetActive?: () => void;
+  onDelete?: () => void;
   compact?: boolean;
 };
 
@@ -25,7 +26,7 @@ function truncate(addr: string) {
   return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
 }
 
-export function WalletDragCard({ wallet, onSetActive, compact }: WalletDragCardProps) {
+export function WalletDragCard({ wallet, onSetActive, onDelete, compact }: WalletDragCardProps) {
   return (
     <div
       draggable
@@ -69,6 +70,16 @@ export function WalletDragCard({ wallet, onSetActive, compact }: WalletDragCardP
           <Star className="h-3 w-3" />
         </button>
       )}
+      {onDelete && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          title="Delete wallet"
+          className="shrink-0 border border-[var(--border)] p-1 text-[var(--muted)] opacity-0 transition hover:border-[var(--loss)] hover:text-[var(--loss)] group-hover:opacity-100"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
+      )}
     </div>
   );
 }
@@ -81,6 +92,7 @@ type DropZoneProps = {
   walletMap: Map<string, WalletCardData>;
   onDrop: (walletId: string, zone: "active" | "source" | "dest") => void;
   onSetActive?: (id: string) => void;
+  onDelete?: (id: string) => void;
   activeWalletId?: string | null;
   headerRight?: ReactNode;
   showFund?: boolean;
@@ -95,6 +107,7 @@ export function WalletDropZone({
   walletMap,
   onDrop,
   onSetActive,
+  onDelete,
   activeWalletId,
   headerRight,
   showFund,
@@ -129,6 +142,7 @@ export function WalletDropZone({
               <WalletDragCard
                 wallet={{ ...w, isActive: id === activeWalletId }}
                 onSetActive={onSetActive ? () => onSetActive(id) : undefined}
+                onDelete={onDelete && zone === "active" ? () => onDelete(id) : undefined}
                 compact={zone !== "active"}
               />
               {showFund && onFund && (

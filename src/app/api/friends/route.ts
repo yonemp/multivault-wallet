@@ -135,12 +135,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: fromErr ?? toErr }, { status: 400 });
     }
 
-    const target = await lookupProfile(toUsername);
+    const supabase = createServerClient();
+    const { data: target, error: targetErr } = await supabase
+      .from("user_profiles")
+      .select("username, primary_address, profile_visibility")
+      .eq("username", toUsername)
+      .maybeSingle();
+
+    if (targetErr) {
+      if (isMissingFriendsTable(targetErr.message)) {
+        return NextResponse.json({ error: "Friends database not configured" }, { status: 503 });
+      }
+      return NextResponse.json({ error: targetErr.message }, { status: 500 });
+    }
+
     if (!target) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const supabase = createServerClient();
+    if (target.profile_visibility === "private") {
+      return NextResponse.json(
+        { error: "This profile is private — they must send you a friend request first" },
+        { status: 403 },
+      );
+    }
 
     const { data: existingFriends } = await supabase
       .from("friend_requests")

@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/Button";
 import { ChainSelect } from "@/components/ui/ChainSelect";
 import { Input } from "@/components/ui/Input";
 import { Panel } from "@/components/ui/Panel";
+import { PasswordConfirmModal } from "@/components/wallet/PasswordConfirmModal";
+import { usePasswordPrompt } from "@/hooks/usePasswordPrompt";
 import { ChainId, getChain } from "@/lib/wallet/chains";
 import { getAddress, getSessionChains, SessionData } from "@/lib/wallet/session";
 import {
@@ -15,7 +17,7 @@ import {
   sendSolanaExternal,
   sendSolanaLocal,
 } from "@/lib/wallet/send";
-import { getUnlockedMnemonic } from "@/lib/wallet/unlock-store";
+import { withWalletPassword } from "@/lib/wallet/verify-password";
 
 type SendPanelProps = {
   session: SessionData;
@@ -42,10 +44,41 @@ export function SendPanel({ session, onSuccess }: SendPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
 
+  const passwordPrompt = usePasswordPrompt();
+
   const chainConfig = getChain(chain);
   const canTransact = SENDABLE.includes(chain);
 
-  async function handleSend() {
+  async function executeSend(password: string) {
+    let hash: string;
+
+    if (chain === "solana") {
+      if (session.mode === "local") {
+        hash = await withWalletPassword(password, (mnemonic) =>
+          sendSolanaLocal(mnemonic, recipient, amount),
+          { persist: true },
+        );
+      } else {
+        hash = await sendSolanaExternal(recipient, amount);
+      }
+    } else if (session.mode === "local") {
+      hash = await withWalletPassword(password, (mnemonic) =>
+        sendEvmNativeLocal(mnemonic, "ethereum", recipient, amount),
+        { persist: true },
+      );
+    } else {
+      const from = getAddress(session, "ethereum");
+      if (!from) throw new Error("No Ethereum wallet");
+      hash = await sendEvmNativeExternal("ethereum", from, recipient, amount);
+    }
+
+    setTxHash(hash);
+    setRecipient("");
+    setAmount("");
+    onSuccess();
+  }
+
+  function handleSendClick() {
     setError(null);
     setTxHash(null);
 
@@ -71,37 +104,31 @@ export function SendPanel({ session, onSuccess }: SendPanelProps) {
       return;
     }
 
-    setLoading(true);
-    try {
-      let hash: string;
-
-      if (chain === "solana") {
-        if (session.mode === "local") {
-          const mnemonic = getUnlockedMnemonic();
-          if (!mnemonic) throw new Error("Unlock your wallet first");
-          hash = await sendSolanaLocal(mnemonic, recipient, amount);
-        } else {
-          hash = await sendSolanaExternal(recipient, amount);
-        }
-      } else if (session.mode === "local") {
-        const mnemonic = getUnlockedMnemonic();
-        if (!mnemonic) throw new Error("Unlock your wallet first");
-        hash = await sendEvmNativeLocal(mnemonic, "ethereum", recipient, amount);
-      } else {
-        const from = getAddress(session, "ethereum");
-        if (!from) throw new Error("No Ethereum wallet");
-        hash = await sendEvmNativeExternal("ethereum", from, recipient, amount);
-      }
-
-      setTxHash(hash);
-      setRecipient("");
-      setAmount("");
-      onSuccess();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Transaction failed");
-    } finally {
-      setLoading(false);
+    if (session.mode === "local") {
+      passwordPrompt.requestPassword({
+        title: "Confirm withdrawal",
+        description: "Enter your wallet password to send funds. This protects against unauthorized withdrawals.",
+        confirmLabel: "Send funds",
+        action: async (password) => {
+          setLoading(true);
+          try {
+            await executeSend(password);
+          } catch (err) {
+            throw err instanceof Error ? err : new Error("Transaction failed");
+          } finally {
+            setLoading(false);
+          }
+        },
+      });
+      return;
     }
+
+    setLoading(true);
+    executeSend("")
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Transaction failed");
+      })
+      .finally(() => setLoading(false));
   }
 
   return (
@@ -109,7 +136,7 @@ export function SendPanel({ session, onSuccess }: SendPanelProps) {
       <div className="mb-5 border-b border-[var(--border)] pb-4">
         <h1 className="text-xl font-semibold text-[var(--foreground)]">Send</h1>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Transfer assets across supported networks.
+          Transfer assets across supported networks. Password required to withdraw.
         </p>
       </div>
 
@@ -151,10 +178,19 @@ export function SendPanel({ session, onSuccess }: SendPanelProps) {
         {error && <p className="mv-alert-error">{error}</p>}
         {txHash && <p className="mv-alert-success break-all">Sent! Tx: {txHash}</p>}
 
-        <Button className="w-full" size="lg" onClick={handleSend} disabled={loading}>
+        <Button className="w-full" size="lg" onClick={handleSendClick} disabled={loading}>
           {loading ? "Sending…" : `Send ${chainConfig.symbol}`}
         </Button>
       </Panel>
+
+      <PasswordConfirmModal
+        open={passwordPrompt.open}
+        title={passwordPrompt.title}
+        description={passwordPrompt.description}
+        confirmLabel={passwordPrompt.confirmLabel}
+        onClose={passwordPrompt.close}
+        onConfirm={passwordPrompt.confirm}
+      />
     </div>
   );
 }

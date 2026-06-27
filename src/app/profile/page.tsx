@@ -6,20 +6,22 @@ import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { SecurityPanel } from "@/components/profile/SecurityPanel";
 import { MyTicketsPanel } from "@/components/profile/MyTicketsPanel";
+import { PasswordConfirmModal } from "@/components/wallet/PasswordConfirmModal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Panel } from "@/components/ui/Panel";
-import { useWalletLock } from "@/hooks/useWalletLock";
+import { usePasswordPrompt } from "@/hooks/usePasswordPrompt";
 import { loadSession, SessionData, getAddress } from "@/lib/wallet/session";
 import {
   loadLocalProfile,
   profileFromApi,
   saveLocalProfile,
+  type ProfileVisibility,
 } from "@/lib/platform/user-profile";
 import { getAccountUsername } from "@/lib/platform/account-username";
 import { markTicketSynced, saveLocalTicket } from "@/lib/platform/support-tickets-local";
 
-import { ArrowLeft, MessageSquare, Shield, User } from "lucide-react";
+import { ArrowLeft, Globe, Lock, MessageSquare, Shield, User } from "lucide-react";
 
 const AVATAR_COLORS = ["#526fff", "#9945FF", "#F7931A", "#00c076", "#ff4d6a", "#F0B90B"];
 
@@ -30,6 +32,11 @@ export default function ProfilePage() {
   const [session, setSession] = useState<SessionData | null>(null);
   const [tab, setTab] = useState<ProfileTab>("profile");
   const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [profileVisibility, setProfileVisibility] = useState<ProfileVisibility>("public");
+  const [savedEmail, setSavedEmail] = useState("");
+  const [savedPhone, setSavedPhone] = useState("");
   const [avatarColor, setAvatarColor] = useState(AVATAR_COLORS[0]);
   const [ticketSubject, setTicketSubject] = useState("");
   const [ticketBody, setTicketBody] = useState("");
@@ -41,11 +48,13 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
 
   const accountUsername = getAccountUsername();
-
-  const lock = useWalletLock(session);
+  const passwordPrompt = usePasswordPrompt();
 
   const primaryAddress =
     session ? getAddress(session, "ethereum") ?? getAddress(session, "solana") : null;
+
+  const contactChanged =
+    email.trim() !== savedEmail.trim() || phone.trim() !== savedPhone.trim();
 
   useEffect(() => {
     const tabParam = searchParams.get("tab");
@@ -74,6 +83,11 @@ export default function ProfilePage() {
     if (local) {
       setDisplayName(local.displayName || accountName);
       setAvatarColor(local.avatarColor);
+      setEmail(local.email ?? "");
+      setPhone(local.phone ?? "");
+      setSavedEmail(local.email ?? "");
+      setSavedPhone(local.phone ?? "");
+      setProfileVisibility(local.profileVisibility ?? "public");
     } else if (accountName) {
       setDisplayName(accountName);
     }
@@ -81,7 +95,16 @@ export default function ProfilePage() {
     fetch(`/api/profile?address=${encodeURIComponent(addr)}`)
       .then(async (r) => {
         if (!r.ok) return null;
-        return r.json() as Promise<{ profile?: { display_name?: string | null; avatar_color?: string | null; updated_at?: string | null } | null }>;
+        return r.json() as Promise<{
+          profile?: {
+            display_name?: string | null;
+            avatar_color?: string | null;
+            email?: string | null;
+            phone?: string | null;
+            profile_visibility?: string | null;
+            updated_at?: string | null;
+          } | null;
+        }>;
       })
       .then((d) => {
         if (!d?.profile) return;
@@ -89,12 +112,17 @@ export default function ProfilePage() {
         if (!local || remote.updatedAt >= local.updatedAt) {
           setDisplayName(remote.displayName);
           setAvatarColor(remote.avatarColor);
+          setEmail(remote.email ?? "");
+          setPhone(remote.phone ?? "");
+          setSavedEmail(remote.email ?? "");
+          setSavedPhone(remote.phone ?? "");
+          setProfileVisibility(remote.profileVisibility);
         }
       })
       .catch(() => {});
   }, []);
 
-  async function saveProfile() {
+  async function persistProfile() {
     if (!primaryAddress) {
       setError("No wallet address found — reconnect your wallet and try again.");
       return;
@@ -106,6 +134,9 @@ export default function ProfilePage() {
       primaryAddress,
       displayName: displayName.trim(),
       avatarColor,
+      email: email.trim() || undefined,
+      phone: phone.trim() || undefined,
+      profileVisibility,
     });
 
     let syncedToCloud = false;
@@ -117,6 +148,9 @@ export default function ProfilePage() {
           primaryAddress,
           displayName: displayName.trim(),
           avatarColor,
+          email: email.trim() || null,
+          phone: phone.trim() || null,
+          profileVisibility,
         }),
       });
       syncedToCloud = res.ok;
@@ -124,12 +158,33 @@ export default function ProfilePage() {
       syncedToCloud = false;
     }
 
+    setSavedEmail(email.trim());
+    setSavedPhone(phone.trim());
     setSavedLocally(!syncedToCloud);
     setSaved(true);
     setTimeout(() => {
       setSaved(false);
       setSavedLocally(false);
     }, 3000);
+  }
+
+  function saveProfile() {
+    if (!primaryAddress) {
+      setError("No wallet address found — reconnect your wallet and try again.");
+      return;
+    }
+
+    if (session?.mode === "local" && contactChanged) {
+      passwordPrompt.requestPassword({
+        title: "Confirm profile change",
+        description: "Enter your wallet password to update your phone or email.",
+        confirmLabel: "Save changes",
+        action: persistProfile,
+      });
+      return;
+    }
+
+    void persistProfile();
   }
 
   async function submitTicket() {
@@ -201,20 +256,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <AppShell
-      showNav={false}
-      terminal={false}
-      lockProps={session.mode === "local" ? {
-        show: true,
-        locked: !lock.unlocked,
-        password: lock.password,
-        onPasswordChange: lock.setPassword,
-        onUnlock: lock.unlock,
-        onLock: lock.unlocked ? lock.lock : undefined,
-        error: lock.error,
-        remaining: lock.remaining,
-      } : undefined}
-    >
+    <AppShell showNav={false} terminal={false}>
       <Link href="/dashboard" className="mb-4 inline-flex items-center gap-1.5 text-sm text-[var(--muted)] hover:text-[var(--primary)]">
         <ArrowLeft className="h-4 w-4" /> Back to dashboard
       </Link>
@@ -242,7 +284,7 @@ export default function ProfilePage() {
       </div>
 
       {tab === "security" ? (
-        <SecurityPanel />
+        <SecurityPanel email={email} phone={phone} isLocalWallet={session.mode === "local"} />
       ) : tab === "support" ? (
         <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
           <MyTicketsPanel
@@ -298,7 +340,7 @@ export default function ProfilePage() {
                 <div>
                   <h1 className="text-2xl font-semibold">{displayName || "Your profile"}</h1>
                   <p className="mt-1 text-sm text-[var(--muted)] capitalize">
-                    {session.walletType} · {session.mode}
+                    {session.walletType} · {session.mode} · {profileVisibility} profile
                   </p>
                 </div>
               </div>
@@ -309,19 +351,54 @@ export default function ProfilePage() {
                 <User className="h-4 w-4 text-[var(--primary)]" /> Identity
               </h2>
               <div>
-                <label className="mv-label">Username</label>
+                <label className="mv-label">Username *</label>
                 <Input
                   value={getAccountUsername() ?? displayName}
                   readOnly
                   className="opacity-80"
                 />
                 <p className="mt-1 text-[10px] text-[var(--muted)]">
-                  Set during wallet setup · used for tickets and account moderation
+                  Required · used for friends, tickets, and moderation
                 </p>
               </div>
               <div>
                 <label className="mv-label">Display name</label>
                 <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Trader name" />
+              </div>
+              <div>
+                <label className="mv-label">Profile visibility</label>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setProfileVisibility("public")}
+                    className={`flex items-start gap-2 border p-3 text-left text-xs transition ${
+                      profileVisibility === "public"
+                        ? "border-[var(--primary)] bg-[var(--primary-soft)]"
+                        : "border-[var(--border)]"
+                    }`}
+                  >
+                    <Globe className="mt-0.5 h-4 w-4 shrink-0 text-[var(--primary)]" />
+                    <div>
+                      <p className="font-semibold">Public</p>
+                      <p className="mt-0.5 text-[var(--muted)]">Discoverable by username</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setProfileVisibility("private")}
+                    className={`flex items-start gap-2 border p-3 text-left text-xs transition ${
+                      profileVisibility === "private"
+                        ? "border-[var(--primary)] bg-[var(--primary-soft)]"
+                        : "border-[var(--border)]"
+                    }`}
+                  >
+                    <Lock className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning)]" />
+                    <div>
+                      <p className="font-semibold">Private</p>
+                      <p className="mt-0.5 text-[var(--muted)]">Hidden from friend search</p>
+                    </div>
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="mv-label">Avatar color</label>
@@ -345,6 +422,31 @@ export default function ProfilePage() {
               )}
               <Button onClick={saveProfile}>Save profile</Button>
             </Panel>
+
+            <Panel className="mv-glass space-y-4 p-5">
+              <h2 className="text-sm font-semibold">Contact (optional)</h2>
+              <p className="text-xs text-[var(--muted)]">
+                Add phone or email for 2FA when changing your wallet password. Password required to update these fields.
+              </p>
+              <div>
+                <label className="mv-label">Email</label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                />
+              </div>
+              <div>
+                <label className="mv-label">Phone</label>
+                <Input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+1 555 000 0000"
+                />
+              </div>
+            </Panel>
           </div>
 
           <Panel className="mv-glass space-y-4 p-5">
@@ -360,6 +462,15 @@ export default function ProfilePage() {
           </Panel>
         </div>
       )}
+
+      <PasswordConfirmModal
+        open={passwordPrompt.open}
+        title={passwordPrompt.title}
+        description={passwordPrompt.description}
+        confirmLabel={passwordPrompt.confirmLabel}
+        onClose={passwordPrompt.close}
+        onConfirm={passwordPrompt.confirm}
+      />
     </AppShell>
   );
 }

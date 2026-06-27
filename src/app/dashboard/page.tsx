@@ -24,9 +24,7 @@ import {
   SupportPanel,
 } from "@/components/dashboard/InfoPanels";
 import { AppShell } from "@/components/layout/AppShell";
-import { UnlockGate } from "@/components/wallet/UnlockGate";
 import { TERMINAL_TABS } from "@/lib/navigation/axiom-nav";
-import { useWalletLock } from "@/hooks/useWalletLock";
 import {
   ChainBalances,
   fetchChainBalances,
@@ -66,8 +64,6 @@ export default function DashboardPage() {
     reason: string | null;
   } | null>(null);
   const [gateReady, setGateReady] = useState(false);
-
-  const lock = useWalletLock(session);
 
   const loadBalances = useCallback(async (current: SessionData) => {
     setLoadingBalances(true);
@@ -127,7 +123,6 @@ export default function DashboardPage() {
   }, [searchParams, loadBalances]);
 
   function handleLogout() {
-    lock.lock();
     clearUnlockedMnemonic();
     clearSession();
     window.location.href = "/";
@@ -144,7 +139,6 @@ export default function DashboardPage() {
   }
 
   const isTerminal = TERMINAL_TABS.includes(activeTab);
-  const showLockBanner = session?.mode === "local";
 
   if (!session || !gateReady) {
     return (
@@ -171,16 +165,6 @@ export default function DashboardPage() {
       showNav
       onLogout={handleLogout}
       terminal={isTerminal}
-      lockProps={showLockBanner ? {
-        show: true,
-        locked: !lock.unlocked,
-        password: lock.password,
-        onPasswordChange: lock.setPassword,
-        onUnlock: lock.unlock,
-        onLock: lock.unlocked ? lock.lock : undefined,
-        error: lock.error,
-        remaining: lock.remaining,
-      } : undefined}
     >
       {activeTab === "pulse" && <PulsePanel onNavigate={handleNavigate} />}
 
@@ -211,28 +195,10 @@ export default function DashboardPage() {
       {activeTab === "tweets" && <TweetMonitorPanel />}
       {activeTab === "scan" && <TraderScanPanel />}
       {activeTab === "instant" && (
-        <UnlockGate
-          locked={showLockBanner && !lock.unlocked}
-          password={lock.password}
-          onPasswordChange={lock.setPassword}
-          onUnlock={lock.unlock}
-          error={lock.error}
-          action="use instant trade"
-        >
-          <InstantTradePanel onSuccess={() => loadBalances(session)} />
-        </UnlockGate>
+        <InstantTradePanel onSuccess={() => loadBalances(session)} />
       )}
       {activeTab === "swap" && (
-        <UnlockGate
-          locked={showLockBanner && !lock.unlocked}
-          password={lock.password}
-          onPasswordChange={lock.setPassword}
-          onUnlock={lock.unlock}
-          error={lock.error}
-          action="convert tokens"
-        >
-          <SwapPanel session={session} onSuccess={() => loadBalances(session)} />
-        </UnlockGate>
+        <SwapPanel session={session} onSuccess={() => loadBalances(session)} />
       )}
       {activeTab === "buy" && <BuyCryptoPanel />}
       {activeTab === "fees" && <FeesPanel />}
@@ -240,16 +206,7 @@ export default function DashboardPage() {
       {activeTab === "support" && <SupportPanel />}
       {activeTab === "receive" && <ReceivePanel session={session} />}
       {activeTab === "send" && (
-        <UnlockGate
-          locked={showLockBanner && !lock.unlocked}
-          password={lock.password}
-          onPasswordChange={lock.setPassword}
-          onUnlock={lock.unlock}
-          error={lock.error}
-          action="send funds"
-        >
-          <SendPanel session={session} onSuccess={() => loadBalances(session)} />
-        </UnlockGate>
+        <SendPanel session={session} onSuccess={() => loadBalances(session)} />
       )}
     </AppShell>
   );

@@ -21,6 +21,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  if (!data) {
+    return NextResponse.json({ profile: null });
+  }
+
+  if (data.profile_visibility === "private" && usernameParam) {
+    return NextResponse.json({
+      profile: {
+        username: data.username,
+        profile_visibility: "private",
+        display_name: data.display_name,
+        avatar_color: data.avatar_color,
+      },
+    });
+  }
+
   return NextResponse.json({ profile: data });
 }
 
@@ -31,6 +46,9 @@ export async function POST(req: NextRequest) {
       displayName?: string;
       username?: string;
       avatarColor?: string;
+      email?: string | null;
+      phone?: string | null;
+      profileVisibility?: "public" | "private";
     };
 
     if (!body.primaryAddress) {
@@ -81,6 +99,9 @@ export async function POST(req: NextRequest) {
       updated_at: new Date().toISOString(),
     };
     if (username) row.username = username;
+    if (body.email !== undefined) row.email = body.email?.trim() || null;
+    if (body.phone !== undefined) row.phone = body.phone?.trim() || null;
+    if (body.profileVisibility) row.profile_visibility = body.profileVisibility;
 
     const { data, error } = await supabase
       .from("user_profiles")

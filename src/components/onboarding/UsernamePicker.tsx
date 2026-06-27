@@ -5,24 +5,28 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Panel } from "@/components/ui/Panel";
 import { validateUsername } from "@/lib/platform/username";
-import { User } from "lucide-react";
+import type { ProfileVisibility } from "@/lib/platform/user-profile";
+import { Globe, Lock, User } from "lucide-react";
 
 type Props = {
   title?: string;
   description?: string;
   submitLabel?: string;
   loading?: boolean;
-  onSubmit: (username: string) => void | Promise<void>;
+  showVisibility?: boolean;
+  onSubmit: (username: string, profileVisibility: ProfileVisibility) => void | Promise<void>;
 };
 
 export function UsernamePicker({
   title = "Pick your username",
-  description = "This is your account name for support tickets and moderation. You can’t change it later without contacting support.",
+  description = "Required for your wallet profile and so friends can find you. You can set your profile public or private.",
   submitLabel = "Continue",
   loading = false,
+  showVisibility = true,
   onSubmit,
 }: Props) {
   const [username, setUsername] = useState("");
+  const [visibility, setVisibility] = useState<ProfileVisibility>("public");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -35,7 +39,7 @@ export function UsernamePicker({
     setError(null);
     setSubmitting(true);
     try {
-      await onSubmit(username);
+      await onSubmit(username, visibility);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to save username");
     } finally {
@@ -56,7 +60,7 @@ export function UsernamePicker({
       </div>
 
       <div>
-        <label className="mv-label">Username</label>
+        <label className="mv-label">Username *</label>
         <Input
           value={username}
           onChange={(e) => {
@@ -72,6 +76,44 @@ export function UsernamePicker({
           3–20 characters · letters, numbers, underscore · starts with a letter
         </p>
       </div>
+
+      {showVisibility && (
+        <div>
+          <label className="mv-label">Profile visibility</label>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setVisibility("public")}
+              className={`flex items-start gap-2 border p-3 text-left text-xs transition ${
+                visibility === "public"
+                  ? "border-[var(--primary)] bg-[var(--primary-soft)]"
+                  : "border-[var(--border)] hover:border-[var(--border-strong)]"
+              }`}
+            >
+              <Globe className="mt-0.5 h-4 w-4 shrink-0 text-[var(--primary)]" />
+              <div>
+                <p className="font-semibold">Public</p>
+                <p className="mt-0.5 text-[var(--muted)]">Anyone can find and add you by username</p>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setVisibility("private")}
+              className={`flex items-start gap-2 border p-3 text-left text-xs transition ${
+                visibility === "private"
+                  ? "border-[var(--primary)] bg-[var(--primary-soft)]"
+                  : "border-[var(--border)] hover:border-[var(--border-strong)]"
+              }`}
+            >
+              <Lock className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning)]" />
+              <div>
+                <p className="font-semibold">Private</p>
+                <p className="mt-0.5 text-[var(--muted)]">Hidden from search — only existing friends can interact</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
 
       {error && <p className="mv-alert-error">{error}</p>}
 

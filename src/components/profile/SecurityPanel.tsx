@@ -4,10 +4,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Panel } from "@/components/ui/Panel";
-import { LOCK_TIMEOUT_MS } from "@/lib/wallet/wallet-lock";
-import { getUnlockedMnemonic } from "@/lib/wallet/unlock-store";
+import { PasswordConfirmModal } from "@/components/wallet/PasswordConfirmModal";
+import { TwoFactorModal } from "@/components/profile/TwoFactorModal";
+import { usePasswordPrompt } from "@/hooks/usePasswordPrompt";
 import { loadEncryptedWallet } from "@/lib/wallet/storage";
-import { AlertTriangle, Copy, Download, Eye, EyeOff, ShieldAlert } from "lucide-react";
+import { changeWalletPassword, verifyWalletPassword } from "@/lib/wallet/verify-password";
+import { clearVerificationCode } from "@/lib/platform/two-factor";
+import { AlertTriangle, Copy, Download, Eye, EyeOff, KeyRound, ShieldAlert } from "lucide-react";
 
 const DISCLAIMERS = [
   "I understand that anyone with my recovery phrase can steal all my funds permanently.",
@@ -15,19 +18,45 @@ const DISCLAIMERS = [
   "I will store my backup offline in a secure location — never in screenshots, email, or cloud notes.",
 ];
 
-export function SecurityPanel() {
+type SecurityPanelProps = {
+  email?: string;
+  phone?: string;
+  isLocalWallet?: boolean;
+};
+
+export function SecurityPanel({ email, phone, isLocalWallet }: SecurityPanelProps) {
   const [showSeed, setShowSeed] = useState(false);
-  const [password, setPassword] = useState("");
+  const [mnemonic, setMnemonic] = useState<string | null>(null);
   const [checks, setChecks] = useState([false, false, false]);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [passwordNote, setPasswordNote] = useState("");
 
-  const mnemonic = getUnlockedMnemonic();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordChanged, setPasswordChanged] = useState(false);
+  const [show2fa, setShow2fa] = useState(false);
+  const [pendingNewPassword, setPendingNewPassword] = useState<string | null>(null);
+
+  const passwordPrompt = usePasswordPrompt();
   const allChecked = checks.every(Boolean);
-  const lockMins = LOCK_TIMEOUT_MS / 60_000;
+  const has2faContact = Boolean(email?.trim() || phone?.trim());
 
   function toggleCheck(i: number) {
     setChecks((prev) => prev.map((c, idx) => (idx === i ? !c : c)));
+  }
+
+  function requestSeedReveal() {
+    passwordPrompt.requestPassword({
+      title: "Reveal recovery phrase",
+      description: "Enter your wallet password to view your seed phrase.",
+      confirmLabel: "Reveal",
+      action: async (password) => {
+        const phrase = await verifyWalletPassword(password, { persist: true });
+        setMnemonic(phrase);
+      },
+    });
   }
 
   async function copySeed() {
@@ -78,6 +107,46 @@ export function SecurityPanel() {
     URL.revokeObjectURL(url);
   }
 
+  async function applyPasswordChange() {
+    if (!pendingNewPassword) return;
+    await changeWalletPassword(currentPassword, pendingNewPassword);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setPendingNewPassword(null);
+    clearVerificationCode();
+    setPasswordChanged(true);
+    setTimeout(() => setPasswordChanged(false), 3000);
+  }
+
+  function handleChangePassword() {
+    setError(null);
+    if (newPassword.length < 8) {
+      setError("New password must be at least 8 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("New passwords do not match");
+      return;
+    }
+
+    if (has2faContact) {
+      setPendingNewPassword(newPassword);
+      setShow2fa(true);
+      return;
+    }
+
+    void changeWalletPassword(currentPassword, newPassword)
+      .then(() => {
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setPasswordChanged(true);
+        setTimeout(() => setPasswordChanged(false), 3000);
+      })
+      .catch(() => setError("Current password is incorrect"));
+  }
+
   const words = mnemonic?.split(" ") ?? [];
 
   return (
@@ -92,20 +161,66 @@ export function SecurityPanel() {
           <li>· If you lose it, your funds are <strong className="text-[var(--loss)]">gone forever</strong>. MultiVault cannot reset or recover it.</li>
           <li>· Never share your phrase with anyone — including support staff or &quot;admin&quot; messages.</li>
           <li>· Write it on paper. Store copies in separate secure locations. Do not save in cloud drives or photos.</li>
-          <li>· Your wallet auto-locks after <strong className="text-[var(--foreground)]">{lockMins} minutes</strong> of inactivity. You can browse while locked; only signing requires unlock.</li>
+          <li>· Your wallet password is only required for withdrawals, deleting wallets, and changing contact info — not for browsing or trading.</li>
         </ul>
       </Panel>
+
+      {isLocalWallet && (
+        <Panel className="mv-glass space-y-4 p-5">
+          <h3 className="flex items-center gap-2 text-sm font-semibold">
+            <KeyRound className="h-4 w-4 text-[var(--primary)]" />
+            Change wallet password
+          </h3>
+          <p className="text-xs text-[var(--muted)]">
+            {has2faContact
+              ? "Verification via your saved phone or email is required before changing your password."
+              : "Add phone or email in Profile to enable 2FA for password changes."}
+          </p>
+          <div>
+            <label className="mv-label">Current password</label>
+            <Input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+          </div>
+          <div>
+            <label className="mv-label">New password</label>
+            <Input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+          </div>
+          <div>
+            <label className="mv-label">Confirm new password</label>
+            <Input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+          </div>
+          {error && <p className="mv-alert-error text-xs">{error}</p>}
+          {passwordChanged && <p className="mv-alert-success text-xs">Password updated</p>}
+          <Button onClick={handleChangePassword} disabled={!currentPassword || !newPassword}>
+            Update password
+          </Button>
+        </Panel>
+      )}
 
       <Panel className="mv-glass space-y-4 p-5">
         <h3 className="text-sm font-semibold">Recovery phrase backup</h3>
         <p className="text-xs text-[var(--muted)]">
-          Unlock your wallet first, then confirm each statement below to reveal your seed phrase.
+          Confirm each statement below, then enter your password to reveal your seed phrase.
         </p>
 
         {!mnemonic && (
-          <div className="mv-alert-warn text-xs">
-            Wallet is locked. Go to the dashboard and unlock to back up your recovery phrase.
-          </div>
+          <Button variant="secondary" onClick={requestSeedReveal}>
+            Enter password to back up phrase
+          </Button>
         )}
 
         <div className="space-y-2">
@@ -170,9 +285,6 @@ export function SecurityPanel() {
                 <EyeOff className="h-3.5 w-3.5" /> Hide
               </Button>
             </div>
-            <p className="text-[10px] text-[var(--muted)]">
-              Manually write your phrase on paper as well. The exported file is only as safe as where you store it.
-            </p>
           </div>
         )}
       </Panel>
@@ -181,23 +293,45 @@ export function SecurityPanel() {
         <h3 className="text-sm font-semibold">Encrypted wallet file</h3>
         <p className="text-xs text-[var(--muted)]">
           Download your password-encrypted wallet blob. You still need your password to decrypt it.
-          This is not a substitute for saving your recovery phrase.
         </p>
         <div>
-          <label className="mv-label">Confirm password (optional note)</label>
+          <label className="mv-label">Password reminder (optional note)</label>
           <Input
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={passwordNote}
+            onChange={(e) => setPasswordNote(e.target.value)}
             placeholder="Remind yourself which password encrypts this file"
           />
         </div>
-        {error && <p className="mv-alert-error text-xs">{error}</p>}
+        {error && !isLocalWallet && <p className="mv-alert-error text-xs">{error}</p>}
         <Button variant="outline" onClick={downloadEncryptedBackup} className="flex items-center gap-2">
           <Download className="h-4 w-4" />
           Download encrypted backup
         </Button>
       </Panel>
+
+      <PasswordConfirmModal
+        open={passwordPrompt.open}
+        title={passwordPrompt.title}
+        description={passwordPrompt.description}
+        confirmLabel={passwordPrompt.confirmLabel}
+        onClose={passwordPrompt.close}
+        onConfirm={passwordPrompt.confirm}
+      />
+
+      <TwoFactorModal
+        open={show2fa}
+        email={email}
+        phone={phone}
+        onClose={() => {
+          setShow2fa(false);
+          setPendingNewPassword(null);
+        }}
+        onVerified={() => {
+          setShow2fa(false);
+          void applyPasswordChange().catch(() => setError("Current password is incorrect"));
+        }}
+      />
     </div>
   );
 }
