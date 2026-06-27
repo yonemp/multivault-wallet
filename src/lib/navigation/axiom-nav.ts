@@ -9,12 +9,10 @@ export type NavItem = {
 export const CORE_NAV: NavItem[] = [
   { id: "pulse", label: "Pulse", group: "core" },
   { id: "trackers", label: "Trackers", group: "core" },
-  { id: "vision", label: "Vision", group: "core" },
   { id: "overview", label: "Portfolio", group: "core" },
   { id: "rewards", label: "Rewards", group: "core" },
 ];
 
-/** Secondary tabs — not shown in top nav; reachable via in-app links */
 export const MORE_NAV: NavItem[] = [
   { id: "trade", label: "Trade", group: "more" },
   { id: "similar", label: "Similar Tokens", group: "more" },
@@ -34,7 +32,6 @@ export const TERMINAL_TABS: DashboardTab[] = [
   "pulse",
   "trackers",
   "trade",
-  "vision",
   "overview",
   "tweets",
   "scan",

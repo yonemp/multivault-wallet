@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { Panel } from "@/components/ui/Panel";
 import { useWalletLock } from "@/hooks/useWalletLock";
 import { loadSession, SessionData, getAddress } from "@/lib/wallet/session";
-import { LockBanner } from "@/components/wallet/LockBanner";
+
 import { ArrowLeft, MessageSquare, Shield, User } from "lucide-react";
 
 const AVATAR_COLORS = ["#526fff", "#9945FF", "#F7931A", "#00c076", "#ff4d6a", "#F0B90B"];
@@ -100,22 +100,23 @@ export default function ProfilePage() {
   }
 
   return (
-    <AppShell showNav={false} terminal={false}>
+    <AppShell
+      showNav={false}
+      terminal={false}
+      lockProps={session.mode === "local" ? {
+        show: true,
+        locked: !lock.unlocked,
+        password: lock.password,
+        onPasswordChange: lock.setPassword,
+        onUnlock: lock.unlock,
+        onLock: lock.unlocked ? lock.lock : undefined,
+        error: lock.error,
+        remaining: lock.remaining,
+      } : undefined}
+    >
       <Link href="/dashboard" className="mb-4 inline-flex items-center gap-1.5 text-sm text-[var(--muted)] hover:text-[var(--primary)]">
         <ArrowLeft className="h-4 w-4" /> Back to dashboard
       </Link>
-
-      {session.mode === "local" && (
-        <LockBanner
-          locked={!lock.unlocked}
-          password={lock.password}
-          onPasswordChange={lock.setPassword}
-          onUnlock={lock.unlock}
-          onLock={lock.unlocked ? lock.lock : undefined}
-          error={lock.error}
-          remaining={lock.remaining}
-        />
-      )}
 
       <div className="mb-4 flex gap-1 border-b border-[var(--border)]">
         {([

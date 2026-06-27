@@ -10,6 +10,7 @@ import { getMarketAssetByChain } from "@/lib/market/assets";
 import { CHAIN_LIST } from "@/lib/wallet/chains";
 import { ChainBalances } from "@/lib/wallet/balances-client";
 import { getAddress, getSessionChains, SessionData } from "@/lib/wallet/session";
+import { loadSnapshots, recordSnapshot } from "@/lib/platform/portfolio-snapshots";
 import { Calendar, RefreshCw, TrendingDown, TrendingUp } from "lucide-react";
 
 type OverviewPanelProps = {
@@ -21,18 +22,7 @@ type OverviewPanelProps = {
 };
 
 const PORTFOLIO_TABS = ["Spot", "Wallets"] as const;
-const BOTTOM_TABS = ["Active Positions", "Activity", "Transfers"] as const;
-
-const MOCK_POSITIONS = [
-  { token: "SOL", size: "12.4", entry: "$138.20", pnl: "+$84.20", pnlPct: "+4.9%" },
-  { token: "BONK", size: "2.1M", entry: "$0.000021", pnl: "-$12.40", pnlPct: "-2.1%" },
-  { token: "WIF", size: "340", entry: "$2.84", pnl: "+$156.00", pnlPct: "+19.2%" },
-];
-
-function seeded(seed: number) {
-  const x = Math.sin(seed * 5555) * 10000;
-  return x - Math.floor(x);
-}
+const BOTTOM_TABS = ["Holdings", "Activity", "Transfers"] as const;
 
 export function OverviewPanel({
   session,
@@ -44,7 +34,7 @@ export function OverviewPanel({
   const [market, setMarket] = useState<Record<string, AssetMarketData>>({});
   const [priceLoading, setPriceLoading] = useState(true);
   const [portfolioTab, setPortfolioTab] = useState<(typeof PORTFOLIO_TABS)[number]>("Spot");
-  const [bottomTab, setBottomTab] = useState<(typeof BOTTOM_TABS)[number]>("Active Positions");
+  const [bottomTab, setBottomTab] = useState<(typeof BOTTOM_TABS)[number]>("Holdings");
   const [calendarOpen, setCalendarOpen] = useState(false);
 
   const activeChains = getSessionChains(session);
@@ -64,46 +54,77 @@ export function OverviewPanel({
     loadPrices();
   }, []);
 
-  const portfolioUsd = useMemo(() => {
-    let total = 0;
+  const holdings = useMemo(() => {
+    const rows: { symbol: string; chain: string; balance: number; usd: number; change24h: number; assetId: string }[] = [];
     for (const chain of CHAIN_LIST) {
       if (!activeChains.includes(chain.id)) continue;
       const bal = parseFloat(balances[chain.id] ?? "0");
+      if (bal <= 0) continue;
       const asset = getMarketAssetByChain(chain.id);
-      if (asset && market[asset.id]) total += bal * market[asset.id].price;
+      if (!asset || !market[asset.id]) continue;
+      rows.push({
+        symbol: chain.symbol,
+        chain: chain.name,
+        balance: bal,
+        usd: bal * market[asset.id].price,
+        change24h: market[asset.id].change24h,
+        assetId: asset.id,
+      });
     }
     if (evmAddress) {
       const bnbBal = parseFloat(balances.bsc ?? "0");
-      if (market.bnb) total += bnbBal * market.bnb.price;
+      if (bnbBal > 0 && market.bnb) {
+        rows.push({
+          symbol: "BNB",
+          chain: "BNB Chain",
+          balance: bnbBal,
+          usd: bnbBal * market.bnb.price,
+          change24h: market.bnb.change24h,
+          assetId: "bnb",
+        });
+      }
     }
-    return total;
+    return rows.sort((a, b) => b.usd - a.usd);
   }, [activeChains, balances, market, evmAddress]);
 
-  const realizedPnl = portfolioUsd * 0.082;
-  const performance = market.sol ? market.sol.change24h : 0;
-  const pnlSparkline = useMemo(() => {
-    const base = portfolioUsd || 1000;
-    return Array.from({ length: 30 }, (_, i) => ({
-      t: i,
-      v: base * (0.92 + seeded(i) * 0.16),
-    }));
+  const portfolioUsd = useMemo(
+    () => holdings.reduce((sum, h) => sum + h.usd, 0),
+    [holdings],
+  );
+
+  useEffect(() => {
+    if (portfolioUsd > 0) recordSnapshot(portfolioUsd);
   }, [portfolioUsd]);
+
+  const performance = useMemo(() => {
+    if (portfolioUsd <= 0) return 0;
+    let weighted = 0;
+    for (const h of holdings) {
+      weighted += (h.usd / portfolioUsd) * h.change24h;
+    }
+    return weighted;
+  }, [holdings, portfolioUsd]);
+
+  const snapshots = loadSnapshots();
+  const pnlSparkline = useMemo(
+    () => snapshots.map((s, i) => ({ t: i, v: s.usd })),
+    [snapshots.length, portfolioUsd],
+  );
+
+  const dailyChange = useMemo(() => {
+    if (snapshots.length < 2) return null;
+    const prev = snapshots[snapshots.length - 2]?.usd;
+    const last = snapshots[snapshots.length - 1]?.usd;
+    if (prev == null || last == null) return null;
+    return last - prev;
+  }, [snapshots]);
 
   if (portfolioTab === "Wallets") {
     return (
       <div className="flex h-full min-h-0 flex-col gap-2">
         <div className="flex gap-1 border-b border-[var(--border)]">
           {PORTFOLIO_TABS.map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setPortfolioTab(tab)}
-              className={`px-4 py-2 text-[11px] font-semibold ${
-                portfolioTab === tab
-                  ? "border-b-2 border-[var(--primary)] text-[var(--foreground)]"
-                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
-              }`}
-            >
+            <button key={tab} type="button" onClick={() => setPortfolioTab(tab)} className={`px-4 py-2 text-[11px] font-semibold ${portfolioTab === tab ? "border-b-2 border-[var(--primary)] text-[var(--foreground)]" : "text-[var(--muted)]"}`}>
               {tab}
             </button>
           ))}
@@ -118,26 +139,13 @@ export function OverviewPanel({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex gap-1 border-b border-[var(--border)]">
           {PORTFOLIO_TABS.map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setPortfolioTab(tab)}
-              className={`px-4 py-2 text-[11px] font-semibold ${
-                portfolioTab === tab
-                  ? "border-b-2 border-[var(--primary)] text-[var(--foreground)]"
-                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
-              }`}
-            >
+            <button key={tab} type="button" onClick={() => setPortfolioTab(tab)} className={`px-4 py-2 text-[11px] font-semibold ${portfolioTab === tab ? "border-b-2 border-[var(--primary)] text-[var(--foreground)]" : "text-[var(--muted)]"}`}>
               {tab}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setCalendarOpen(true)}
-            className="flex items-center gap-1 border border-[var(--border)] px-2 py-1 text-[10px] text-[var(--muted)] hover:text-[var(--primary)]"
-          >
+          <button type="button" onClick={() => setCalendarOpen(true)} className="flex items-center gap-1 border border-[var(--border)] px-2 py-1 text-[10px] text-[var(--muted)] hover:text-[var(--primary)]">
             <Calendar className="h-3 w-3" /> PNL Calendar
           </button>
           {onRefresh && (
@@ -152,16 +160,16 @@ export function OverviewPanel({
         <div className="mv-panel p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">Balance</p>
           <p className="mt-1 font-mono text-2xl font-bold">
-            {priceLoading ? "…" : `$${portfolioUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            {priceLoading || loading ? "…" : `$${portfolioUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           </p>
-          <p className="mt-1 text-[10px] text-[var(--muted)]">Total spot value</p>
+          <p className="mt-1 text-[10px] text-[var(--muted)]">Live mainnet balances · CoinGecko USD</p>
         </div>
         <div className="mv-panel p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">Realized PNL</p>
-          <p className="mt-1 font-mono text-2xl font-bold text-[var(--gain)]">
-            {priceLoading ? "…" : `+$${realizedPnl.toFixed(2)}`}
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">24h Change</p>
+          <p className={`mt-1 font-mono text-2xl font-bold ${(dailyChange ?? 0) >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
+            {dailyChange === null ? "—" : `${dailyChange >= 0 ? "+" : ""}$${dailyChange.toFixed(2)}`}
           </p>
-          <p className="mt-1 text-[10px] text-[var(--muted)]">All-time closed trades</p>
+          <p className="mt-1 text-[10px] text-[var(--muted)]">From recorded daily snapshots</p>
         </div>
         <div className="mv-panel p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">Performance</p>
@@ -169,83 +177,69 @@ export function OverviewPanel({
             {performance >= 0 ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
             {performance >= 0 ? "+" : ""}{performance.toFixed(2)}%
           </p>
-          <p className="mt-1 text-[10px] text-[var(--muted)]">24h portfolio</p>
+          <p className="mt-1 text-[10px] text-[var(--muted)]">Weighted 24h (holdings)</p>
         </div>
       </div>
 
       <div className="mv-panel flex min-h-[160px] flex-col p-3">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">PNL Chart</p>
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">Portfolio Value History</p>
         <div className="flex flex-1 items-center justify-center">
-          <MiniSparkline data={pnlSparkline} positive={realizedPnl >= 0} width={600} height={100} />
+          {pnlSparkline.length >= 2 ? (
+            <MiniSparkline data={pnlSparkline} positive={portfolioUsd >= (snapshots[0]?.usd ?? 0)} width={600} height={100} />
+          ) : (
+            <p className="text-[11px] text-[var(--muted)]">Visit daily to record real portfolio snapshots</p>
+          )}
         </div>
       </div>
 
       <div className="mv-panel flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex border-b border-[var(--border)]">
           {BOTTOM_TABS.map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setBottomTab(tab)}
-              className={`px-4 py-2 text-[10px] font-semibold uppercase tracking-wide ${
-                bottomTab === tab
-                  ? "border-b-2 border-[var(--primary)] text-[var(--foreground)]"
-                  : "text-[var(--muted)]"
-              }`}
-            >
+            <button key={tab} type="button" onClick={() => setBottomTab(tab)} className={`px-4 py-2 text-[10px] font-semibold uppercase ${bottomTab === tab ? "border-b-2 border-[var(--primary)] text-[var(--foreground)]" : "text-[var(--muted)]"}`}>
               {tab}
             </button>
           ))}
         </div>
-
         <div className="flex-1 overflow-auto">
-          {bottomTab === "Active Positions" && (
+          {bottomTab === "Holdings" && (
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-[var(--border)] bg-[var(--surface-solid)] text-[9px] uppercase text-[var(--muted)]">
-                  <th className="px-4 py-2">Token</th>
-                  <th className="px-4 py-2 text-right">Size</th>
-                  <th className="px-4 py-2 text-right">Entry</th>
-                  <th className="px-4 py-2 text-right">PNL</th>
-                  <th className="px-4 py-2 text-right">%</th>
+                  <th className="px-4 py-2">Asset</th>
+                  <th className="px-4 py-2 text-right">Balance</th>
+                  <th className="px-4 py-2 text-right">USD</th>
+                  <th className="px-4 py-2 text-right">24h</th>
                   <th className="px-4 py-2 text-right" />
                 </tr>
               </thead>
               <tbody>
-                {MOCK_POSITIONS.map((p) => (
-                  <tr key={p.token} className="ax-table-row">
-                    <td className="px-4 py-2.5 font-semibold">{p.token}</td>
-                    <td className="px-4 py-2.5 text-right font-mono">{p.size}</td>
-                    <td className="px-4 py-2.5 text-right font-mono text-[var(--muted)]">{p.entry}</td>
-                    <td className={`px-4 py-2.5 text-right font-mono ${p.pnl.startsWith("+") ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
-                      {p.pnl}
+                {holdings.map((h) => (
+                  <tr key={h.symbol} className="ax-table-row">
+                    <td className="px-4 py-2.5">
+                      <p className="font-semibold">{h.symbol}</p>
+                      <p className="text-[10px] text-[var(--muted)]">{h.chain}</p>
                     </td>
-                    <td className={`px-4 py-2.5 text-right font-mono ${p.pnlPct.startsWith("+") ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
-                      {p.pnlPct}
+                    <td className="px-4 py-2.5 text-right font-mono">{h.balance}</td>
+                    <td className="px-4 py-2.5 text-right font-mono">${h.usd.toFixed(2)}</td>
+                    <td className={`px-4 py-2.5 text-right font-mono ${h.change24h >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
+                      {h.change24h >= 0 ? "+" : ""}{h.change24h.toFixed(2)}%
                     </td>
                     <td className="px-4 py-2.5 text-right">
-                      <button type="button" onClick={() => onNavigate("trade", p.token.toLowerCase())} className="text-[10px] font-semibold text-[var(--primary)]">
-                        Trade
-                      </button>
+                      <button type="button" onClick={() => onNavigate("trade", h.assetId)} className="text-[10px] font-semibold text-[var(--primary)]">Trade</button>
                     </td>
                   </tr>
                 ))}
+                {!holdings.length && (
+                  <tr><td colSpan={5} className="px-4 py-8 text-center text-[var(--muted)]">No non-zero balances on connected chains</td></tr>
+                )}
               </tbody>
             </table>
           )}
           {bottomTab === "Activity" && (
-            <div className="space-y-0 p-2 text-xs">
-              {["BUY 0.5 SOL → BONK", "SELL WIF · +$42", "SWAP ETH → SOL"].map((a) => (
-                <div key={a} className="border-b border-[var(--border)] px-2 py-2.5 font-mono text-[var(--muted)]">{a}</div>
-              ))}
-            </div>
+            <p className="px-4 py-8 text-center text-xs text-[var(--muted)]">On-chain activity feed requires indexer — no simulated trades shown</p>
           )}
           {bottomTab === "Transfers" && (
-            <div className="space-y-0 p-2 text-xs">
-              {["Received 2.1 SOL", "Sent 0.4 SOL → Sniper 1"].map((t) => (
-                <div key={t} className="border-b border-[var(--border)] px-2 py-2.5 font-mono text-[var(--muted)]">{t}</div>
-              ))}
-            </div>
+            <p className="px-4 py-8 text-center text-xs text-[var(--muted)]">Use Portfolio → Wallets to send, receive, and distribute funds</p>
           )}
         </div>
       </div>

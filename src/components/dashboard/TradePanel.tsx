@@ -3,14 +3,28 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AssetMarketData } from "@/app/api/prices/route";
 import { MARKET_ASSETS } from "@/lib/market/assets";
-import { buildMemeTokens, formatCompactUsd } from "@/lib/platform/mock-tokens";
+import { formatCompactUsd } from "@/lib/format/numbers";
 import { TradingViewWidget } from "@/components/charts/TradingViewWidget";
+import { DexScreenerChart } from "@/components/charts/DexScreenerChart";
 import { FloatingInstantTrade } from "@/components/trade/FloatingInstantTrade";
 import { WalletBubbleMap } from "@/components/trade/WalletBubbleMap";
 import { LiveTradesFeed } from "@/components/trade/LiveTradesFeed";
 import { SessionData, getAddress } from "@/lib/wallet/session";
 
 type BottomTab = "positions" | "holders" | "traders" | "bubble";
+
+type DexPair = {
+  pairAddress: string;
+  baseToken: { address: string; name: string; symbol: string };
+  priceUsd?: string;
+  marketCap?: number;
+  liquidity?: { usd?: number };
+  volume?: { h24?: number; m5?: number; h1?: number };
+  txns?: { m5?: { buys?: number; sells?: number }; h24?: { buys?: number; sells?: number } };
+  priceChange?: { m5?: number; h1?: number; h24?: number };
+  url?: string;
+  dexId?: string;
+};
 
 const TV_SYMBOLS: Record<string, string> = {
   sol: "BINANCE:SOLUSDT",
@@ -19,11 +33,11 @@ const TV_SYMBOLS: Record<string, string> = {
   bnb: "BINANCE:BNBUSDT",
 };
 
-const WALLET_ROWS = [
-  { role: "DEV", label: "Creator", address: "8xKm…4pRt", balance: "12.4%", bought: "$4.2K", sold: "$1.1K" },
-  { role: "TRACKED", label: "Whale #1", address: "3nQw…7kLm", balance: "3.8%", bought: "$28K", sold: "$12K" },
-  { role: "YOU", label: "Your wallet", address: "—", balance: "0.2%", bought: "$120", sold: "$0" },
-];
+function parseSolTokenAddress(assetId: string): string | null {
+  if (!assetId.startsWith("sol-")) return null;
+  const addr = assetId.slice(4);
+  return addr.length >= 32 ? addr : null;
+}
 
 type TradePanelProps = {
   session: SessionData;
@@ -34,21 +48,28 @@ type TradePanelProps = {
 export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePanelProps) {
   const [selectedAsset, setSelectedAsset] = useState(initialAsset);
   const [market, setMarket] = useState<Record<string, AssetMarketData>>({});
+  const [tokenPair, setTokenPair] = useState<DexPair | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tokenLoading, setTokenLoading] = useState(false);
   const [bottomTab, setBottomTab] = useState<BottomTab>("bubble");
   const [showInstant, setShowInstant] = useState(true);
 
-  const memeTokens = useMemo(() => buildMemeTokens(market.sol?.price ?? 140), [market.sol?.price]);
+  const tokenAddress = parseSolTokenAddress(selectedAsset);
   const tradableAssets = useMemo(() => MARKET_ASSETS.filter((a) => a.tradable), []);
   const asset = tradableAssets.find((a) => a.id === selectedAsset) ?? tradableAssets[0];
-  const memeToken = memeTokens.find((t) => t.id === selectedAsset);
   const priceData = asset ? market[asset.id] : market.sol;
-  const displaySymbol = memeToken?.symbol ?? asset?.symbol ?? "SOL";
-  const displayName = memeToken?.name ?? asset?.name ?? "Solana";
-  const price = memeToken ? memeToken.mcap / 1e9 : priceData?.price ?? 0;
-  const liquidity = memeToken?.liquidity ?? (priceData?.price ?? 0) * 1_200_000;
-  const supply = memeToken ? "1B" : "—";
-  const bondingCurve = memeToken ? `${Math.min(98, 60 + (memeToken.holders % 38))}%` : "—";
+
+  const displaySymbol = tokenPair?.baseToken.symbol ?? asset?.symbol ?? "SOL";
+  const displayName = tokenPair?.baseToken.name ?? asset?.name ?? "Solana";
+  const price = tokenPair
+    ? parseFloat(tokenPair.priceUsd ?? "0")
+    : priceData?.price ?? 0;
+  const liquidity = tokenPair?.liquidity?.usd ?? 0;
+  const mcap = tokenPair?.marketCap ?? 0;
+  const txCount = tokenPair
+    ? (tokenPair.txns?.m5?.buys ?? 0) + (tokenPair.txns?.m5?.sells ?? 0)
+    : 0;
+  const change5m = tokenPair?.priceChange?.m5 ?? priceData?.change24h ?? 0;
 
   const solAddress = getAddress(session, "solana");
   const tvSymbol = TV_SYMBOLS[asset?.id ?? "sol"] ?? "BINANCE:SOLUSDT";
@@ -75,11 +96,44 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
     return () => clearInterval(interval);
   }, [tradableAssets]);
 
-  const walletRows = WALLET_ROWS.map((w) =>
-    w.role === "YOU"
-      ? { ...w, address: solAddress ? `${solAddress.slice(0, 4)}…${solAddress.slice(-4)}` : "Unlock wallet" }
-      : w,
-  );
+  useEffect(() => {
+    if (!tokenAddress) {
+      setTokenPair(null);
+      return;
+    }
+    const addr: string = tokenAddress;
+
+    async function loadToken() {
+      setTokenLoading(true);
+      try {
+        const res = await fetch(`/api/token?address=${encodeURIComponent(addr)}`);
+        const data = (await res.json()) as { pair: DexPair | null };
+        setTokenPair(data.pair ?? null);
+      } catch {
+        setTokenPair(null);
+      } finally {
+        setTokenLoading(false);
+      }
+    }
+
+    loadToken();
+    const interval = setInterval(loadToken, 15_000);
+    return () => clearInterval(interval);
+  }, [tokenAddress]);
+
+  const stats = tokenAddress
+    ? [
+        { label: "Price", value: price < 0.01 ? `$${price.toFixed(8)}` : `$${price.toLocaleString(undefined, { maximumFractionDigits: 6 })}` },
+        { label: "MC", value: formatCompactUsd(mcap) },
+        { label: "Liquidity", value: formatCompactUsd(liquidity) },
+        { label: "TX 5m", value: String(txCount) },
+        { label: "5m", value: `${change5m >= 0 ? "+" : ""}${change5m.toFixed(1)}%` },
+      ]
+    : [
+        { label: "Price", value: `$${price.toLocaleString(undefined, { maximumFractionDigits: 4 })}` },
+        { label: "24h", value: `${(priceData?.change24h ?? 0) >= 0 ? "+" : ""}${(priceData?.change24h ?? 0).toFixed(2)}%` },
+        { label: "Source", value: "CoinGecko" },
+      ];
 
   return (
     <div className="relative flex h-full flex-col gap-2 overflow-hidden">
@@ -91,7 +145,6 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
         />
       )}
 
-      {/* Pair header */}
       <div className="mv-panel flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2">
         <div className="flex items-center gap-2">
           <span
@@ -101,21 +154,27 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
             {displaySymbol.slice(0, 3)}
           </span>
           <div>
-            <p className="text-sm font-semibold">{displaySymbol}/SOL</p>
-            <p className="text-[10px] text-[var(--muted)]">{displayName}</p>
+            <p className="text-sm font-semibold">
+              {tokenAddress ? `${displaySymbol}/SOL` : displaySymbol}
+            </p>
+            <p className="text-[10px] text-[var(--muted)]">
+              {displayName}
+              {tokenPair?.dexId && <span className="ml-1">· {tokenPair.dexId}</span>}
+            </p>
           </div>
         </div>
-        {[
-          { label: "Price", value: memeToken ? `$${(price * 1e6).toFixed(4)}` : `$${price.toLocaleString(undefined, { maximumFractionDigits: 4 })}` },
-          { label: "Liquidity", value: formatCompactUsd(liquidity) },
-          { label: "Supply", value: supply },
-          { label: "B.Curve", value: bondingCurve },
-        ].map((s) => (
-          <div key={s.label}>
-            <p className="text-[9px] uppercase tracking-wider text-[var(--muted)]">{s.label}</p>
-            <p className="font-mono text-xs font-semibold">{s.value}</p>
-          </div>
-        ))}
+        {stats.map((s) => {
+          const isChange = s.label === "5m" || s.label === "24h";
+          const changeVal = s.label === "5m" ? change5m : (priceData?.change24h ?? 0);
+          return (
+            <div key={s.label}>
+              <p className="text-[9px] uppercase tracking-wider text-[var(--muted)]">{s.label}</p>
+              <p className={`font-mono text-xs font-semibold ${isChange ? (changeVal >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]") : ""}`}>
+                {s.value}
+              </p>
+            </div>
+          );
+        })}
         <div className="ml-auto flex flex-wrap items-center gap-1">
           {!showInstant && (
             <button
@@ -125,6 +184,16 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
             >
               Instant Trade
             </button>
+          )}
+          {tokenPair?.url && (
+            <a
+              href={tokenPair.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2 py-0.5 text-[9px] font-semibold text-[var(--primary)] hover:underline"
+            >
+              DexScreener
+            </a>
           )}
           {tradableAssets.slice(0, 5).map((a) => (
             <button
@@ -144,7 +213,11 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
       <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[1fr_260px]">
         <div className="flex min-h-0 flex-col gap-2">
           <div className="mv-panel min-h-[280px] flex-1 overflow-hidden">
-            <TradingViewWidget symbol={tvSymbol} height={320} />
+            {tokenAddress && tokenPair?.pairAddress ? (
+              <DexScreenerChart pairAddress={tokenPair.pairAddress} height={320} />
+            ) : (
+              <TradingViewWidget symbol={tvSymbol} height={320} />
+            )}
           </div>
 
           <div className="mv-panel overflow-hidden">
@@ -153,28 +226,22 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
                 <tr className="border-b border-[var(--border)] bg-[var(--surface-solid)] uppercase text-[var(--muted)]">
                   <th className="px-3 py-1.5">Wallet</th>
                   <th className="px-3 py-1.5">Address</th>
-                  <th className="px-3 py-1.5 text-right">%</th>
-                  <th className="px-3 py-1.5 text-right">Bought</th>
-                  <th className="px-3 py-1.5 text-right">Sold</th>
+                  <th className="px-3 py-1.5 text-right">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {walletRows.map((w) => (
-                  <tr key={w.role} className="ax-table-row">
-                    <td className="px-3 py-1.5">
-                      <span className={`mr-1.5 rounded px-1 py-0.5 text-[8px] font-bold ${
-                        w.role === "DEV" ? "bg-[var(--warning)]/20 text-[var(--warning)]" :
-                        w.role === "YOU" ? "bg-[var(--primary-soft)] text-[var(--primary)]" :
-                        "bg-[var(--surface-active)] text-[var(--muted)]"
-                      }`}>{w.role}</span>
-                      {w.label}
-                    </td>
-                    <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{w.address}</td>
-                    <td className="px-3 py-1.5 text-right font-mono">{w.balance}</td>
-                    <td className="px-3 py-1.5 text-right font-mono text-[var(--gain)]">{w.bought}</td>
-                    <td className="px-3 py-1.5 text-right font-mono text-[var(--loss)]">{w.sold}</td>
-                  </tr>
-                ))}
+                <tr className="ax-table-row">
+                  <td className="px-3 py-1.5">
+                    <span className="mr-1.5 rounded bg-[var(--primary-soft)] px-1 py-0.5 text-[8px] font-bold text-[var(--primary)]">YOU</span>
+                    Your wallet
+                  </td>
+                  <td className="px-3 py-1.5 font-mono text-[var(--muted)]">
+                    {solAddress ? `${solAddress.slice(0, 4)}…${solAddress.slice(-4)}` : "Unlock wallet"}
+                  </td>
+                  <td className="px-3 py-1.5 text-right text-[var(--muted)]">
+                    {tokenAddress ? "Holder % requires on-chain indexer" : "—"}
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -200,24 +267,34 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
               ))}
             </div>
             <div className="flex-1 overflow-auto">
-              {bottomTab === "bubble" && <WalletBubbleMap symbol={displaySymbol} height={160} />}
+              {bottomTab === "bubble" && (
+                <WalletBubbleMap symbol={displaySymbol} tokenAddress={tokenAddress ?? undefined} height={160} />
+              )}
               {bottomTab === "positions" && (
                 <p className="p-3 text-[10px] text-[var(--muted)]">Your open position in {displaySymbol} will appear here after trades.</p>
               )}
               {bottomTab === "holders" && (
-                <p className="p-3 text-[10px] text-[var(--muted)]">{memeToken?.holders ?? 1240} holders · top 10 hold {(38 + (memeToken?.holders ?? 0) % 20)}%</p>
+                <p className="p-3 text-[10px] text-[var(--muted)]">
+                  {tokenAddress
+                    ? "Holder distribution requires a Solana indexer — not shown until live data is available."
+                    : "Select a live pair from Pulse to view holder stats."}
+                </p>
               )}
               {bottomTab === "traders" && (
-                <p className="p-3 text-[10px] text-[var(--muted)]">Top traders by volume — live indexer coming soon.</p>
+                <p className="p-3 text-[10px] text-[var(--muted)]">Top traders by volume — requires on-chain trade indexer.</p>
               )}
             </div>
           </div>
         </div>
 
-        <LiveTradesFeed symbol={displaySymbol} />
+        <LiveTradesFeed symbol={displaySymbol} tokenAddress={tokenAddress ?? undefined} />
       </div>
 
-      {loading && <p className="text-[9px] text-[var(--muted)]">Syncing prices…</p>}
+      {(loading || tokenLoading) && (
+        <p className="text-[9px] text-[var(--muted)]">
+          {tokenLoading ? "Syncing pair from DexScreener…" : "Syncing prices…"}
+        </p>
+      )}
     </div>
   );
 }

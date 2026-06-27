@@ -13,13 +13,6 @@ import { AtSign, Download, Plus, Trash2, Upload } from "lucide-react";
 
 const SUB_TABS = ["All", "Wallet Manager", "Live Trades", "Monitor", "KOLs"] as const;
 
-const MOCK_ALERTS = [
-  { user: "@cobie", text: "new sol memecoin just dropped", time: "2m" },
-  { user: "@ansem", text: "watching $WIF closely", time: "8m" },
-  { user: "@blknoiz06", text: "rotation into cat coins", time: "14m" },
-  { user: "@solana", text: "ecosystem update thread", time: "22m" },
-];
-
 export function TrackersPanel() {
   const [subTab, setSubTab] = useState<(typeof SUB_TABS)[number]>("Wallet Manager");
   const [wallets, setWallets] = useState<WatchedWallet[]>([]);
@@ -160,16 +153,11 @@ export function TrackersPanel() {
           <AtSign className="h-3.5 w-3.5 text-[var(--primary)]" />
           <span className="text-[11px] font-semibold">Twitter Alerts</span>
         </div>
-        <div className="flex-1 space-y-0 overflow-y-auto">
-          {MOCK_ALERTS.map((a) => (
-            <div key={a.user} className="border-b border-[var(--border)] px-3 py-2.5 hover:bg-[var(--surface-hover)]">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold text-[var(--primary)]">{a.user}</span>
-                <span className="text-[9px] text-[var(--muted-dim)]">{a.time}</span>
-              </div>
-              <p className="mt-0.5 text-[10px] text-[var(--muted)]">{a.text}</p>
-            </div>
-          ))}
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 overflow-y-auto px-4 py-8 text-center">
+          <p className="text-[11px] font-semibold text-[var(--muted)]">No Twitter alerts yet</p>
+          <p className="text-[10px] leading-relaxed text-[var(--muted-dim)]">
+            Connect a Twitter/X API key to stream real alerts. Fabricated tweets are not shown.
+          </p>
         </div>
         <div className="border-t border-[var(--border)] p-2">
           <button type="button" className="w-full border border-[var(--border)] py-1.5 text-[10px] font-semibold text-[var(--muted)] hover:border-[var(--primary)] hover:text-[var(--primary)]">

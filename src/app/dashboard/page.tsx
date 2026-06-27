@@ -12,7 +12,6 @@ import { ReceivePanel } from "@/components/dashboard/ReceivePanel";
 import { SendPanel } from "@/components/dashboard/SendPanel";
 import { SwapPanel } from "@/components/dashboard/SwapPanel";
 import { TradePanel } from "@/components/dashboard/TradePanel";
-import { VisionPanel } from "@/components/dashboard/VisionPanel";
 import { TrackersPanel } from "@/components/dashboard/TrackersPanel";
 
 import { RewardsPanel } from "@/components/dashboard/RewardsPanel";
@@ -26,7 +25,6 @@ import {
   SupportPanel,
 } from "@/components/dashboard/InfoPanels";
 import { AppShell } from "@/components/layout/AppShell";
-import { LockBanner } from "@/components/wallet/LockBanner";
 import { UnlockGate } from "@/components/wallet/UnlockGate";
 import { TERMINAL_TABS } from "@/lib/navigation/axiom-nav";
 import { useWalletLock } from "@/hooks/useWalletLock";
@@ -109,20 +107,17 @@ export default function DashboardPage() {
           showNav
           onLogout={handleLogout}
           terminal={isTerminal}
-          walletLocked={showLockBanner && !lock.unlocked}
+          lockProps={showLockBanner ? {
+            show: true,
+            locked: !lock.unlocked,
+            password: lock.password,
+            onPasswordChange: lock.setPassword,
+            onUnlock: lock.unlock,
+            onLock: lock.unlocked ? lock.lock : undefined,
+            error: lock.error,
+            remaining: lock.remaining,
+          } : undefined}
         >
-          {showLockBanner && (
-            <LockBanner
-              locked={!lock.unlocked}
-              password={lock.password}
-              onPasswordChange={lock.setPassword}
-              onUnlock={lock.unlock}
-              onLock={lock.unlocked ? lock.lock : undefined}
-              error={lock.error}
-              remaining={lock.remaining}
-            />
-          )}
-
           {activeTab === "pulse" && <PulsePanel onNavigate={handleNavigate} />}
 
           {activeTab === "similar" && (
@@ -145,7 +140,6 @@ export default function DashboardPage() {
             />
           )}
           {activeTab === "trackers" && <TrackersPanel />}
-          {activeTab === "vision" && <VisionPanel />}
           {activeTab === "rewards" && <RewardsPanel />}
           {activeTab === "tweets" && <TweetMonitorPanel />}
           {activeTab === "scan" && <TraderScanPanel />}

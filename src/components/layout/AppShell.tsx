@@ -4,8 +4,9 @@ import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/layout/Logo";
 import { ActionTabs, DashboardTab } from "@/components/dashboard/ActionTabs";
+import { HeaderWalletLock } from "@/components/wallet/HeaderWalletLock";
 import { Button } from "@/components/ui/Button";
-import { LogOut, Search, Wallet, Lock } from "lucide-react";
+import { LogOut, Search, Wallet } from "lucide-react";
 import type { AssetMarketData } from "@/app/api/prices/route";
 
 type AppShellProps = {
@@ -15,7 +16,16 @@ type AppShellProps = {
   showNav?: boolean;
   onLogout?: () => void;
   terminal?: boolean;
-  walletLocked?: boolean;
+  lockProps?: {
+    show: boolean;
+    locked: boolean;
+    password: string;
+    onPasswordChange: (v: string) => void;
+    onUnlock: () => void;
+    onLock?: () => void;
+    error?: string | null;
+    remaining?: string;
+  };
 };
 
 export function AppShell({
@@ -25,7 +35,7 @@ export function AppShell({
   showNav = true,
   onLogout,
   terminal = true,
-  walletLocked = false,
+  lockProps,
 }: AppShellProps) {
   const [solPrice, setSolPrice] = useState<AssetMarketData | null>(null);
 
@@ -45,22 +55,14 @@ export function AppShell({
           <span className="mv-preset-pill">Preset 1</span>
           <span className="font-mono text-[var(--muted)]">
             SOL{" "}
-            <span className="text-[var(--foreground)]">
-              ${solPrice?.price.toFixed(2) ?? "—"}
-            </span>
+            <span className="text-[var(--foreground)]">${solPrice?.price.toFixed(2) ?? "—"}</span>
             {solPrice && (
               <span className={`ml-1 ${solPrice.change24h >= 0 ? "text-[var(--gain)]" : "text-[var(--loss)]"}`}>
-                {solPrice.change24h >= 0 ? "+" : ""}
-                {solPrice.change24h.toFixed(2)}%
+                {solPrice.change24h >= 0 ? "+" : ""}{solPrice.change24h.toFixed(2)}%
               </span>
             )}
           </span>
-          {walletLocked && (
-            <span className="flex items-center gap-1 rounded border border-[var(--warning)]/40 bg-[var(--warning)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--warning)]">
-              <Lock className="h-3 w-3" /> Locked
-            </span>
-          )}
-          <span className="hidden text-[var(--muted-dim)] sm:inline">· Multi-chain terminal</span>
+          <span className="hidden text-[var(--muted-dim)] sm:inline">· Live · CoinGecko + DexScreener</span>
         </div>
 
         <div className="flex h-[var(--header-h)] items-center gap-2 px-4">
@@ -70,11 +72,11 @@ export function AppShell({
             <ActionTabs active={activeTab} onChange={onTabChange} />
           )}
 
-          <div className="ml-auto flex shrink-0 items-center gap-1">
-            <button
-              type="button"
-              className="mv-header-btn hidden sm:flex"
-            >
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            {lockProps && (
+              <HeaderWalletLock {...lockProps} />
+            )}
+            <button type="button" className="mv-header-btn hidden sm:flex">
               <Search className="h-3.5 w-3.5" />
               Search
             </button>
@@ -82,12 +84,8 @@ export function AppShell({
               <Wallet className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Wallet</span>
             </Link>
-            <Link href="/profile" className="ax-nav-link hidden sm:inline">
-              Profile
-            </Link>
-            <Link href="/admin" className="ax-nav-link hidden md:inline">
-              Admin
-            </Link>
+            <Link href="/profile" className="ax-nav-link hidden sm:inline">Profile</Link>
+            <Link href="/admin" className="ax-nav-link hidden md:inline">Admin</Link>
             {onLogout && (
               <Button variant="ghost" size="sm" onClick={onLogout} className="!px-2">
                 <LogOut className="h-3.5 w-3.5" />
@@ -97,13 +95,7 @@ export function AppShell({
         </div>
       </header>
 
-      <main
-        className={
-          terminal
-            ? "ax-terminal flex-1 overflow-hidden px-0"
-            : "mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6"
-        }
-      >
+      <main className={terminal ? "ax-terminal flex-1 overflow-hidden px-0" : "mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6"}>
         <div className={terminal ? "h-full overflow-auto px-3 py-3 sm:px-4" : ""}>
           {children}
         </div>
