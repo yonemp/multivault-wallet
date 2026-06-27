@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PulseToken } from "@/app/api/pulse/route";
 import { DashboardTab } from "@/components/dashboard/ActionTabs.types";
-import { formatCompactUsd, safeFixed, safeNumber } from "@/lib/format/numbers";
+import { formatCompactUsd } from "@/lib/format/numbers";
 import { ChevronDown, Filter, RefreshCw, Search, Zap } from "lucide-react";
 
 const COLUMNS: { key: PulseToken["column"]; title: string }[] = [
@@ -91,7 +91,7 @@ function ColumnFilterBar({
 
 function PulseRow({ token, onTrade }: { token: PulseToken; onTrade: () => void }) {
   return (
-    <div className="ax-table-row group grid grid-cols-[minmax(0,1.4fr)_minmax(0,0.7fr)_minmax(0,0.5fr)_minmax(0,0.5fr)_minmax(0,0.6fr)_auto] items-center gap-1 px-2 py-1.5">
+    <div className="ax-table-row group grid grid-cols-[minmax(0,1.4fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_auto] items-center gap-1 px-2 py-1.5">
       <button type="button" onClick={onTrade} className="flex min-w-0 items-center gap-2 text-left">
         {token.imageUri ? (
           <img src={token.imageUri} alt="" className="h-7 w-7 shrink-0 border border-[var(--border)] object-cover" />
@@ -110,11 +110,7 @@ function PulseRow({ token, onTrade }: { token: PulseToken; onTrade: () => void }
         </div>
       </button>
       <span className="font-mono text-[10px] text-[var(--foreground)]">{formatCompactUsd(token.mcap)}</span>
-      <span className="font-mono text-[10px] text-[var(--muted)]">{safeNumber(token.txCount)}</span>
       <span className="font-mono text-[10px] text-[var(--muted)]">{formatCompactUsd(token.volume)}</span>
-      <span className="font-mono text-[10px] font-semibold text-[var(--primary)]">
-        {safeFixed(token.bondingProgress, 0, "0")}%
-      </span>
       <a
         href={token.pairUrl}
         target="_blank"
@@ -203,12 +199,10 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
                 <span className="ml-auto font-mono text-[9px] text-[var(--muted)]">{colTokens.length}/{counts[key]}</span>
               </div>
               <ColumnFilterBar filters={columnFilters[key]} onChange={(f) => setColumnFilters((prev) => ({ ...prev, [key]: f }))} />
-              <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,0.7fr)_minmax(0,0.5fr)_minmax(0,0.5fr)_minmax(0,0.6fr)_auto] gap-1 border-b border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1 text-[8px] font-semibold uppercase tracking-wider text-[var(--muted-dim)]">
+              <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_auto] gap-1 border-b border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1 text-[8px] font-semibold uppercase tracking-wider text-[var(--muted-dim)]">
                 <span>Token</span>
                 <span>MC</span>
-                <span>TX</span>
                 <span>Vol</span>
-                <span>Curve</span>
                 <span />
               </div>
               <div className="relative border-b border-[var(--border)] px-2 py-1">
