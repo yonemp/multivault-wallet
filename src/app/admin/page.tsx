@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Panel } from "@/components/ui/Panel";
 import { HealthLogPanel } from "@/components/admin/HealthLogPanel";
+import { TicketConversation } from "@/components/profile/TicketConversation";
+import { parseTicketMessages, normalizeTicketStatus } from "@/lib/platform/ticket-messages";
 import { ArrowLeft, Crown, Flag, MessageSquare, Users, Wallet } from "lucide-react";
 
 type WalletRow = {
@@ -27,7 +29,9 @@ type TicketRow = {
   body: string;
   status: string;
   admin_reply?: string;
+  messages?: { id: string; role: "user" | "admin"; body: string; created_at: string }[];
   created_at: string;
+  updated_at?: string;
 };
 
 type Stats = {
@@ -49,7 +53,7 @@ export default function AdminPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [dataError, setDataError] = useState<string | null>(null);
   const [ticketsSetupRequired, setTicketsSetupRequired] = useState(false);
-  const [replyDraft, setReplyDraft] = useState<Record<string, string>>({});
+
   const [freezeReason, setFreezeReason] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<"overview" | "wallets" | "tickets">("overview");
 
@@ -150,21 +154,6 @@ export default function AdminPage() {
     await loadData(key, { skipVerify: true });
   }
 
-  async function replyTicket(ticket: TicketRow) {
-    const reply = replyDraft[ticket.id];
-    if (!reply?.trim()) return;
-    await fetch("/api/tickets", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-      body: JSON.stringify({
-        id: ticket.id,
-        status: "answered",
-        adminReply: reply,
-      }),
-    });
-    await loadData(adminKey, { skipVerify: true });
-  }
-
   if (!authenticated) {
     return (
       <main className="flex min-h-screen items-center justify-center p-4">
@@ -250,7 +239,7 @@ export default function AdminPage() {
             {[
               { label: "Registered wallets", value: (stats ?? EMPTY_STATS).total, icon: Wallet },
               { label: "Frozen flags", value: (stats ?? EMPTY_STATS).frozen, icon: Flag },
-              { label: "Open tickets", value: tickets.filter((t) => t.status === "open").length, icon: MessageSquare },
+              { label: "Open tickets", value: tickets.filter((t) => normalizeTicketStatus(t.status) === "open").length, icon: MessageSquare },
               { label: "Wallet types", value: Object.keys((stats ?? EMPTY_STATS).byType).length, icon: Users },
             ].map(({ label, value, icon: Icon }) => (
               <div key={label} className="mv-stat-tile flex items-center gap-3 px-4 py-4">
@@ -368,36 +357,24 @@ export default function AdminPage() {
             </Panel>
           )}
           {tickets.map((t) => (
-            <Panel key={t.id} className="p-4">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <p className="font-semibold">{t.subject}</p>
-                  <p className="mt-1 text-xs text-[var(--muted)]">
-                    {t.username ? `@${t.username} · ` : ""}
-                    {t.wallet_address ?? "No address"} · {new Date(t.created_at).toLocaleString()}
-                  </p>
-                </div>
-                <span className={`border px-2 py-0.5 text-[10px] font-semibold uppercase ${
-                  t.status === "open" ? "border-[var(--warning)] bg-[rgba(245,166,35,0.1)] text-[var(--warning)]" : "border-[var(--gain)] bg-[var(--gain-soft)] text-[var(--gain)]"
-                }`}>
-                  {t.status}
-                </span>
-              </div>
-              <p className="mt-3 text-sm text-[var(--muted)]">{t.body}</p>
-              {t.admin_reply && (
-                <p className="mv-alert-info mt-3 text-sm">Reply: {t.admin_reply}</p>
-              )}
-              {t.status === "open" && (
-                <div className="mt-3 flex gap-2">
-                  <Input
-                    className="flex-1"
-                    placeholder="Admin reply…"
-                    value={replyDraft[t.id] ?? ""}
-                    onChange={(e) => setReplyDraft((prev) => ({ ...prev, [t.id]: e.target.value }))}
-                  />
-                  <Button size="sm" onClick={() => replyTicket(t)}>Reply</Button>
-                </div>
-              )}
+            <Panel key={t.id} className="space-y-3 p-4">
+              <p className="text-xs text-[var(--muted)]">
+                {t.username ? `@${t.username} · ` : ""}
+                {t.wallet_address ?? "No address"} · opened {new Date(t.created_at).toLocaleString()}
+              </p>
+              <TicketConversation
+                ticketId={t.id}
+                subject={t.subject}
+                status={normalizeTicketStatus(t.status)}
+                messages={parseTicketMessages(t)}
+                source="cloud"
+                canReply
+                wallet={null}
+                username={null}
+                adminMode
+                adminKey={adminKey}
+                onUpdated={() => void loadData(adminKey, { skipVerify: true })}
+              />
             </Panel>
           ))}
           {!tickets.length && <p className="text-sm text-[var(--muted)]">No tickets yet.</p>}

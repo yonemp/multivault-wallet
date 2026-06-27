@@ -255,7 +255,7 @@ export default function ProfilePage() {
               <MessageSquare className="h-4 w-4 text-[var(--primary)]" /> New ticket
             </h2>
             <p className="text-xs text-[var(--muted)]">
-              Describe your issue. Replies show up in My tickets on the left.
+              Start a new issue here. Use My tickets to keep chatting until it&apos;s resolved.
             </p>
             <div>
               <label className="mv-label">Subject</label>

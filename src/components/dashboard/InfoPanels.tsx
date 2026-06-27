@@ -126,7 +126,7 @@ export function SupportPanel() {
       <PageHeader title="Support" description="Get help via tickets or community" />
       <div className="mv-panel space-y-4 p-6">
         <p className="text-sm text-[var(--muted)]">
-          Submit tickets and read admin replies from Profile → Support.
+          Chat with support on open tickets from Profile → Support until resolved.
         </p>
         <Link href="/profile?tab=support">
           <Button className="w-full">My support tickets</Button>

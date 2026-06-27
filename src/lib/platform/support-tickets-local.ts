@@ -1,3 +1,12 @@
+import {
+  appendTicketMessage,
+  createTicketMessage,
+  normalizeTicketStatus,
+  parseTicketMessages,
+  type TicketMessage,
+  type TicketStatus,
+} from "@/lib/platform/ticket-messages";
+
 export type LocalSupportTicket = {
   id: string;
   remoteId?: string | null;
@@ -6,8 +15,8 @@ export type LocalSupportTicket = {
   username: string | null;
   subject: string;
   body: string;
-  status: "open" | "answered" | "closed";
-  adminReply?: string | null;
+  status: TicketStatus;
+  messages: TicketMessage[];
   createdAt: number;
   synced: boolean;
 };
@@ -21,7 +30,9 @@ export type RemoteSupportTicket = {
   body: string;
   status: string;
   admin_reply?: string | null;
+  messages?: TicketMessage[] | null;
   created_at: string;
+  updated_at?: string | null;
 };
 
 const STORAGE_KEY = "mv_support_tickets";
@@ -29,7 +40,15 @@ const STORAGE_KEY = "mv_support_tickets";
 function readAll(): LocalSupportTicket[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]") as LocalSupportTicket[];
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]") as LocalSupportTicket[];
+    return raw.map((t) => ({
+      ...t,
+      messages: t.messages?.length ? t.messages : parseTicketMessages({
+        body: t.body,
+        created_at: new Date(t.createdAt).toISOString(),
+      }),
+      status: normalizeTicketStatus(t.status),
+    }));
   } catch {
     return [];
   }
@@ -39,9 +58,17 @@ function writeAll(tickets: LocalSupportTicket[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tickets.slice(-50)));
 }
 
+function findTicketIndex(tickets: LocalSupportTicket[], id: string) {
+  return tickets.findIndex((t) => t.id === id || t.remoteId === id);
+}
+
 export function saveLocalTicket(
-  input: Omit<LocalSupportTicket, "id" | "createdAt" | "status" | "synced"> & { synced?: boolean },
+  input: Omit<LocalSupportTicket, "id" | "createdAt" | "status" | "synced" | "messages"> & {
+    synced?: boolean;
+    messages?: TicketMessage[];
+  },
 ): LocalSupportTicket {
+  const initialMessage = createTicketMessage("user", input.body);
   const ticket: LocalSupportTicket = {
     id: `local-${Date.now()}`,
     walletAddress: input.walletAddress,
@@ -50,6 +77,7 @@ export function saveLocalTicket(
     subject: input.subject,
     body: input.body,
     status: "open",
+    messages: input.messages ?? [initialMessage],
     createdAt: Date.now(),
     synced: input.synced ?? false,
   };
@@ -69,6 +97,30 @@ export function markTicketSynced(id: string, remoteId?: string) {
   );
 }
 
+export function appendLocalTicketMessage(id: string, role: "user" | "admin", body: string) {
+  const all = readAll();
+  const idx = findTicketIndex(all, id);
+  if (idx < 0) return null;
+  const ticket = all[idx];
+  const messages = appendTicketMessage(
+    { body: ticket.body, messages: ticket.messages, created_at: new Date(ticket.createdAt).toISOString() },
+    role,
+    body,
+  );
+  all[idx] = { ...ticket, messages, status: "open" };
+  writeAll(all);
+  return all[idx];
+}
+
+export function closeLocalTicket(id: string) {
+  const all = readAll();
+  const idx = findTicketIndex(all, id);
+  if (idx < 0) return null;
+  all[idx] = { ...all[idx], status: "closed" };
+  writeAll(all);
+  return all[idx];
+}
+
 export function syncLocalTicketsFromRemote(remote: RemoteSupportTicket[]) {
   const all = readAll();
   const byRemote = new Map(remote.map((t) => [t.id, t]));
@@ -86,8 +138,8 @@ export function syncLocalTicketsFromRemote(remote: RemoteSupportTicket[]) {
       ...local,
       remoteId: match.id,
       synced: true,
-      status: (match.status as LocalSupportTicket["status"]) || local.status,
-      adminReply: match.admin_reply ?? local.adminReply ?? null,
+      status: normalizeTicketStatus(match.status),
+      messages: parseTicketMessages(match),
     };
   });
   writeAll(updated);
@@ -95,18 +147,14 @@ export function syncLocalTicketsFromRemote(remote: RemoteSupportTicket[]) {
 
 export type UserTicketView = {
   id: string;
+  localId?: string;
   subject: string;
-  body: string;
-  status: "open" | "answered" | "closed";
-  adminReply: string | null;
+  status: TicketStatus;
+  messages: TicketMessage[];
   createdAt: number;
   source: "cloud" | "local";
+  canReply: boolean;
 };
-
-function normalizeStatus(status: string): UserTicketView["status"] {
-  if (status === "answered" || status === "closed") return status;
-  return "open";
-}
 
 export function mergeTicketsForUser(
   local: LocalSupportTicket[],
@@ -134,14 +182,15 @@ export function mergeTicketsForUser(
 
   for (const r of mineRemote) {
     seen.add(r.id);
+    const status = normalizeTicketStatus(r.status);
     merged.push({
       id: r.id,
       subject: r.subject,
-      body: r.body,
-      status: normalizeStatus(r.status),
-      adminReply: r.admin_reply ?? null,
+      status,
+      messages: parseTicketMessages(r),
       createdAt: Date.parse(r.created_at),
       source: "cloud",
+      canReply: status === "open",
     });
   }
 
@@ -149,12 +198,13 @@ export function mergeTicketsForUser(
     if (l.remoteId && seen.has(l.remoteId)) continue;
     merged.push({
       id: l.remoteId ?? l.id,
+      localId: l.id,
       subject: l.subject,
-      body: l.body,
       status: l.status,
-      adminReply: l.adminReply ?? null,
+      messages: l.messages,
       createdAt: l.createdAt,
       source: l.synced ? "cloud" : "local",
+      canReply: l.status === "open",
     });
   }
 

@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Panel } from "@/components/ui/Panel";
+import { TicketConversation } from "@/components/profile/TicketConversation";
 import {
+  appendLocalTicketMessage,
+  closeLocalTicket,
   loadLocalTickets,
   mergeTicketsForUser,
   syncLocalTicketsFromRemote,
@@ -15,12 +18,6 @@ type MyTicketsPanelProps = {
   wallet: string | null;
   username: string | null;
   refreshKey?: number;
-};
-
-const STATUS_STYLES: Record<UserTicketView["status"], string> = {
-  open: "border-[var(--warning)] bg-[rgba(245,166,35,0.1)] text-[var(--warning)]",
-  answered: "border-[var(--gain)] bg-[var(--gain-soft)] text-[var(--gain)]",
-  closed: "border-[var(--border)] bg-[var(--surface-solid)] text-[var(--muted)]",
 };
 
 export function MyTicketsPanel({ wallet, username, refreshKey = 0 }: MyTicketsPanelProps) {
@@ -66,6 +63,18 @@ export function MyTicketsPanel({ wallet, username, refreshKey = 0 }: MyTicketsPa
     void loadTickets();
   }, [loadTickets, refreshKey]);
 
+  async function handleLocalMessage(ticket: UserTicketView, body: string) {
+    const id = ticket.localId ?? ticket.id;
+    appendLocalTicketMessage(id, "user", body);
+    await loadTickets();
+  }
+
+  async function handleLocalClose(ticket: UserTicketView) {
+    const id = ticket.localId ?? ticket.id;
+    closeLocalTicket(id);
+    await loadTickets();
+  }
+
   return (
     <Panel className="mv-glass space-y-4 p-5">
       <div className="flex items-center justify-between gap-2">
@@ -84,45 +93,43 @@ export function MyTicketsPanel({ wallet, username, refreshKey = 0 }: MyTicketsPa
       </div>
 
       <p className="text-xs text-[var(--muted)]">
-        Admin replies appear here when your ticket is answered.
+        Keep the conversation going until you or support closes the ticket.
       </p>
 
       {setupRequired && (
         <p className="text-xs text-[var(--warning)]">
-          Cloud inbox is not configured yet — showing tickets saved on this device.
+          Cloud inbox is not fully configured — local tickets work on this device only.
         </p>
       )}
 
       <div className="space-y-3">
-        {tickets.map((t) => (
-          <div key={`${t.id}-${t.createdAt}`} className="border border-[var(--border)] p-3">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="font-semibold">{t.subject}</p>
-                <p className="mt-0.5 text-[10px] text-[var(--muted)]">
-                  {new Date(t.createdAt).toLocaleString()}
-                  {t.source === "local" ? " · queued locally" : ""}
-                </p>
-              </div>
-              <span className={`border px-2 py-0.5 text-[10px] font-semibold uppercase ${STATUS_STYLES[t.status]}`}>
-                {t.status}
-              </span>
-            </div>
-            <p className="mt-2 text-xs text-[var(--muted)]">{t.body}</p>
-            {t.adminReply ? (
-              <div className="mv-alert-info mt-3 text-sm">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--primary)]">Support reply</p>
-                <p className="mt-1">{t.adminReply}</p>
-              </div>
-            ) : t.status === "open" ? (
-              <p className="mt-3 text-[10px] text-[var(--muted-dim)]">Waiting for support…</p>
-            ) : null}
-          </div>
-        ))}
+        {tickets.map((t) =>
+          t.source === "local" ? (
+            <LocalTicketConversation
+              key={`${t.id}-${t.createdAt}`}
+              ticket={t}
+              onMessage={(body) => handleLocalMessage(t, body)}
+              onClose={() => handleLocalClose(t)}
+            />
+          ) : (
+            <TicketConversation
+              key={`${t.id}-${t.createdAt}`}
+              ticketId={t.id}
+              subject={t.subject}
+              status={t.status}
+              messages={t.messages}
+              source={t.source}
+              canReply={t.canReply}
+              wallet={wallet}
+              username={username}
+              onUpdated={() => void loadTickets()}
+            />
+          ),
+        )}
 
         {!loading && !tickets.length && (
           <p className="py-6 text-center text-sm text-[var(--muted)]">
-            No tickets yet. Submit one below and check back here for replies.
+            No tickets yet. Submit one on the right and chat here until it&apos;s resolved.
           </p>
         )}
         {loading && !tickets.length && (
@@ -130,5 +137,66 @@ export function MyTicketsPanel({ wallet, username, refreshKey = 0 }: MyTicketsPa
         )}
       </div>
     </Panel>
+  );
+}
+
+function LocalTicketConversation({
+  ticket,
+  onMessage,
+  onClose,
+}: {
+  ticket: UserTicketView;
+  onMessage: (body: string) => void;
+  onClose: () => void;
+}) {
+  const [draft, setDraft] = useState("");
+
+  return (
+    <div className="border border-[var(--border)] p-3">
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-semibold">{ticket.subject}</p>
+        <span className="border border-[var(--warning)] bg-[rgba(245,166,35,0.1)] px-2 py-0.5 text-[10px] font-semibold uppercase text-[var(--warning)]">
+          {ticket.status}
+        </span>
+      </div>
+      <div className="mt-3 max-h-56 space-y-2 overflow-y-auto border border-[var(--border)] bg-[var(--surface-solid)] p-2">
+        {ticket.messages.map((m) => (
+          <div key={m.id} className="rounded bg-[var(--surface)] px-2 py-1.5 text-xs">
+            <p className="text-[9px] font-semibold uppercase text-[var(--muted)]">
+              {m.role === "admin" ? "Support" : "You"}
+            </p>
+            <p className="mt-0.5 whitespace-pre-wrap">{m.body}</p>
+          </div>
+        ))}
+      </div>
+      {ticket.status === "open" && (
+        <div className="mt-3 flex gap-2">
+          <input
+            className="mv-input flex-1 !py-1.5 text-xs"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Follow-up (saved locally)…"
+          />
+          <button
+            type="button"
+            className="border border-[var(--primary)] px-2 py-1 text-[10px] font-semibold text-[var(--primary)]"
+            onClick={() => {
+              if (!draft.trim()) return;
+              onMessage(draft.trim());
+              setDraft("");
+            }}
+          >
+            Send
+          </button>
+          <button
+            type="button"
+            className="border border-[var(--border)] px-2 py-1 text-[10px] text-[var(--muted)]"
+            onClick={onClose}
+          >
+            Close
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

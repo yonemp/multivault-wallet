@@ -17,6 +17,7 @@ create table if not exists support_tickets (
   body text not null,
   status text not null default 'open' check (status in ('open', 'answered', 'closed')),
   admin_reply text,
+  messages jsonb not null default '[]'::jsonb,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -59,3 +60,4 @@ create policy "Anyone can update profiles"
 -- Migrations for existing deployments
 alter table user_profiles add column if not exists username text unique;
 alter table support_tickets add column if not exists username text;
+alter table support_tickets add column if not exists messages jsonb not null default '[]'::jsonb;
