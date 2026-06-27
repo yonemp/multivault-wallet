@@ -100,6 +100,18 @@ export function FaqsPanel() {
       q: "Can I snipe migrations?",
       a: "Use the Sniper tab in Trade to stage migration snipes. On-chain execution requires unlock.",
     },
+    {
+      q: "What are memecoins?",
+      a: "Tokens driven by narrative and community energy more than fundamentals. Pulse tracks new launches through bonding and migration on Solana.",
+    },
+    {
+      q: "What is the Intel tab?",
+      a: "Live market stats, thesis on DeFi and AI-driven finance, and an AI copilot for education — not financial advice.",
+    },
+    {
+      q: "How does AI fit into crypto?",
+      a: "Agents can read on-chain data, synthesize risk, and help operators navigate faster — but you always confirm trades yourself in the terminal.",
+    },
   ];
 
   return (

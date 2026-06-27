@@ -15,6 +15,7 @@ import { SwapPanel } from "@/components/dashboard/SwapPanel";
 import { TradePanel } from "@/components/dashboard/TradePanel";
 import { TrackersPanel } from "@/components/dashboard/TrackersPanel";
 
+import { IntelPanel } from "@/components/dashboard/IntelPanel";
 import { RewardsPanel } from "@/components/dashboard/RewardsPanel";
 import { TweetMonitorPanel } from "@/components/dashboard/TweetMonitorPanel";
 import { TraderScanPanel } from "@/components/dashboard/TraderScanPanel";
@@ -45,7 +46,7 @@ import { FrozenAccountGate } from "@/components/wallet/FrozenAccountGate";
 function tabFromParam(value: string | null): DashboardTab | null {
   if (!value) return null;
   const valid: DashboardTab[] = [
-    "pulse", "trackers", "overview", "rewards", "trade", "similar",
+    "pulse", "trackers", "overview", "intel", "rewards", "trade", "similar",
     "tweets", "scan", "instant", "swap", "buy", "fees", "faqs",
     "support", "send", "receive",
   ];
@@ -203,6 +204,7 @@ export default function DashboardPage() {
         />
       )}
       {activeTab === "trackers" && <TrackersPanel />}
+      {activeTab === "intel" && <IntelPanel onNavigate={handleNavigate} />}
       {activeTab === "rewards" && <RewardsPanel />}
       {activeTab === "tweets" && <TweetMonitorPanel />}
       {activeTab === "scan" && <TraderScanPanel />}

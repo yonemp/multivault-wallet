@@ -1193,6 +1193,41 @@ a {
   color: var(--p-muted);
 }
 
+.mv-premium-pillar h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--p-text);
+}
+
+.mv-premium-pillars--stack {
+  padding: 3.5rem 0;
+}
+
+.mv-premium-section-kicker {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--p-accent);
+}
+
+.mv-premium-section-title {
+  margin-top: 0.75rem;
+  max-width: 36rem;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--p-text);
+}
+
+.mv-premium-section-lead {
+  margin-top: 1rem;
+  max-width: 40rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--p-muted);
+}
+
 .mv-premium-access {
   padding: 3.5rem 0 5rem;
 }

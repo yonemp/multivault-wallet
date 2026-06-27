@@ -16,6 +16,7 @@ export type DashboardTab =
   | "overview"
   | "vision"
   | "rewards"
+  | "intel"
   | "tweets"
   | "scan"
   | "swap"

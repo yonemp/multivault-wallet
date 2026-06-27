@@ -10,6 +10,7 @@ export const CORE_NAV: NavItem[] = [
   { id: "pulse", label: "Pulse", group: "core" },
   { id: "trackers", label: "Trackers", group: "core" },
   { id: "overview", label: "Portfolio", group: "core" },
+  { id: "intel", label: "Intel", group: "core" },
   { id: "rewards", label: "Rewards", group: "core" },
 ];
 
@@ -33,6 +34,7 @@ export const TERMINAL_TABS: DashboardTab[] = [
   "trackers",
   "trade",
   "overview",
+  "intel",
   "tweets",
   "scan",
 ];
