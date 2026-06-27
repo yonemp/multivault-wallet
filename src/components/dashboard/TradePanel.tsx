@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AssetMarketData } from "@/app/api/prices/route";
 import { MARKET_ASSETS } from "@/lib/market/assets";
 import { formatCompactUsd, safeFixed, safeNumber } from "@/lib/format/numbers";
@@ -9,6 +9,7 @@ import { PumpFunChart } from "@/components/charts/PumpFunChart";
 import { FloatingInstantTrade } from "@/components/trade/FloatingInstantTrade";
 import { WalletBubbleMap } from "@/components/trade/WalletBubbleMap";
 import { LiveTradesFeed } from "@/components/trade/LiveTradesFeed";
+import { tryRecordMemecoinVisit } from "@/lib/platform/recent-memecoins";
 import { SessionData, getAddress } from "@/lib/wallet/session";
 
 type BottomTab = "positions" | "holders" | "traders" | "bubble";
@@ -25,6 +26,7 @@ type DexPair = {
   url?: string;
   dexId?: string;
   bondingProgress?: number;
+  imageUri?: string;
 };
 
 const TV_SYMBOLS: Record<string, string> = {
@@ -54,6 +56,7 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
   const [tokenLoading, setTokenLoading] = useState(false);
   const [bottomTab, setBottomTab] = useState<BottomTab>("bubble");
   const [showInstant, setShowInstant] = useState(true);
+  const recordedVisitRef = useRef<string | null>(null);
 
   const tokenAddress = parseSolTokenAddress(selectedAsset);
   const tradableAssets = useMemo(() => MARKET_ASSETS.filter((a) => a.tradable), []);
@@ -121,6 +124,17 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
     const interval = setInterval(loadToken, 15_000);
     return () => clearInterval(interval);
   }, [tokenAddress]);
+
+  useEffect(() => {
+    if (!tokenAddress || !tokenPair) return;
+    if (recordedVisitRef.current === tokenAddress) return;
+    recordedVisitRef.current = tokenAddress;
+    tryRecordMemecoinVisit(selectedAsset, {
+      symbol: tokenPair.baseToken.symbol,
+      name: tokenPair.baseToken.name,
+      imageUri: tokenPair.imageUri,
+    });
+  }, [tokenAddress, tokenPair, selectedAsset]);
 
   const stats = tokenAddress
     ? [

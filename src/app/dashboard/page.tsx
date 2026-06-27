@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { DashboardTab } from "@/components/dashboard/ActionTabs";
+import type { NavigateMeta } from "@/components/dashboard/ActionTabs.types";
+import { tryRecordMemecoinVisit } from "@/lib/platform/recent-memecoins";
 import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
 import { PulsePanel } from "@/components/dashboard/PulsePanel";
 
@@ -128,9 +130,18 @@ export default function DashboardPage() {
     window.location.href = "/";
   }
 
-  function handleNavigate(tab: DashboardTab, asset?: string) {
+  function handleNavigate(tab: DashboardTab, asset?: string, meta?: NavigateMeta) {
+    if (asset && tab === "trade") {
+      tryRecordMemecoinVisit(asset, meta);
+    }
     if (asset) setTradeAsset(asset);
     setActiveTab(tab);
+  }
+
+  function handleRecentCoinSelect(assetId: string) {
+    tryRecordMemecoinVisit(assetId);
+    setTradeAsset(assetId);
+    setActiveTab("trade");
   }
 
   function handleSessionChange(next: SessionData) {
@@ -162,6 +173,7 @@ export default function DashboardPage() {
     <AppShell
       activeTab={activeTab}
       onTabChange={setActiveTab}
+      onRecentCoinSelect={handleRecentCoinSelect}
       showNav
       onLogout={handleLogout}
       terminal={isTerminal}

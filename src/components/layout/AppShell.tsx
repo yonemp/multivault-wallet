@@ -7,12 +7,14 @@ import { ActionTabs, DashboardTab } from "@/components/dashboard/ActionTabs";
 import { Button } from "@/components/ui/Button";
 import { LogOut, Search, Wallet } from "lucide-react";
 import type { AssetMarketData } from "@/app/api/prices/route";
+import { RecentMemecoinsBar } from "@/components/layout/RecentMemecoinsBar";
 import { safeFixed, safeNumber } from "@/lib/format/numbers";
 
 type AppShellProps = {
   children: ReactNode;
   activeTab?: DashboardTab;
   onTabChange?: (tab: DashboardTab) => void;
+  onRecentCoinSelect?: (assetId: string) => void;
   showNav?: boolean;
   onLogout?: () => void;
   terminal?: boolean;
@@ -22,6 +24,7 @@ export function AppShell({
   children,
   activeTab,
   onTabChange,
+  onRecentCoinSelect,
   showNav = true,
   onLogout,
   terminal = true,
@@ -40,9 +43,10 @@ export function AppShell({
       <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-elevated)]/90 backdrop-blur-xl">
         <div className="mv-header-glow h-px w-full" />
 
-        <div className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-1.5 text-[11px]">
-          <span className="mv-preset-pill">Preset 1</span>
-          <span className="font-mono text-[var(--muted)]">
+        <div className="flex min-w-0 items-center gap-2 border-b border-[var(--border)] px-4 py-1.5 text-[11px]">
+          <span className="mv-preset-pill shrink-0">Preset 1</span>
+          <RecentMemecoinsBar onSelect={onRecentCoinSelect} />
+          <span className="ml-auto shrink-0 font-mono text-[var(--muted)]">
             SOL{" "}
             <span className="text-[var(--foreground)]">${safeFixed(solPrice?.price, 2)}</span>
             {solPrice && Number.isFinite(safeNumber(solPrice.change24h, NaN)) && (

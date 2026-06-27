@@ -1,3 +1,9 @@
+export type NavigateMeta = {
+  symbol?: string;
+  name?: string;
+  imageUri?: string;
+};
+
 export type DashboardTab =
   | "pulse"
   | "discover"

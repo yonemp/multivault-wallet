@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PulseToken } from "@/app/api/pulse/route";
 import type { PulseTicker } from "@/app/api/pulse/tickers/route";
-import { DashboardTab } from "@/components/dashboard/ActionTabs.types";
+import { DashboardTab, type NavigateMeta } from "@/components/dashboard/ActionTabs.types";
 import { PulseCoinCard } from "@/components/dashboard/PulseCoinCard";
 import {
   applyPulseColumnFilters,
@@ -23,7 +23,7 @@ const COLUMNS: { key: PulseToken["column"]; title: string }[] = [
 ];
 
 type PulsePanelProps = {
-  onNavigate: (tab: DashboardTab, asset?: string) => void;
+  onNavigate: (tab: DashboardTab, asset?: string, meta?: NavigateMeta) => void;
 };
 
 function mergeTicker(token: PulseToken, tick: PulseTicker, solUsd: number, reserveRef: React.MutableRefObject<Record<string, number>>, volAccumRef: React.MutableRefObject<Record<string, number>>) {
@@ -233,7 +233,13 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
                     <PulseCoinCard
                       key={token.id}
                       token={token}
-                      onTrade={() => onNavigate("trade", token.id)}
+                      onTrade={() =>
+                        onNavigate("trade", token.id, {
+                          symbol: token.symbol,
+                          name: token.name,
+                          imageUri: token.imageUri,
+                        })
+                      }
                     />
                   ))
                 )}
