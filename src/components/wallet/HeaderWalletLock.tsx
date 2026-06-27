@@ -46,7 +46,7 @@ export function HeaderWalletLock({
           {locked ? "Locked" : "Unlocked"}
         </p>
         <p className="text-[9px] leading-tight text-[var(--muted)]">
-          {locked ? "Enter password" : remaining ? `${remaining} left` : "5m auto-lock"}
+          {locked ? "Enter password" : remaining === "on terminal" ? "Unlocked on terminal" : remaining ? `${remaining} away` : "Locks after 5m away"}
         </p>
       </div>
 

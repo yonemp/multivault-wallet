@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppBackground } from "@/components/layout/AppBackground";
+import { ErrorBoundary } from "@/components/layout/ErrorBoundary";
+import { HealthMonitor } from "@/components/layout/HealthMonitor";
 import { StatusBar } from "@/components/layout/StatusBar";
 import { PageTransition } from "@/components/layout/PageTransition";
 import "./globals.css";
@@ -33,7 +35,10 @@ export default function RootLayout({
     >
       <body className="relative min-h-full flex flex-col pb-[var(--status-h)] text-[var(--foreground)]">
         <AppBackground />
-        <PageTransition>{children}</PageTransition>
+        <HealthMonitor />
+        <ErrorBoundary>
+          <PageTransition>{children}</PageTransition>
+        </ErrorBoundary>
         <StatusBar />
       </body>
     </html>

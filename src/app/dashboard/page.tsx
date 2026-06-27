@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { AnimatePresence } from "framer-motion";
-import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { DashboardTab } from "@/components/dashboard/ActionTabs";
 import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
 import { PulsePanel } from "@/components/dashboard/PulsePanel";
@@ -53,23 +51,36 @@ function tabFromParam(value: string | null): DashboardTab | null {
 
 export default function DashboardPage() {
   const searchParams = useSearchParams();
+  const initialized = useRef(false);
   const [session, setSession] = useState<SessionData | null>(null);
   const [balances, setBalances] = useState<ChainBalances>({});
   const [activeTab, setActiveTab] = useState<DashboardTab>("pulse");
   const [tradeAsset, setTradeAsset] = useState("sol");
-  const [booting, setBooting] = useState(true);
   const [loadingBalances, setLoadingBalances] = useState(false);
   const [openWalletsTab, setOpenWalletsTab] = useState(false);
   const [showWalletWelcome, setShowWalletWelcome] = useState(false);
 
   const lock = useWalletLock(session);
 
+  const loadBalances = useCallback(async (current: SessionData) => {
+    setLoadingBalances(true);
+    try {
+      setBalances(await fetchChainBalances(current.addresses));
+    } finally {
+      setLoadingBalances(false);
+    }
+  }, []);
+
   useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
     const current = loadSession();
     if (!current) {
       window.location.href = "/";
       return;
     }
+
     migrateLegacyWallet(current);
     setSession(current);
 
@@ -78,17 +89,10 @@ export default function DashboardPage() {
     if (searchParams.get("wallets") === "1") setOpenWalletsTab(true);
     if (searchParams.get("welcome") === "1") setShowWalletWelcome(true);
 
-    if (Object.keys(current.addresses).length > 0) loadBalances(current);
-  }, [searchParams]);
-
-  async function loadBalances(current: SessionData) {
-    setLoadingBalances(true);
-    try {
-      setBalances(await fetchChainBalances(current.addresses));
-    } finally {
-      setLoadingBalances(false);
+    if (Object.keys(current.addresses).length > 0) {
+      loadBalances(current);
     }
-  }
+  }, [searchParams, loadBalances]);
 
   function handleLogout() {
     lock.lock();
@@ -105,116 +109,106 @@ export default function DashboardPage() {
   function handleSessionChange(next: SessionData) {
     setSession(next);
     loadBalances(next);
-    lock.syncLockState();
   }
 
   const isTerminal = TERMINAL_TABS.includes(activeTab);
   const showLockBanner = session?.mode === "local";
 
+  if (!session) {
+    return (
+      <main className="flex min-h-screen items-center justify-center text-[var(--muted)]">
+        Loading terminal…
+      </main>
+    );
+  }
+
   return (
-    <>
-      <AnimatePresence>
-        {booting && (
-          <LoadingScreen
-            submessage="Loading Pulse · Discover · Trade terminal"
-            onComplete={() => setBooting(false)}
-          />
-        )}
-      </AnimatePresence>
+    <AppShell
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      showNav
+      onLogout={handleLogout}
+      terminal={isTerminal}
+      lockProps={showLockBanner ? {
+        show: true,
+        locked: !lock.unlocked,
+        password: lock.password,
+        onPasswordChange: lock.setPassword,
+        onUnlock: lock.unlock,
+        onLock: lock.unlocked ? lock.lock : undefined,
+        error: lock.error,
+        remaining: lock.remaining,
+      } : undefined}
+    >
+      {activeTab === "pulse" && <PulsePanel onNavigate={handleNavigate} />}
 
-      {!session ? (
-        <main className="flex min-h-screen items-center justify-center text-[var(--muted)]">
-          Loading...
-        </main>
-      ) : (
-        <AppShell
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          showNav
-          onLogout={handleLogout}
-          terminal={isTerminal}
-          lockProps={showLockBanner ? {
-            show: true,
-            locked: !lock.unlocked,
-            password: lock.password,
-            onPasswordChange: lock.setPassword,
-            onUnlock: lock.unlock,
-            onLock: lock.unlocked ? lock.lock : undefined,
-            error: lock.error,
-            remaining: lock.remaining,
-          } : undefined}
-        >
-          {activeTab === "pulse" && <PulsePanel onNavigate={handleNavigate} />}
-
-          {activeTab === "similar" && (
-            <SimilarTokensPanel seedAsset={tradeAsset} onNavigate={handleNavigate} />
-          )}
-          {activeTab === "overview" && (
-            <OverviewPanel
-              session={session}
-              balances={balances}
-              loading={loadingBalances}
-              onNavigate={handleNavigate}
-              onRefresh={() => session && loadBalances(session)}
-              onSessionChange={handleSessionChange}
-              initialWalletsTab={openWalletsTab}
-              showWalletWelcome={showWalletWelcome}
-            />
-          )}
-          {activeTab === "trade" && (
-            <TradePanel
-              session={session}
-              initialAsset={tradeAsset}
-              onSuccess={() => session && loadBalances(session)}
-            />
-          )}
-          {activeTab === "trackers" && <TrackersPanel />}
-          {activeTab === "rewards" && <RewardsPanel />}
-          {activeTab === "tweets" && <TweetMonitorPanel />}
-          {activeTab === "scan" && <TraderScanPanel />}
-          {activeTab === "instant" && (
-            <UnlockGate
-              locked={showLockBanner && !lock.unlocked}
-              password={lock.password}
-              onPasswordChange={lock.setPassword}
-              onUnlock={lock.unlock}
-              error={lock.error}
-              action="use instant trade"
-            >
-              <InstantTradePanel onSuccess={() => session && loadBalances(session)} />
-            </UnlockGate>
-          )}
-          {activeTab === "swap" && (
-            <UnlockGate
-              locked={showLockBanner && !lock.unlocked}
-              password={lock.password}
-              onPasswordChange={lock.setPassword}
-              onUnlock={lock.unlock}
-              error={lock.error}
-              action="convert tokens"
-            >
-              <SwapPanel session={session} onSuccess={() => session && loadBalances(session)} />
-            </UnlockGate>
-          )}
-          {activeTab === "buy" && <BuyCryptoPanel />}
-          {activeTab === "fees" && <FeesPanel />}
-          {activeTab === "faqs" && <FaqsPanel />}
-          {activeTab === "support" && <SupportPanel />}
-          {activeTab === "receive" && <ReceivePanel session={session} />}
-          {activeTab === "send" && (
-            <UnlockGate
-              locked={showLockBanner && !lock.unlocked}
-              password={lock.password}
-              onPasswordChange={lock.setPassword}
-              onUnlock={lock.unlock}
-              error={lock.error}
-              action="send funds"
-            >
-              <SendPanel session={session} onSuccess={() => session && loadBalances(session)} />
-            </UnlockGate>
-          )}
-        </AppShell>
+      {activeTab === "similar" && (
+        <SimilarTokensPanel seedAsset={tradeAsset} onNavigate={handleNavigate} />
       )}
-    </>
+      {activeTab === "overview" && (
+        <OverviewPanel
+          session={session}
+          balances={balances}
+          loading={loadingBalances}
+          onNavigate={handleNavigate}
+          onRefresh={() => loadBalances(session)}
+          onSessionChange={handleSessionChange}
+          initialWalletsTab={openWalletsTab}
+          showWalletWelcome={showWalletWelcome}
+        />
+      )}
+      {activeTab === "trade" && (
+        <TradePanel
+          session={session}
+          initialAsset={tradeAsset}
+          onSuccess={() => loadBalances(session)}
+        />
+      )}
+      {activeTab === "trackers" && <TrackersPanel />}
+      {activeTab === "rewards" && <RewardsPanel />}
+      {activeTab === "tweets" && <TweetMonitorPanel />}
+      {activeTab === "scan" && <TraderScanPanel />}
+      {activeTab === "instant" && (
+        <UnlockGate
+          locked={showLockBanner && !lock.unlocked}
+          password={lock.password}
+          onPasswordChange={lock.setPassword}
+          onUnlock={lock.unlock}
+          error={lock.error}
+          action="use instant trade"
+        >
+          <InstantTradePanel onSuccess={() => loadBalances(session)} />
+        </UnlockGate>
+      )}
+      {activeTab === "swap" && (
+        <UnlockGate
+          locked={showLockBanner && !lock.unlocked}
+          password={lock.password}
+          onPasswordChange={lock.setPassword}
+          onUnlock={lock.unlock}
+          error={lock.error}
+          action="convert tokens"
+        >
+          <SwapPanel session={session} onSuccess={() => loadBalances(session)} />
+        </UnlockGate>
+      )}
+      {activeTab === "buy" && <BuyCryptoPanel />}
+      {activeTab === "fees" && <FeesPanel />}
+      {activeTab === "faqs" && <FaqsPanel />}
+      {activeTab === "support" && <SupportPanel />}
+      {activeTab === "receive" && <ReceivePanel session={session} />}
+      {activeTab === "send" && (
+        <UnlockGate
+          locked={showLockBanner && !lock.unlocked}
+          password={lock.password}
+          onPasswordChange={lock.setPassword}
+          onUnlock={lock.unlock}
+          error={lock.error}
+          action="send funds"
+        >
+          <SendPanel session={session} onSuccess={() => loadBalances(session)} />
+        </UnlockGate>
+      )}
+    </AppShell>
   );
 }

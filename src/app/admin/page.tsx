@@ -6,6 +6,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Panel } from "@/components/ui/Panel";
+import { HealthLogPanel } from "@/components/admin/HealthLogPanel";
 import { ArrowLeft, Crown, Flag, MessageSquare, Users, Wallet } from "lucide-react";
 
 type WalletRow = {
@@ -210,6 +211,8 @@ export default function AdminPage() {
               </dl>
             </Panel>
           </div>
+
+          <HealthLogPanel />
 
           <p className="text-xs text-[var(--muted)]">
             Freezing is an app-level flag for registered addresses. It does not block on-chain transfers in self-custody wallets.

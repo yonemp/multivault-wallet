@@ -1,9 +1,10 @@
 const UNLOCK_KEY = "mv_wallet_unlock";
+const AWAY_KEY = "mv_wallet_away_at";
 export const LOCK_TIMEOUT_MS = 5 * 60 * 1000;
 
 type UnlockSession = {
   mnemonic: string;
-  lastActivity: number;
+  unlockedAt: number;
 };
 
 function readSession(): UnlockSession | null {
@@ -21,31 +22,39 @@ function writeSession(data: UnlockSession) {
   sessionStorage.setItem(UNLOCK_KEY, JSON.stringify(data));
 }
 
+/** Called when user leaves the tab/site. */
+export function markSiteAway() {
+  sessionStorage.setItem(AWAY_KEY, String(Date.now()));
+}
+
+/** Returns true if unlock should remain valid after returning. */
+export function checkReturnFromAway(): boolean {
+  const awayRaw = sessionStorage.getItem(AWAY_KEY);
+  sessionStorage.removeItem(AWAY_KEY);
+  if (!awayRaw) return true;
+  const awayMs = Date.now() - Number(awayRaw);
+  if (awayMs >= LOCK_TIMEOUT_MS) {
+    clearUnlockSession();
+    return false;
+  }
+  return true;
+}
+
 export function isUnlockValid(): boolean {
-  const data = readSession();
-  if (!data) return false;
-  return Date.now() - data.lastActivity < LOCK_TIMEOUT_MS;
+  return readSession() !== null;
 }
 
 export function getUnlockMnemonic(): string | null {
-  const data = readSession();
-  if (!data) return null;
-  if (Date.now() - data.lastActivity >= LOCK_TIMEOUT_MS) {
-    clearUnlockSession();
-    return null;
-  }
-  return data.mnemonic;
+  return readSession()?.mnemonic ?? null;
 }
 
 export function unlockWalletSession(mnemonic: string) {
-  writeSession({ mnemonic, lastActivity: Date.now() });
+  writeSession({ mnemonic, unlockedAt: Date.now() });
+  sessionStorage.removeItem(AWAY_KEY);
 }
 
 export function touchUnlockActivity() {
-  const data = readSession();
-  if (!data) return;
-  data.lastActivity = Date.now();
-  writeSession(data);
+  /* No-op: we no longer lock on inactivity while on-site. */
 }
 
 export function clearUnlockSession() {
@@ -55,13 +64,30 @@ export function clearUnlockSession() {
 }
 
 export function getLockRemainingMs(): number {
-  const data = readSession();
-  if (!data) return 0;
-  return Math.max(0, LOCK_TIMEOUT_MS - (Date.now() - data.lastActivity));
+  const awayRaw = sessionStorage.getItem(AWAY_KEY);
+  if (awayRaw) {
+    const elapsed = Date.now() - Number(awayRaw);
+    return Math.max(0, LOCK_TIMEOUT_MS - elapsed);
+  }
+  return LOCK_TIMEOUT_MS;
 }
 
 export function formatLockRemaining(ms: number) {
   const mins = Math.floor(ms / 60_000);
   const secs = Math.floor((ms % 60_000) / 1000);
   return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
+/** On fresh page load, lock if user was away longer than timeout. */
+export function shouldLockOnBoot(): boolean {
+  const awayRaw = sessionStorage.getItem(AWAY_KEY);
+  if (!awayRaw) return false;
+  const awayMs = Date.now() - Number(awayRaw);
+  if (awayMs >= LOCK_TIMEOUT_MS) {
+    clearUnlockSession();
+    sessionStorage.removeItem(AWAY_KEY);
+    return true;
+  }
+  sessionStorage.removeItem(AWAY_KEY);
+  return false;
 }

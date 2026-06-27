@@ -11,10 +11,12 @@ import {
   setUnlockedMnemonic,
 } from "@/lib/wallet/unlock-store";
 import {
+  checkReturnFromAway,
   formatLockRemaining,
   getLockRemainingMs,
   isUnlockValid,
-  touchUnlockActivity,
+  markSiteAway,
+  shouldLockOnBoot,
 } from "@/lib/wallet/wallet-lock";
 
 export function useWalletLock(session: SessionData | null) {
@@ -32,12 +34,20 @@ export function useWalletLock(session: SessionData | null) {
     }
     if (session.mode === "external") {
       setUnlocked(true);
+      setRemaining("");
       return;
     }
+
+    if (shouldLockOnBoot()) {
+      clearUnlockedMnemonic();
+      setUnlocked(false);
+      setRemaining("");
+      return;
+    }
+
     const valid = restoreUnlockFromSession() && isUnlockValid();
     setUnlocked(valid);
-    if (!valid) clearUnlockedMnemonic();
-    setRemaining(formatLockRemaining(getLockRemainingMs()));
+    setRemaining(valid ? "on terminal" : "");
   }, [session]);
 
   useEffect(() => {
@@ -45,30 +55,31 @@ export function useWalletLock(session: SessionData | null) {
   }, [syncLockState]);
 
   useEffect(() => {
-    if (!isLocal || !unlocked) return;
+    if (!isLocal) return;
 
-    const onActivity = () => touchUnlockActivity();
+    function onVisibility() {
+      if (document.visibilityState === "hidden") {
+        markSiteAway();
+        setRemaining(formatLockRemaining(getLockRemainingMs()));
+        return;
+      }
 
-    const events = ["mousedown", "keydown", "scroll", "touchstart", "click"] as const;
-    for (const e of events) {
-      window.addEventListener(e, onActivity, { passive: true });
-    }
-
-    const interval = setInterval(() => {
-      if (!isUnlockValid()) {
+      const stillValid = checkReturnFromAway();
+      if (!stillValid) {
         clearUnlockedMnemonic();
         setUnlocked(false);
+        setRemaining("");
+        return;
       }
-      setRemaining(formatLockRemaining(getLockRemainingMs()));
-    }, 1000);
 
-    return () => {
-      for (const e of events) {
-        window.removeEventListener(e, onActivity);
-      }
-      clearInterval(interval);
-    };
-  }, [isLocal, unlocked]);
+      const valid = restoreUnlockFromSession() && isUnlockValid();
+      setUnlocked(valid);
+      setRemaining(valid ? "on terminal" : "");
+    }
+
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [isLocal]);
 
   async function unlock() {
     setError(null);
@@ -91,6 +102,7 @@ export function useWalletLock(session: SessionData | null) {
       saveSession(updated);
       setUnlocked(true);
       setPassword("");
+      setRemaining("on terminal");
     } catch {
       setError("Incorrect password");
     }
@@ -101,6 +113,7 @@ export function useWalletLock(session: SessionData | null) {
     setUnlocked(false);
     setPassword("");
     setError(null);
+    setRemaining("");
   }
 
   return {

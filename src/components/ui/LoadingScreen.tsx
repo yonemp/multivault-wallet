@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type LoadingScreenProps = {
   message?: string;
@@ -17,18 +17,29 @@ export function LoadingScreen({
   onComplete,
 }: LoadingScreenProps) {
   const [progress, setProgress] = useState(0);
+  const onCompleteRef = useRef(onComplete);
+  const completedRef = useRef(false);
+
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
+    completedRef.current = false;
     const start = Date.now();
+
     const tick = () => {
       const elapsed = Date.now() - start;
       setProgress(Math.min(100, (elapsed / duration) * 100));
-      if (elapsed < duration) requestAnimationFrame(tick);
-      else onComplete?.();
+      if (elapsed < duration) {
+        requestAnimationFrame(tick);
+      } else if (!completedRef.current) {
+        completedRef.current = true;
+        onCompleteRef.current?.();
+      }
     };
+
     const frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [duration, onComplete]);
+  }, [duration]);
 
   return (
     <motion.div
