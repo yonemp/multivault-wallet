@@ -14,7 +14,7 @@ import {
   type PulseColumnKey,
 } from "@/components/dashboard/PulseColumnFilters";
 import { formatPulseAge } from "@/lib/pulse/format";
-import { Filter, RefreshCw, Zap } from "lucide-react";
+import { Filter } from "lucide-react";
 
 const COLUMNS: { key: PulseToken["column"]; title: string }[] = [
   { key: "new", title: "New Pairs" },
@@ -63,9 +63,7 @@ function mergeTicker(token: PulseToken, tick: PulseTicker, solUsd: number, reser
 export function PulsePanel({ onNavigate }: PulsePanelProps) {
   const [tokens, setTokens] = useState<PulseToken[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tickerBusy, setTickerBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [updatedAt, setUpdatedAt] = useState<number | null>(null);
   const tokensRef = useRef<PulseToken[]>([]);
   const reserveRef = useRef<Record<string, number>>({});
   const volAccumRef = useRef<Record<string, number>>({});
@@ -93,7 +91,6 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
       if (!res.ok) throw new Error("Failed to load");
       const data = (await res.json()) as { tokens: PulseToken[]; updatedAt?: number };
       setTokens(data.tokens ?? []);
-      setUpdatedAt(data.updatedAt ?? Date.now());
       for (const t of data.tokens ?? []) {
         volAccumRef.current[t.address] = t.volume;
       }
@@ -107,7 +104,6 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
   const refreshTickers = useCallback(async () => {
     const current = tokensRef.current;
     if (!current.length) return;
-    setTickerBusy(true);
     try {
       const mints = current.map((t) => t.address).join(",");
       const res = await fetch(`/api/pulse/tickers?mints=${encodeURIComponent(mints)}`, {
@@ -127,9 +123,8 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
           return mergeTicker(t, tick, solUsdRef.current, reserveRef, volAccumRef);
         }),
       );
-      setUpdatedAt(Date.now());
-    } finally {
-      setTickerBusy(false);
+    } catch {
+      /* ticker refresh is best-effort */
     }
   }, []);
 
@@ -152,34 +147,6 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="mb-2 flex flex-wrap items-center gap-2 border-b border-[var(--border-strong)] pb-2">
-        <div className="flex items-center gap-2">
-          <Zap className="h-4 w-4 text-[var(--primary)]" />
-          <span className="text-base font-semibold">Pulse</span>
-          <span className={`ax-live-dot h-2 w-2 rounded-full ${tickerBusy ? "animate-pulse bg-[var(--primary)]" : "bg-[var(--gain)]"}`} />
-          <span className="text-xs text-[var(--muted)]">
-            pump.fun live · {tokens.length} coins · MC/Vol 1s
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={() => setFiltersOpen(true)}
-          className="ml-auto flex items-center gap-1.5 rounded-sm border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
-        >
-          <Filter className="h-3.5 w-3.5" />
-          Filters
-        </button>
-        <button
-          type="button"
-          onClick={() => void loadPulse()}
-          disabled={loading}
-          className="flex items-center gap-1.5 rounded-sm border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-          {updatedAt ? new Date(updatedAt).toLocaleTimeString() : "—"}
-        </button>
-      </div>
-
       <PulseFiltersModal
         open={filtersOpen}
         activeColumn={filterColumn}
