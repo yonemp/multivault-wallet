@@ -9,11 +9,26 @@ import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { DashboardTab } from "@/components/dashboard/ActionTabs";
 import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
 import { PulsePanel } from "@/components/dashboard/PulsePanel";
+import { DiscoverPanel } from "@/components/dashboard/DiscoverPanel";
+import { SimilarTokensPanel } from "@/components/dashboard/SimilarTokensPanel";
 import { ReceivePanel } from "@/components/dashboard/ReceivePanel";
 import { SendPanel } from "@/components/dashboard/SendPanel";
 import { SwapPanel } from "@/components/dashboard/SwapPanel";
 import { TradePanel } from "@/components/dashboard/TradePanel";
+import { VisionPanel } from "@/components/dashboard/VisionPanel";
+import { RewardsPanel } from "@/components/dashboard/RewardsPanel";
+import { TweetMonitorPanel } from "@/components/dashboard/TweetMonitorPanel";
+import { TraderScanPanel } from "@/components/dashboard/TraderScanPanel";
+import { InstantTradePanel } from "@/components/dashboard/InstantTradePanel";
+import {
+  BuyCryptoPanel,
+  MultiWalletPanel,
+  FeesPanel,
+  FaqsPanel,
+  SupportPanel,
+} from "@/components/dashboard/InfoPanels";
 import { AppShell } from "@/components/layout/AppShell";
+import { TERMINAL_TABS } from "@/lib/navigation/axiom-nav";
 import {
   ChainBalances,
   fetchChainBalances,
@@ -106,14 +121,14 @@ export default function DashboardPage() {
   const ready = session && (session.mode === "external" || unlocked);
   const hasAddresses = session != null && Object.keys(session.addresses).length > 0;
   const showNav = ready || hasAddresses;
-  const isTerminal = ["pulse", "trade"].includes(activeTab);
+  const isTerminal = TERMINAL_TABS.includes(activeTab);
 
   return (
     <>
       <AnimatePresence>
         {booting && (
           <LoadingScreen
-            submessage="Connecting to mainnet · loading terminal"
+            submessage="Loading Pulse · Discover · Trade terminal"
             onComplete={() => setBooting(false)}
           />
         )}
@@ -136,7 +151,7 @@ export default function DashboardPage() {
               <Panel className="p-4">
                 <p className="text-sm font-semibold">Unlock wallet</p>
                 <p className="mt-1 text-xs text-[var(--muted)]">
-                  Required to send, swap, or trade on-chain
+                  Required for on-chain send, swap, and sniper execution
                 </p>
                 <div className="mt-3 space-y-2">
                   <Input
@@ -158,6 +173,10 @@ export default function DashboardPage() {
           {showNav && (
             <>
               {activeTab === "pulse" && <PulsePanel onNavigate={handleNavigate} />}
+              {activeTab === "discover" && <DiscoverPanel onNavigate={handleNavigate} />}
+              {activeTab === "similar" && (
+                <SimilarTokensPanel seedAsset={tradeAsset} onNavigate={handleNavigate} />
+              )}
               {activeTab === "overview" && (
                 <OverviewPanel
                   session={session}
@@ -174,18 +193,30 @@ export default function DashboardPage() {
                   onSuccess={() => session && loadBalances(session)}
                 />
               )}
+              {activeTab === "vision" && <VisionPanel />}
+              {activeTab === "rewards" && <RewardsPanel />}
+              {activeTab === "tweets" && <TweetMonitorPanel />}
+              {activeTab === "scan" && <TraderScanPanel />}
+              {activeTab === "instant" && (
+                <InstantTradePanel onSuccess={() => session && loadBalances(session)} />
+              )}
+              {activeTab === "swap" &&
+                (ready ? (
+                  <SwapPanel session={session} onSuccess={() => session && loadBalances(session)} />
+                ) : (
+                  <p className="text-sm text-[var(--muted)]">Unlock to convert tokens</p>
+                ))}
+              {activeTab === "buy" && <BuyCryptoPanel />}
+              {activeTab === "wallets" && <MultiWalletPanel />}
+              {activeTab === "fees" && <FeesPanel />}
+              {activeTab === "faqs" && <FaqsPanel />}
+              {activeTab === "support" && <SupportPanel />}
               {activeTab === "receive" && hasAddresses && <ReceivePanel session={session} />}
               {activeTab === "send" &&
                 (ready ? (
                   <SendPanel session={session} onSuccess={() => session && loadBalances(session)} />
                 ) : (
                   <p className="text-sm text-[var(--muted)]">Unlock to send</p>
-                ))}
-              {activeTab === "swap" &&
-                (ready ? (
-                  <SwapPanel session={session} onSuccess={() => session && loadBalances(session)} />
-                ) : (
-                  <p className="text-sm text-[var(--muted)]">Unlock to swap</p>
                 ))}
             </>
           )}

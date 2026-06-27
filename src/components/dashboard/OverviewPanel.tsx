@@ -169,7 +169,7 @@ export function OverviewPanel({
               </button>
             ))}
           </div>
-          {(["trade", "send", "receive", "swap"] as const).map((tab) => (
+          {(["discover", "trade", "send", "receive", "swap"] as const).map((tab) => (
             <button
               key={tab}
               type="button"

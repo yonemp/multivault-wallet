@@ -1,7 +1,19 @@
 export type DashboardTab =
   | "pulse"
-  | "overview"
+  | "discover"
+  | "similar"
   | "trade"
+  | "instant"
+  | "overview"
+  | "vision"
+  | "rewards"
+  | "tweets"
+  | "scan"
+  | "swap"
+  | "buy"
+  | "wallets"
+  | "fees"
+  | "faqs"
+  | "support"
   | "send"
-  | "receive"
-  | "swap";
+  | "receive";

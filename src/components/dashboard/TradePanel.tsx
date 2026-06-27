@@ -6,7 +6,12 @@ import { Input } from "@/components/ui/Input";
 import { TradingChart, ChartLine } from "@/components/charts/TradingChart";
 import type { AssetMarketData } from "@/app/api/prices/route";
 import { MARKET_ASSETS } from "@/lib/market/assets";
+import { TradingViewWidget } from "@/components/charts/TradingViewWidget";
+import { addLimitOrder, loadLimitOrders, cancelLimitOrder } from "@/lib/platform/limit-orders";
+import { addTradePoints } from "@/lib/platform/rewards";
 import { SessionData } from "@/lib/wallet/session";
+
+type TradeMode = "market" | "limit" | "sniper" | "tradingview";
 
 type TradePanelProps = {
   session: SessionData;
@@ -24,8 +29,15 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
   const [amount, setAmount] = useState("");
   const [takeProfit, setTakeProfit] = useState("");
   const [stopLoss, setStopLoss] = useState("");
+  const [tradeMode, setTradeMode] = useState<TradeMode>("market");
+  const [limitPrice, setLimitPrice] = useState("");
   const [chartTab, setChartTab] = useState<"chart" | "orders" | "holders">("chart");
   const [orderNote, setOrderNote] = useState<string | null>(null);
+  const [openOrders, setOpenOrders] = useState<ReturnType<typeof loadLimitOrders>>([]);
+
+  useEffect(() => {
+    setOpenOrders(loadLimitOrders());
+  }, []);
 
   const tradableAssets = useMemo(() => MARKET_ASSETS.filter((a) => a.tradable), []);
   const asset = tradableAssets.find((a) => a.id === selectedAsset) ?? tradableAssets[0];
@@ -76,13 +88,41 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
     [takeProfit, stopLoss],
   );
 
+  function refreshOrders() {
+    setOpenOrders(loadLimitOrders());
+  }
+
   function handlePlaceOrder() {
     if (!amount || parseFloat(amount) <= 0) {
       setOrderNote("Enter a valid amount");
       return;
     }
+
+    if (tradeMode === "limit" || tradeMode === "sniper") {
+      const price = parseFloat(limitPrice || String(priceData?.price ?? 0));
+      if (!price || price <= 0) {
+        setOrderNote("Set a limit price");
+        return;
+      }
+      addLimitOrder({
+        asset: asset?.symbol ?? "SOL",
+        side,
+        price,
+        amount: parseFloat(amount),
+        type: tradeMode === "sniper" ? "sniper" : "limit",
+      });
+      addTradePoints(50);
+      refreshOrders();
+      setOrderNote(
+        `${tradeMode === "sniper" ? "Sniper" : "Limit"} ${side} placed @ $${price} · MEV-resistant staging`,
+      );
+      onSuccess?.();
+      return;
+    }
+
+    addTradePoints(25);
     setOrderNote(
-      `${side === "buy" ? "Buy" : "Sell"} staged · ${amount} ${asset?.symbol} · execute via Swap for on-chain settlement`,
+      `Market ${side} staged · ${amount} ${asset?.symbol} · execute via Swap / Convert`,
     );
     onSuccess?.();
   }
@@ -182,9 +222,23 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
               </div>
             </>
           )}
-          {chartTab !== "chart" && (
+          {chartTab === "orders" && (
+            <div className="flex-1 overflow-auto p-3 text-xs">
+              {openOrders.length === 0 ? (
+                <p className="text-center text-[var(--muted)]">No orders yet</p>
+              ) : (
+                openOrders.map((o) => (
+                  <div key={o.id} className="flex justify-between border-b border-[var(--border)] py-2">
+                    <span>{o.type} {o.side} {o.amount} {o.asset} @ ${o.price}</span>
+                    <span className={o.status === "open" ? "text-[var(--primary)]" : "text-[var(--muted)]"}>{o.status}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+          {chartTab === "holders" && (
             <div className="flex flex-1 items-center justify-center p-8 text-sm text-[var(--muted)]">
-              {chartTab === "orders" ? "Open orders appear here" : "Holder data · coming soon"}
+              Holder data · coming soon
             </div>
           )}
         </div>
@@ -192,6 +246,27 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
         {/* Order panel */}
         <div className="flex flex-col gap-2">
           <div className="mv-panel p-3">
+            <div className="mb-3 flex flex-wrap gap-1 border-b border-[var(--border)] pb-2">
+              {(["market", "limit", "sniper", "tradingview"] as TradeMode[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setTradeMode(m)}
+                  className={`px-2 py-1 text-[9px] font-bold uppercase ${
+                    tradeMode === m
+                      ? "bg-[var(--primary-soft)] text-[var(--primary)]"
+                      : "text-[var(--muted)]"
+                  }`}
+                >
+                  {m === "tradingview" ? "TV Chart" : m}
+                </button>
+              ))}
+            </div>
+
+            {tradeMode === "tradingview" ? (
+              <TradingViewWidget symbol="BINANCE:SOLUSDT" height={320} />
+            ) : (
+              <>
             <div className="grid grid-cols-2 gap-1.5">
               <Button variant="buy" size="lg" className="w-full" onClick={() => setSide("buy")}>
                 Buy
@@ -211,6 +286,19 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
             </div>
 
             <div className="mt-3 space-y-2">
+              {(tradeMode === "limit" || tradeMode === "sniper") && (
+                <div>
+                  <label className="mv-label">
+                    {tradeMode === "sniper" ? "Snipe price (USD)" : "Limit price (USD)"}
+                  </label>
+                  <Input
+                    value={limitPrice}
+                    onChange={(e) => setLimitPrice(e.target.value)}
+                    placeholder={String(priceData?.price.toFixed(2) ?? "0")}
+                    type="number"
+                  />
+                </div>
+              )}
               <div>
                 <label className="mv-label">Amount ({asset?.symbol})</label>
                 <Input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" type="number" step="any" />
@@ -231,10 +319,30 @@ export function TradePanel({ session, initialAsset = "sol", onSuccess }: TradePa
               size="lg"
               onClick={handlePlaceOrder}
             >
-              {side === "buy" ? "Buy now" : "Sell now"}
+              {tradeMode === "sniper"
+                ? "Snipe"
+                : tradeMode === "limit"
+                  ? `Place limit ${side}`
+                  : side === "buy"
+                    ? "Buy now"
+                    : "Sell now"}
             </Button>
             {orderNote && <p className="mv-alert-info mt-2 text-[10px]">{orderNote}</p>}
+              </>
+            )}
           </div>
+
+          {openOrders.filter((o) => o.status === "open").length > 0 && (
+            <div className="mv-panel max-h-32 overflow-auto p-2 text-[10px]">
+              <p className="mb-1 font-semibold uppercase text-[var(--muted)]">Open orders</p>
+              {openOrders.filter((o) => o.status === "open").map((o) => (
+                <div key={o.id} className="flex items-center justify-between border-b border-[var(--border)] py-1">
+                  <span>{o.type} {o.side} {o.asset} @ ${o.price}</span>
+                  <button type="button" className="text-[var(--loss)]" onClick={() => { cancelLimitOrder(o.id); refreshOrders(); }}>×</button>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="mv-panel p-3 text-[10px] text-[var(--muted)]">
             <p className="font-medium text-[var(--foreground)]">Wallet</p>

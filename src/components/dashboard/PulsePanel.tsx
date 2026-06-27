@@ -52,18 +52,17 @@ type PulsePanelProps = {
 function TokenCard({
   token,
   onTrade,
+  onSnipe,
 }: {
   token: PulseToken;
   onTrade: () => void;
+  onSnipe: () => void;
 }) {
   const positive = token.change >= 0;
 
   return (
-    <button
-      type="button"
-      onClick={onTrade}
-      className="ax-table-row flex w-full items-center gap-2 px-3 py-2.5 text-left"
-    >
+    <div className="ax-table-row flex w-full items-center gap-2 px-3 py-2.5">
+      <button type="button" onClick={onTrade} className="flex min-w-0 flex-1 items-center gap-2 text-left">
       <div
         className="flex h-8 w-8 shrink-0 items-center justify-center text-[10px] font-bold"
         style={{
@@ -96,7 +95,15 @@ function TokenCard({
           {token.change.toFixed(1)}%
         </span>
       </div>
-    </button>
+      </button>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onSnipe(); }}
+        className="shrink-0 border border-[var(--gain)] bg-[var(--gain-soft)] px-2 py-1 text-[9px] font-bold uppercase text-[var(--gain)] hover:brightness-110"
+      >
+        Snipe
+      </button>
+    </div>
   );
 }
 
@@ -162,6 +169,7 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
                       key={token.id}
                       token={token}
                       onTrade={() => onNavigate("trade", token.id)}
+                      onSnipe={() => onNavigate("trade", token.id)}
                     />
                   ))
               )}
