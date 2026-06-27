@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 
 export async function GET(req: NextRequest) {
+  if (!process.env.ADMIN_SECRET) {
+    return NextResponse.json(
+      { error: "Admin not configured — set ADMIN_SECRET in Vercel env" },
+      { status: 503 },
+    );
+  }
   const adminKey = req.headers.get("x-admin-key");
   if (adminKey !== process.env.ADMIN_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -56,6 +62,12 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  if (!process.env.ADMIN_SECRET) {
+    return NextResponse.json(
+      { error: "Admin not configured — set ADMIN_SECRET in Vercel env" },
+      { status: 503 },
+    );
+  }
   const adminKey = req.headers.get("x-admin-key");
   if (adminKey !== process.env.ADMIN_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -36,6 +36,8 @@ type Stats = {
   byType: Record<string, number>;
 };
 
+const EMPTY_STATS: Stats = { total: 0, frozen: 0, byChain: {}, byType: {} };
+
 export default function AdminPage() {
   const [adminKey, setAdminKey] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
@@ -43,30 +45,73 @@ export default function AdminPage() {
   const [tickets, setTickets] = useState<TicketRow[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [dataError, setDataError] = useState<string | null>(null);
   const [replyDraft, setReplyDraft] = useState<Record<string, string>>({});
   const [freezeReason, setFreezeReason] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<"overview" | "wallets" | "tickets">("overview");
 
-  async function loadData(key: string) {
+  async function loadData(key: string, opts?: { skipVerify?: boolean }) {
+    const trimmed = key.trim();
+    if (!trimmed) {
+      setAuthError("Enter your admin secret key.");
+      return;
+    }
+
     setLoading(true);
+    setAuthError(null);
+    setDataError(null);
+
     try {
+      if (!opts?.skipVerify) {
+        const verifyRes = await fetch("/api/admin/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: trimmed }),
+        });
+        const verifyBody = (await verifyRes.json().catch(() => ({}))) as { error?: string };
+        if (!verifyRes.ok) {
+          sessionStorage.removeItem("mv_admin_key");
+          setAuthenticated(false);
+          setAuthError(
+            verifyBody.error
+              ?? (verifyRes.status === 401 ? "Invalid admin key." : `Could not verify key (${verifyRes.status}).`),
+          );
+          return;
+        }
+      }
+
       const [wRes, tRes] = await Promise.all([
-        fetch("/api/admin/wallets", { headers: { "x-admin-key": key } }),
-        fetch("/api/tickets", { headers: { "x-admin-key": key } }),
+        fetch("/api/admin/wallets", { headers: { "x-admin-key": trimmed } }),
+        fetch("/api/tickets", { headers: { "x-admin-key": trimmed } }),
       ]);
 
-      if (!wRes.ok) throw new Error("Invalid admin key");
+      if (!wRes.ok) {
+        const wBody = (await wRes.json().catch(() => ({}))) as { error?: string };
+        setAuthenticated(true);
+        sessionStorage.setItem("mv_admin_key", trimmed);
+        setWallets([]);
+        setStats(EMPTY_STATS);
+        setTickets([]);
+        setDataError(wBody.error ?? `Failed to load wallet data (${wRes.status}).`);
+        return;
+      }
 
       const wData = await wRes.json();
       const tData = tRes.ok ? await tRes.json() : { tickets: [] };
 
       setWallets(wData.wallets ?? []);
-      setStats(wData.stats ?? null);
+      setStats(wData.stats ?? EMPTY_STATS);
       setTickets(tData.tickets ?? []);
       setAuthenticated(true);
-      sessionStorage.setItem("mv_admin_key", key);
+      sessionStorage.setItem("mv_admin_key", trimmed);
+      if (!tRes.ok) {
+        setDataError("Wallet data loaded, but support tickets could not be fetched.");
+      }
     } catch {
+      sessionStorage.removeItem("mv_admin_key");
       setAuthenticated(false);
+      setAuthError("Could not reach server. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -94,7 +139,7 @@ export default function AdminPage() {
         frozenBy: "admin",
       }),
     });
-    await loadData(key);
+    await loadData(key, { skipVerify: true });
   }
 
   async function replyTicket(ticket: TicketRow) {
@@ -109,7 +154,7 @@ export default function AdminPage() {
         adminReply: reply,
       }),
     });
-    await loadData(adminKey);
+    await loadData(adminKey, { skipVerify: true });
   }
 
   if (!authenticated) {
@@ -123,18 +168,35 @@ export default function AdminPage() {
           <p className="text-sm text-[var(--muted)]">
             Enter your admin secret key. Set <code className="text-xs">ADMIN_SECRET</code> in Vercel env.
           </p>
-          <Input
-            type="password"
-            value={adminKey}
-            onChange={(e) => setAdminKey(e.target.value)}
-            placeholder="Admin secret"
-            onKeyDown={(e) => e.key === "Enter" && loadData(adminKey)}
-          />
-          <Button className="w-full" onClick={() => loadData(adminKey)} disabled={loading}>
-            {loading ? "Verifying…" : "Enter dashboard"}
-          </Button>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void loadData(adminKey);
+            }}
+          >
+            <Input
+              type="password"
+              value={adminKey}
+              onChange={(e) => {
+                setAdminKey(e.target.value);
+                if (authError) setAuthError(null);
+              }}
+              placeholder="Admin secret"
+              autoComplete="current-password"
+              disabled={loading}
+            />
+            {authError && (
+              <p className="text-sm text-[var(--loss)]" role="alert">
+                {authError}
+              </p>
+            )}
+            <Button type="submit" className="w-full" disabled={loading || !adminKey.trim()}>
+              {loading ? "Verifying…" : "Unlock admin panel"}
+            </Button>
+          </form>
           <Link href="/dashboard" className="block text-center text-sm text-[var(--muted)] hover:text-[var(--primary)]">
-            ← Back to wallet
+            ← Back to wallet terminal
           </Link>
         </Panel>
       </main>
@@ -168,14 +230,20 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {tab === "overview" && stats && (
+      {dataError && (
+        <p className="mb-4 border border-[var(--warning)] bg-[rgba(245,166,35,0.1)] px-3 py-2 text-sm text-[var(--warning)]" role="alert">
+          {dataError}
+        </p>
+      )}
+
+      {tab === "overview" && (
         <div className="space-y-4">
           <div className="grid gap-px border border-[var(--border)] bg-[var(--border)] sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { label: "Registered wallets", value: stats.total, icon: Wallet },
-              { label: "Frozen flags", value: stats.frozen, icon: Flag },
+              { label: "Registered wallets", value: (stats ?? EMPTY_STATS).total, icon: Wallet },
+              { label: "Frozen flags", value: (stats ?? EMPTY_STATS).frozen, icon: Flag },
               { label: "Open tickets", value: tickets.filter((t) => t.status === "open").length, icon: MessageSquare },
-              { label: "Wallet types", value: Object.keys(stats.byType).length, icon: Users },
+              { label: "Wallet types", value: Object.keys((stats ?? EMPTY_STATS).byType).length, icon: Users },
             ].map(({ label, value, icon: Icon }) => (
               <div key={label} className="mv-stat-tile flex items-center gap-3 px-4 py-4">
                 <Icon className="h-5 w-5 text-[var(--primary)]" />
@@ -191,7 +259,7 @@ export default function AdminPage() {
             <Panel className="p-4">
               <h3 className="text-sm font-semibold">By chain</h3>
               <dl className="mt-3 space-y-2 text-sm">
-                {Object.entries(stats.byChain).map(([chain, count]) => (
+                {Object.entries((stats ?? EMPTY_STATS).byChain).map(([chain, count]) => (
                   <div key={chain} className="flex justify-between border-b border-[var(--border)] pb-2">
                     <dt className="capitalize text-[var(--muted)]">{chain}</dt>
                     <dd className="font-mono font-semibold">{count}</dd>
@@ -202,7 +270,7 @@ export default function AdminPage() {
             <Panel className="p-4">
               <h3 className="text-sm font-semibold">By wallet type</h3>
               <dl className="mt-3 space-y-2 text-sm">
-                {Object.entries(stats.byType).map(([type, count]) => (
+                {Object.entries((stats ?? EMPTY_STATS).byType).map(([type, count]) => (
                   <div key={type} className="flex justify-between border-b border-[var(--border)] pb-2">
                     <dt className="capitalize text-[var(--muted)]">{type}</dt>
                     <dd className="font-mono font-semibold">{count}</dd>
