@@ -12,7 +12,7 @@ const features = [
   {
     icon: Globe,
     title: "Multi-chain",
-    description: "Ethereum, Polygon, BNB Chain, and Solana.",
+    description: "BTC, LTC, ETH, SOL, TON, XMR & XRP in one place.",
   },
   {
     icon: Zap,
@@ -51,8 +51,8 @@ export default function HomePage() {
               </span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-500">
-              Create or import a wallet, or connect MetaMask, Phantom, or Trust
-              Wallet. Private keys and seed phrases never leave your device.
+              Bitcoin, Litecoin, Ethereum, Solana, TON, Monero & XRP — one
+              vault. Keys never leave your device.
             </p>
           </section>
 

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { ChainSelect } from "@/components/ui/ChainSelect";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
-import { SessionData } from "@/lib/wallet/session";
-import { EVM_CHAINS, EvmChainKey } from "@/lib/wallet/evm";
+import { ChainId, getChain } from "@/lib/wallet/chains";
+import { getAddress, getSessionChains, SessionData } from "@/lib/wallet/session";
 import {
   isValidEvmAddress,
   isValidSolanaAddress,
@@ -21,11 +23,19 @@ type SendPanelProps = {
   onSuccess: () => void;
 };
 
-type SendNetwork = "ethereum" | "polygon" | "bsc" | "solana";
+const SENDABLE: ChainId[] = ["ethereum", "solana"];
 
 export function SendPanel({ session, onSuccess }: SendPanelProps) {
-  const [network, setNetwork] = useState<SendNetwork>(
-    session.solanaAddress && !session.evmAddress ? "solana" : "ethereum",
+  const available = useMemo(
+    () =>
+      getSessionChains(session).filter(
+        (c) => getChain(c).canSend && c !== "monero",
+      ),
+    [session],
+  );
+
+  const [chain, setChain] = useState<ChainId>(
+    available.find((c) => SENDABLE.includes(c)) ?? available[0] ?? "ethereum",
   );
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
@@ -33,27 +43,32 @@ export function SendPanel({ session, onSuccess }: SendPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
 
-  const isSolana = network === "solana";
-  const symbol = isSolana
-    ? "SOL"
-    : EVM_CHAINS[network as EvmChainKey].symbol;
+  const chainConfig = getChain(chain);
+  const canTransact = SENDABLE.includes(chain);
 
   async function handleSend() {
     setError(null);
     setTxHash(null);
+
+    if (!canTransact) {
+      setError(
+        `${chainConfig.name} send is rolling out soon. Use Receive to fund your wallet.`,
+      );
+      return;
+    }
 
     if (!recipient || !amount || parseFloat(amount) <= 0) {
       setError("Enter a valid recipient and amount");
       return;
     }
 
-    if (isSolana && !isValidSolanaAddress(recipient)) {
+    if (chain === "solana" && !isValidSolanaAddress(recipient)) {
       setError("Invalid Solana address");
       return;
     }
 
-    if (!isSolana && !isValidEvmAddress(recipient)) {
-      setError("Invalid EVM address");
+    if (chain === "ethereum" && !isValidEvmAddress(recipient)) {
+      setError("Invalid Ethereum address");
       return;
     }
 
@@ -61,7 +76,7 @@ export function SendPanel({ session, onSuccess }: SendPanelProps) {
     try {
       let hash: string;
 
-      if (isSolana) {
+      if (chain === "solana") {
         if (session.mode === "local") {
           const mnemonic = getUnlockedMnemonic();
           if (!mnemonic) throw new Error("Unlock your wallet first");
@@ -72,20 +87,11 @@ export function SendPanel({ session, onSuccess }: SendPanelProps) {
       } else if (session.mode === "local") {
         const mnemonic = getUnlockedMnemonic();
         if (!mnemonic) throw new Error("Unlock your wallet first");
-        hash = await sendEvmNativeLocal(
-          mnemonic,
-          network as EvmChainKey,
-          recipient,
-          amount,
-        );
+        hash = await sendEvmNativeLocal(mnemonic, "ethereum", recipient, amount);
       } else {
-        if (!session.evmAddress) throw new Error("No EVM wallet connected");
-        hash = await sendEvmNativeExternal(
-          network as EvmChainKey,
-          session.evmAddress,
-          recipient,
-          amount,
-        );
+        const from = getAddress(session, "ethereum");
+        if (!from) throw new Error("No Ethereum wallet");
+        hash = await sendEvmNativeExternal("ethereum", from, recipient, amount);
       }
 
       setTxHash(hash);
@@ -100,69 +106,76 @@ export function SendPanel({ session, onSuccess }: SendPanelProps) {
   }
 
   return (
-    <div className="mx-auto max-w-lg">
+    <motion.div
+      className="mx-auto max-w-lg"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+    >
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900">Send</h1>
         <p className="mt-2 text-slate-500">
-          Transfer native tokens to another wallet address.
+          Transfer crypto across your multi-chain vault.
         </p>
       </div>
 
-      <div className="space-y-5 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-lg shadow-blue-100/40">
-      <div>
-        <label className="mb-2 block text-sm font-medium text-slate-600">Network</label>
-        <Select
-          value={network}
-          onChange={(e) => setNetwork(e.target.value as SendNetwork)}
-        >
-          {session.evmAddress && (
-            <>
-              <option value="ethereum">Ethereum (ETH)</option>
-              <option value="polygon">Polygon (MATIC)</option>
-              <option value="bsc">BNB Chain (BNB)</option>
-            </>
-          )}
-          {session.solanaAddress && <option value="solana">Solana (SOL)</option>}
-        </Select>
-      </div>
-
-      <div>
-        <label className="mb-2 block text-sm font-medium text-slate-600">Recipient address</label>
-        <Input
-          value={recipient}
-          onChange={(e) => setRecipient(e.target.value)}
-          placeholder={isSolana ? "Solana address" : "0x..."}
+      <Card className="space-y-5 shadow-lg shadow-blue-100/40">
+        <ChainSelect
+          label="Network"
+          value={chain}
+          onChange={setChain}
+          chains={available.length ? available : ["ethereum", "solana"]}
         />
-      </div>
 
-      <div>
-        <label className="mb-2 block text-sm font-medium text-slate-600">Amount ({symbol})</label>
-        <Input
-          type="number"
-          min="0"
-          step="any"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="0.0"
-        />
-      </div>
+        {!canTransact && (
+          <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {chainConfig.name} send launches soon. Your receive address is ready
+            in the Receive tab.
+          </div>
+        )}
 
-      {error && (
-        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </p>
-      )}
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-600">
+            Recipient address
+          </label>
+          <Input
+            value={recipient}
+            onChange={(e) => setRecipient(e.target.value)}
+            placeholder={
+              chain === "solana" ? "Solana address" : "Wallet address"
+            }
+          />
+        </div>
 
-      {txHash && (
-        <p className="break-all rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          Sent! Tx: {txHash}
-        </p>
-      )}
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-600">
+            Amount ({chainConfig.symbol})
+          </label>
+          <Input
+            type="number"
+            min="0"
+            step="any"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="0.0"
+          />
+        </div>
 
-      <Button className="w-full" size="lg" onClick={handleSend} disabled={loading}>
-        {loading ? "Sending..." : `Send ${symbol}`}
-      </Button>
-      </div>
-    </div>
+        {error && (
+          <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </p>
+        )}
+
+        {txHash && (
+          <p className="break-all rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            Sent! Tx: {txHash}
+          </p>
+        )}
+
+        <Button className="w-full" size="lg" onClick={handleSend} disabled={loading}>
+          {loading ? "Sending..." : `Send ${chainConfig.symbol}`}
+        </Button>
+      </Card>
+    </motion.div>
   );
 }

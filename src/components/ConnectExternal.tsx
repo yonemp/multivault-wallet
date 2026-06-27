@@ -47,6 +47,7 @@ export function ConnectExternal() {
       saveSession({
         mode: "external",
         walletType: provider,
+        addresses: { ethereum: address },
         evmAddress: address,
       });
 
@@ -77,6 +78,7 @@ export function ConnectExternal() {
       saveSession({
         mode: "external",
         walletType: "phantom",
+        addresses: { solana: address },
         solanaAddress: address,
       });
 

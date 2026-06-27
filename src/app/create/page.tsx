@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { createSeedPhrase } from "@/lib/wallet/mnemonic";
+import { deriveAllAddresses } from "@/lib/wallet/derive-all";
 import { deriveEvmWallet } from "@/lib/wallet/evm";
 import { deriveSolanaKeypair } from "@/lib/wallet/solana";
 import {
@@ -80,9 +81,11 @@ export default function CreateWalletPage() {
         signature: solSignature,
       });
 
+      const addresses = await deriveAllAddresses(seedPhrase);
       saveSession({
         mode: "local",
         walletType: "created",
+        addresses,
         evmAddress: evmWallet.address,
         solanaAddress: solanaKeypair.publicKey.toBase58(),
       });
