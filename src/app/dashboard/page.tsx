@@ -14,9 +14,7 @@ import { SwapPanel } from "@/components/dashboard/SwapPanel";
 import { TradePanel } from "@/components/dashboard/TradePanel";
 import { VisionPanel } from "@/components/dashboard/VisionPanel";
 import { TrackersPanel } from "@/components/dashboard/TrackersPanel";
-import { PerpetualsPanel } from "@/components/dashboard/PerpetualsPanel";
-import { PredictionsPanel } from "@/components/dashboard/PredictionsPanel";
-import { WalletsPanel } from "@/components/dashboard/WalletsPanel";
+
 import { RewardsPanel } from "@/components/dashboard/RewardsPanel";
 import { TweetMonitorPanel } from "@/components/dashboard/TweetMonitorPanel";
 import { TraderScanPanel } from "@/components/dashboard/TraderScanPanel";
@@ -147,8 +145,6 @@ export default function DashboardPage() {
             />
           )}
           {activeTab === "trackers" && <TrackersPanel />}
-          {activeTab === "perpetuals" && <PerpetualsPanel />}
-          {activeTab === "predictions" && <PredictionsPanel />}
           {activeTab === "vision" && <VisionPanel />}
           {activeTab === "rewards" && <RewardsPanel />}
           {activeTab === "tweets" && <TweetMonitorPanel />}
@@ -178,7 +174,6 @@ export default function DashboardPage() {
             </UnlockGate>
           )}
           {activeTab === "buy" && <BuyCryptoPanel />}
-          {activeTab === "wallets" && <WalletsPanel />}
           {activeTab === "fees" && <FeesPanel />}
           {activeTab === "faqs" && <FaqsPanel />}
           {activeTab === "support" && <SupportPanel />}

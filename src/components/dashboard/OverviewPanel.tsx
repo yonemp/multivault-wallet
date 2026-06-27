@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { DashboardTab } from "@/components/dashboard/ActionTabs";
+import { WalletsPanel } from "@/components/dashboard/WalletsPanel";
 import { MiniSparkline } from "@/components/charts/MiniSparkline";
 import { PnlCalendarModal } from "@/components/dashboard/PnlCalendarModal";
 import type { AssetMarketData } from "@/app/api/prices/route";
@@ -19,7 +20,7 @@ type OverviewPanelProps = {
   onRefresh?: () => void;
 };
 
-const PORTFOLIO_TABS = ["Spot", "Wallets", "Perpetuals"] as const;
+const PORTFOLIO_TABS = ["Spot", "Wallets"] as const;
 const BOTTOM_TABS = ["Active Positions", "Activity", "Transfers"] as const;
 
 const MOCK_POSITIONS = [
@@ -88,18 +89,42 @@ export function OverviewPanel({
     }));
   }, [portfolioUsd]);
 
-  return (
-    <div className="flex h-full flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex gap-1">
+  if (portfolioTab === "Wallets") {
+    return (
+      <div className="flex h-full min-h-0 flex-col gap-2">
+        <div className="flex gap-1 border-b border-[var(--border)]">
           {PORTFOLIO_TABS.map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => setPortfolioTab(tab)}
-              className={`px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide ${
+              className={`px-4 py-2 text-[11px] font-semibold ${
                 portfolioTab === tab
-                  ? "bg-[var(--primary-soft)] text-[var(--primary)]"
+                  ? "border-b-2 border-[var(--primary)] text-[var(--foreground)]"
+                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+        <WalletsPanel session={session} balances={balances} onNavigate={onNavigate} onRefresh={onRefresh} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex gap-1 border-b border-[var(--border)]">
+          {PORTFOLIO_TABS.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setPortfolioTab(tab)}
+              className={`px-4 py-2 text-[11px] font-semibold ${
+                portfolioTab === tab
+                  ? "border-b-2 border-[var(--primary)] text-[var(--foreground)]"
                   : "text-[var(--muted)] hover:text-[var(--foreground)]"
               }`}
             >
