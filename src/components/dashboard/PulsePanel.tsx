@@ -3,8 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PulseToken } from "@/app/api/pulse/route";
 import { DashboardTab } from "@/components/dashboard/ActionTabs.types";
+import {
+  applyPulseColumnFilters,
+  countActivePulseFilters,
+  DEFAULT_PULSE_FILTERS,
+  PulseColumnFilters,
+  type PulseColumnFilterState,
+} from "@/components/dashboard/PulseColumnFilters";
 import { formatCompactUsd } from "@/lib/format/numbers";
-import { ChevronDown, Filter, RefreshCw, Search, Zap } from "lucide-react";
+import { Filter, RefreshCw, Zap } from "lucide-react";
 
 const COLUMNS: { key: PulseToken["column"]; title: string }[] = [
   { key: "new", title: "New Pairs" },
@@ -14,16 +21,6 @@ const COLUMNS: { key: PulseToken["column"]; title: string }[] = [
 
 const ROW_GRID =
   "grid grid-cols-[minmax(0,1.5fr)_minmax(0,0.85fr)_minmax(0,0.85fr)_auto] items-center gap-3";
-
-export type ColumnFilters = {
-  mcapMin: number;
-  volMin: number;
-};
-
-const DEFAULT_FILTERS: ColumnFilters = {
-  mcapMin: 0,
-  volMin: 0,
-};
 
 type PulsePanelProps = {
   onNavigate: (tab: DashboardTab, asset?: string) => void;
@@ -37,69 +34,6 @@ function formatAge(ms: number) {
   const hr = Math.floor(min / 60);
   if (hr < 24) return `${hr}h`;
   return `${Math.floor(hr / 24)}d`;
-}
-
-function applyFilters(tokens: PulseToken[], f: ColumnFilters, search: string) {
-  const q = search.trim().toLowerCase();
-  return tokens.filter((t) => {
-    if (q && !t.symbol.toLowerCase().includes(q) && !t.name.toLowerCase().includes(q) && !t.address.toLowerCase().includes(q)) return false;
-    if (t.mcap < f.mcapMin) return false;
-    if (t.volume < f.volMin) return false;
-    return true;
-  });
-}
-
-function ColumnFilterBar({
-  filters,
-  onChange,
-}: {
-  filters: ColumnFilters;
-  onChange: (f: ColumnFilters) => void;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="border-b border-[var(--border-strong)] bg-[var(--bg-elevated)] px-4 py-2">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2 text-xs font-semibold text-[var(--muted)] hover:text-[var(--foreground)]"
-      >
-        <Filter className="h-3.5 w-3.5" />
-        Filters
-        <ChevronDown className={`ml-auto h-4 w-4 transition ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && (
-        <div className="mt-3 space-y-2 pb-1">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted-dim)]">MC min ($)</label>
-              <input
-                type="number"
-                value={filters.mcapMin || ""}
-                onChange={(e) => onChange({ ...filters, mcapMin: Number(e.target.value) || 0 })}
-                placeholder="0"
-                className="mv-input mt-1 !py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted-dim)]">Vol min ($)</label>
-              <input
-                type="number"
-                value={filters.volMin || ""}
-                onChange={(e) => onChange({ ...filters, volMin: Number(e.target.value) || 0 })}
-                placeholder="0"
-                className="mv-input mt-1 !py-2 text-sm"
-              />
-            </div>
-          </div>
-          <button type="button" onClick={() => onChange(DEFAULT_FILTERS)} className="text-xs font-medium text-[var(--primary)] hover:underline">
-            Reset filters
-          </button>
-        </div>
-      )}
-    </div>
-  );
 }
 
 function PulseRow({ token, onTrade }: { token: PulseToken; onTrade: () => void }) {
@@ -165,7 +99,7 @@ function PulseRow({ token, onTrade }: { token: PulseToken; onTrade: () => void }
                 LIVE
               </span>
             )}
-            <span className="truncate text-xs text-[var(--muted)]">pump.fun</span>
+            <span className="truncate text-xs capitalize text-[var(--muted)]">{token.protocol}</span>
           </div>
           <span className="font-mono text-xs text-[var(--muted-dim)]">{token.age}</span>
         </div>
@@ -200,20 +134,16 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
   const volAccumRef = useRef<Record<string, number>>({});
   const solUsdRef = useRef(140);
 
+  const [columnFilters, setColumnFilters] = useState<Record<PulseToken["column"], PulseColumnFilterState>>({
+    new: { ...DEFAULT_PULSE_FILTERS },
+    final: { ...DEFAULT_PULSE_FILTERS },
+    migrated: { ...DEFAULT_PULSE_FILTERS },
+  });
+  const [openFilterColumn, setOpenFilterColumn] = useState<PulseToken["column"] | null>(null);
+
   useEffect(() => {
     tokensRef.current = tokens;
   }, [tokens]);
-
-  const [columnFilters, setColumnFilters] = useState<Record<PulseToken["column"], ColumnFilters>>({
-    new: { ...DEFAULT_FILTERS },
-    final: { ...DEFAULT_FILTERS },
-    migrated: { ...DEFAULT_FILTERS },
-  });
-  const [columnSearch, setColumnSearch] = useState<Record<PulseToken["column"], string>>({
-    new: "",
-    final: "",
-    migrated: "",
-  });
 
   const loadPulse = useCallback(async (silent = false) => {
     if (!silent) {
@@ -329,28 +259,43 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
 
       <div className="ax-pulse-grid min-h-0 flex-1 overflow-hidden">
         {COLUMNS.map(({ key, title }, index) => {
-          const colTokens = applyFilters(
+          const colTokens = applyPulseColumnFilters(
             tokens.filter((t) => t.column === key),
             columnFilters[key],
-            columnSearch[key],
           );
+          const activeFilters = countActivePulseFilters(columnFilters[key]);
+
           return (
             <div
               key={key}
-              className={`ax-pulse-col min-h-[320px] md:min-h-0 ${
+              className={`ax-pulse-col relative min-h-[320px] md:min-h-0 ${
                 index === 1 ? "md:mx-0.5 md:ring-1 md:ring-[var(--border-strong)]" : ""
               }`}
             >
               <div className="flex items-center gap-2 border-b border-[var(--border-strong)] bg-[var(--bg-elevated)] px-4 py-3">
                 <span className="text-xs font-bold uppercase tracking-widest text-[var(--foreground)]">{title}</span>
-                <span className="ml-auto rounded-sm border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 font-mono text-xs text-[var(--muted)]">
+                <button
+                  type="button"
+                  onClick={() => setOpenFilterColumn(key)}
+                  className={`ax-pulse-col-header-filter ml-auto ${openFilterColumn === key ? "active" : ""}`}
+                >
+                  <Filter className="h-3 w-3" />
+                  Filters
+                  {activeFilters > 0 && <span className="badge">{activeFilters}</span>}
+                </button>
+                <span className="rounded-sm border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 font-mono text-xs text-[var(--muted)]">
                   {colTokens.length}/{counts[key]}
                 </span>
               </div>
-              <ColumnFilterBar
+
+              <PulseColumnFilters
+                open={openFilterColumn === key}
+                columnTitle={title}
                 filters={columnFilters[key]}
                 onChange={(f) => setColumnFilters((prev) => ({ ...prev, [key]: f }))}
+                onClose={() => setOpenFilterColumn(null)}
               />
+
               <div
                 className={`${ROW_GRID} gap-3 border-b border-[var(--border-strong)] bg-[var(--surface)] px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]`}
               >
@@ -359,15 +304,7 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
                 <span>Vol</span>
                 <span />
               </div>
-              <div className="relative border-b border-[var(--border-strong)] px-4 py-2.5">
-                <Search className="absolute left-7 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-dim)]" />
-                <input
-                  value={columnSearch[key]}
-                  onChange={(e) => setColumnSearch((prev) => ({ ...prev, [key]: e.target.value }))}
-                  placeholder="Search symbol or address…"
-                  className="w-full rounded-sm border border-[var(--border)] bg-[var(--surface-solid)] py-2 pl-9 pr-3 text-sm outline-none focus:border-[var(--primary)]"
-                />
-              </div>
+
               <div className="min-h-0 flex-1 overflow-y-auto">
                 {loading && !colTokens.length ? (
                   Array.from({ length: 5 }).map((_, i) => (

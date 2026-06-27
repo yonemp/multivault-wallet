@@ -13,10 +13,14 @@ export type PulseToken = {
   bondingProgress: number;
   column: "new" | "final" | "migrated";
   protocol: string;
+  quoteToken: string;
   priceUsd: number;
   pairUrl: string;
   imageUri?: string;
   isLive?: boolean;
+  hasTwitter?: boolean;
+  hasTelegram?: boolean;
+  hasWebsite?: boolean;
 };
 
 type PumpV3Coin = {
@@ -37,6 +41,10 @@ type PumpV3Coin = {
   raydium_pool?: string | null;
   protocol?: string;
   total_supply?: number;
+  twitter?: string;
+  telegram?: string;
+  website?: string;
+  quote_mint?: string;
 };
 
 type PumpV2Coin = {
@@ -86,6 +94,20 @@ function classify(progress: number, graduated: boolean): PulseToken["column"] {
   return "new";
 }
 
+const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+const USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
+
+function quoteTokenFromMint(mint?: string): string {
+  if (mint === USDC_MINT) return "USDC";
+  if (mint === USDT_MINT) return "USDT";
+  return "SOL";
+}
+
+function normalizeProtocol(raw?: string): string {
+  if (!raw) return "pump";
+  return raw.toLowerCase().replace(/\.fun$/, "").trim();
+}
+
 function mapV3Coin(coin: PumpV3Coin, extra?: Partial<PulseToken>): PulseToken | null {
   if (!coin.mint || !coin.symbol) return null;
   const ageMs = coin.created_timestamp ? Date.now() - coin.created_timestamp : 0;
@@ -105,11 +127,15 @@ function mapV3Coin(coin: PumpV3Coin, extra?: Partial<PulseToken>): PulseToken | 
     txCount: extra?.txCount ?? coin.reply_count ?? 0,
     bondingProgress: progress,
     column: classify(progress, graduated),
-    protocol: "pump.fun",
+    protocol: normalizeProtocol(coin.protocol),
+    quoteToken: quoteTokenFromMint(coin.quote_mint),
     priceUsd: mcap > 0 && coin.total_supply ? mcap / (coin.total_supply / 1e6) : 0,
     pairUrl: `https://pump.fun/coin/${coin.mint}`,
     imageUri: coin.image_uri,
     isLive: coin.is_currently_live,
+    hasTwitter: Boolean(coin.twitter?.trim()),
+    hasTelegram: Boolean(coin.telegram?.trim()),
+    hasWebsite: Boolean(coin.website?.trim()),
     ...extra,
   };
 }
@@ -132,7 +158,8 @@ function mapV2Coin(coin: PumpV2Coin): PulseToken | null {
     txCount: coin.transactions ?? 0,
     bondingProgress: progress,
     column: classify(progress, graduated),
-    protocol: "pump.fun",
+    protocol: "pump",
+    quoteToken: "SOL",
     priceUsd: 0,
     pairUrl: `https://pump.fun/coin/${coin.coinMint}`,
     imageUri: coin.imageUrl,

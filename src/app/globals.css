@@ -382,6 +382,96 @@ a {
   animation: ax-pulse-dot 2s ease-in-out infinite;
 }
 
+.ax-pulse-filter-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(4px);
+  padding: 0.5rem;
+}
+
+.ax-pulse-filter-panel {
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+
+.ax-pulse-filter-input {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-solid);
+  padding: 0.5rem 0.65rem;
+  font-size: 0.75rem;
+  color: var(--foreground);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.ax-pulse-filter-input:focus {
+  border-color: var(--primary);
+}
+
+.ax-pulse-filter-input::placeholder {
+  color: var(--muted-dim);
+}
+
+.ax-pulse-protocol-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  transition: transform 0.1s, box-shadow 0.15s;
+}
+
+.ax-pulse-protocol-pill:hover {
+  transform: translateY(-1px);
+}
+
+.ax-pulse-col-header-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--muted);
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.ax-pulse-col-header-filter:hover,
+.ax-pulse-col-header-filter.active {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.ax-pulse-col-header-filter .badge {
+  display: inline-flex;
+  height: 1rem;
+  min-width: 1rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: #3b82f6;
+  padding: 0 0.25rem;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  color: white;
+}
+
 .ax-instant-trade {
   border-radius: var(--radius-md);
   overflow: hidden;
