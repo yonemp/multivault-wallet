@@ -1,6 +1,9 @@
 export type DashboardTab =
   | "pulse"
   | "discover"
+  | "trackers"
+  | "perpetuals"
+  | "predictions"
   | "similar"
   | "trade"
   | "instant"

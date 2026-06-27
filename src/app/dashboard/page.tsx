@@ -16,13 +16,16 @@ import { SendPanel } from "@/components/dashboard/SendPanel";
 import { SwapPanel } from "@/components/dashboard/SwapPanel";
 import { TradePanel } from "@/components/dashboard/TradePanel";
 import { VisionPanel } from "@/components/dashboard/VisionPanel";
+import { TrackersPanel } from "@/components/dashboard/TrackersPanel";
+import { PerpetualsPanel } from "@/components/dashboard/PerpetualsPanel";
+import { PredictionsPanel } from "@/components/dashboard/PredictionsPanel";
+import { WalletsPanel } from "@/components/dashboard/WalletsPanel";
 import { RewardsPanel } from "@/components/dashboard/RewardsPanel";
 import { TweetMonitorPanel } from "@/components/dashboard/TweetMonitorPanel";
 import { TraderScanPanel } from "@/components/dashboard/TraderScanPanel";
 import { InstantTradePanel } from "@/components/dashboard/InstantTradePanel";
 import {
   BuyCryptoPanel,
-  MultiWalletPanel,
   FeesPanel,
   FaqsPanel,
   SupportPanel,
@@ -193,6 +196,9 @@ export default function DashboardPage() {
                   onSuccess={() => session && loadBalances(session)}
                 />
               )}
+              {activeTab === "trackers" && <TrackersPanel />}
+              {activeTab === "perpetuals" && <PerpetualsPanel />}
+              {activeTab === "predictions" && <PredictionsPanel />}
               {activeTab === "vision" && <VisionPanel />}
               {activeTab === "rewards" && <RewardsPanel />}
               {activeTab === "tweets" && <TweetMonitorPanel />}
@@ -207,7 +213,7 @@ export default function DashboardPage() {
                   <p className="text-sm text-[var(--muted)]">Unlock to convert tokens</p>
                 ))}
               {activeTab === "buy" && <BuyCryptoPanel />}
-              {activeTab === "wallets" && <MultiWalletPanel />}
+              {activeTab === "wallets" && <WalletsPanel />}
               {activeTab === "fees" && <FeesPanel />}
               {activeTab === "faqs" && <FaqsPanel />}
               {activeTab === "support" && <SupportPanel />}
