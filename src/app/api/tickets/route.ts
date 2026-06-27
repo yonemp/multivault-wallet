@@ -35,23 +35,44 @@ function fallbackTicket(body: {
   return ticket;
 }
 
+async function fetchTicketsFromDb(filters?: { wallet?: string; username?: string }) {
+  const supabase = createServerClient();
+  let query = supabase.from("support_tickets").select("*").order("created_at", { ascending: false });
+
+  if (filters?.wallet && filters?.username) {
+    query = query.or(
+      `wallet_address.eq.${filters.wallet},username.eq.${filters.username}`,
+    );
+  } else if (filters?.wallet) {
+    query = query.eq("wallet_address", filters.wallet);
+  } else if (filters?.username) {
+    query = query.eq("username", filters.username);
+  }
+
+  return query;
+}
+
 export async function GET(req: NextRequest) {
-  if (!process.env.ADMIN_SECRET) {
+  const adminKey = req.headers.get("x-admin-key");
+  const isAdmin = Boolean(
+    process.env.ADMIN_SECRET && adminKey === process.env.ADMIN_SECRET,
+  );
+
+  const wallet = req.nextUrl.searchParams.get("wallet")?.trim() || undefined;
+  const username = req.nextUrl.searchParams.get("username")?.trim().toLowerCase() || undefined;
+
+  if (!isAdmin) {
+    if (!wallet && !username) {
+      return NextResponse.json({ error: "wallet or username required" }, { status: 400 });
+    }
+  } else if (!process.env.ADMIN_SECRET) {
     return NextResponse.json(
       { error: "Admin not configured — set ADMIN_SECRET in Vercel env" },
       { status: 503 },
     );
   }
-  const adminKey = req.headers.get("x-admin-key");
-  if (adminKey !== process.env.ADMIN_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
-  const supabase = createServerClient();
-  const { data, error } = await supabase
-    .from("support_tickets")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const { data, error } = await fetchTicketsFromDb(isAdmin ? undefined : { wallet, username });
 
   if (error) {
     if (isMissingTicketsTable(error.message)) {

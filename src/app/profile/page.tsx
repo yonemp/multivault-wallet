@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { SecurityPanel } from "@/components/profile/SecurityPanel";
+import { MyTicketsPanel } from "@/components/profile/MyTicketsPanel";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Panel } from "@/components/ui/Panel";
@@ -21,9 +23,10 @@ import { ArrowLeft, MessageSquare, Shield, User } from "lucide-react";
 
 const AVATAR_COLORS = ["#526fff", "#9945FF", "#F7931A", "#00c076", "#ff4d6a", "#F0B90B"];
 
-type ProfileTab = "profile" | "security";
+type ProfileTab = "profile" | "security" | "support";
 
 export default function ProfilePage() {
+  const searchParams = useSearchParams();
   const [session, setSession] = useState<SessionData | null>(null);
   const [tab, setTab] = useState<ProfileTab>("profile");
   const [displayName, setDisplayName] = useState("");
@@ -34,12 +37,22 @@ export default function ProfilePage() {
   const [savedLocally, setSavedLocally] = useState(false);
   const [ticketSent, setTicketSent] = useState(false);
   const [ticketQueuedLocally, setTicketQueuedLocally] = useState(false);
+  const [ticketRefreshKey, setTicketRefreshKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  const accountUsername = getAccountUsername();
 
   const lock = useWalletLock(session);
 
   const primaryAddress =
     session ? getAddress(session, "ethereum") ?? getAddress(session, "solana") : null;
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "support" || tabParam === "security" || tabParam === "profile") {
+      setTab(tabParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const s = loadSession();
@@ -158,11 +171,12 @@ export default function ProfilePage() {
         synced?: boolean;
         setupRequired?: boolean;
         error?: string;
+        ticket?: { id?: string };
       };
       if (res.ok) {
         synced = data.synced !== false;
         setupRequired = data.setupRequired === true;
-        if (synced) markTicketSynced(local.id);
+        if (synced) markTicketSynced(local.id, data.ticket?.id);
       } else if (!data.error?.includes("support_tickets")) {
         setError(data.error ?? "Failed to submit ticket");
         return;
@@ -175,6 +189,7 @@ export default function ProfilePage() {
     setTicketBody("");
     setTicketQueuedLocally(!synced || setupRequired);
     setTicketSent(true);
+    setTicketRefreshKey((k) => k + 1);
     setTimeout(() => {
       setTicketSent(false);
       setTicketQueuedLocally(false);
@@ -207,6 +222,7 @@ export default function ProfilePage() {
       <div className="mb-4 flex gap-1 border-b border-[var(--border)]">
         {([
           { id: "profile" as const, label: "Profile", icon: User },
+          { id: "support" as const, label: "Support", icon: MessageSquare },
           { id: "security" as const, label: "Security", icon: Shield },
         ]).map(({ id, label, icon: Icon }) => (
           <button
@@ -227,6 +243,47 @@ export default function ProfilePage() {
 
       {tab === "security" ? (
         <SecurityPanel />
+      ) : tab === "support" ? (
+        <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+          <MyTicketsPanel
+            wallet={primaryAddress ?? null}
+            username={accountUsername}
+            refreshKey={ticketRefreshKey}
+          />
+          <Panel className="mv-glass space-y-4 p-5">
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <MessageSquare className="h-4 w-4 text-[var(--primary)]" /> New ticket
+            </h2>
+            <p className="text-xs text-[var(--muted)]">
+              Describe your issue. Replies show up in My tickets on the left.
+            </p>
+            <div>
+              <label className="mv-label">Subject</label>
+              <Input value={ticketSubject} onChange={(e) => setTicketSubject(e.target.value)} placeholder="Brief summary" />
+            </div>
+            <div>
+              <label className="mv-label">Message</label>
+              <textarea
+                value={ticketBody}
+                onChange={(e) => setTicketBody(e.target.value)}
+                rows={5}
+                className="mv-input resize-none"
+                placeholder="Describe your issue…"
+              />
+            </div>
+            {error && <p className="mv-alert-error">{error}</p>}
+            {ticketSent && (
+              <p className="mv-alert-success">
+                {ticketQueuedLocally
+                  ? "Ticket received — check My tickets for status"
+                  : "Ticket submitted — check My tickets for replies"}
+              </p>
+            )}
+            <Button className="w-full" onClick={submitTicket}>
+              Submit ticket
+            </Button>
+          </Panel>
+        </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
           <div className="space-y-4">
@@ -292,34 +349,13 @@ export default function ProfilePage() {
 
           <Panel className="mv-glass space-y-4 p-5">
             <h2 className="flex items-center gap-2 text-sm font-semibold">
-              <MessageSquare className="h-4 w-4 text-[var(--primary)]" /> Support ticket
+              <MessageSquare className="h-4 w-4 text-[var(--primary)]" /> Support
             </h2>
             <p className="text-xs text-[var(--muted)]">
-              Report issues or request help. Admins respond from the admin dashboard.
+              Open the Support tab to submit tickets and see admin replies.
             </p>
-            <div>
-              <label className="mv-label">Subject</label>
-              <Input value={ticketSubject} onChange={(e) => setTicketSubject(e.target.value)} placeholder="Brief summary" />
-            </div>
-            <div>
-              <label className="mv-label">Message</label>
-              <textarea
-                value={ticketBody}
-                onChange={(e) => setTicketBody(e.target.value)}
-                rows={5}
-                className="mv-input resize-none"
-                placeholder="Describe your issue…"
-              />
-            </div>
-            {ticketSent && (
-              <p className="mv-alert-success">
-                {ticketQueuedLocally
-                  ? "Ticket received — queued until support database is configured"
-                  : "Ticket submitted to support"}
-              </p>
-            )}
-            <Button variant="secondary" className="w-full" onClick={submitTicket}>
-              Submit ticket
+            <Button variant="secondary" className="w-full" onClick={() => setTab("support")}>
+              View my tickets
             </Button>
           </Panel>
         </div>

@@ -126,10 +126,10 @@ export function SupportPanel() {
       <PageHeader title="Support" description="Get help via tickets or community" />
       <div className="mv-panel space-y-4 p-6">
         <p className="text-sm text-[var(--muted)]">
-          Open a support ticket from your profile, or reach the team through Discord.
+          Submit tickets and read admin replies from Profile → Support.
         </p>
-        <Link href="/profile">
-          <Button className="w-full">Open support ticket</Button>
+        <Link href="/profile?tab=support">
+          <Button className="w-full">My support tickets</Button>
         </Link>
         <a
           href="https://discord.gg"
