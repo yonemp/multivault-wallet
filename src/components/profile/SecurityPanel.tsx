@@ -37,6 +37,32 @@ export function SecurityPanel() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  function exportSeedPhrase() {
+    if (!mnemonic) return;
+    const date = new Date().toISOString().slice(0, 10);
+    const content = [
+      "MULTIVAULT RECOVERY PHRASE BACKUP",
+      "=================================",
+      `Exported: ${new Date().toLocaleString()}`,
+      "",
+      "WARNING: Anyone with this phrase controls your funds.",
+      "Store offline. Never share. MultiVault cannot recover lost phrases.",
+      "",
+      "RECOVERY PHRASE (write in order):",
+      "",
+      mnemonic,
+      "",
+      "--- END ---",
+    ].join("\n");
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `multivault-seed-phrase-${date}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function downloadEncryptedBackup() {
     const payload = loadEncryptedWallet();
     if (!payload) {
@@ -136,10 +162,17 @@ export function SecurityPanel() {
                 <Copy className="h-3.5 w-3.5" />
                 {copied ? "Copied!" : "Copy phrase"}
               </Button>
+              <Button variant="outline" onClick={exportSeedPhrase} className="flex items-center gap-1">
+                <Download className="h-3.5 w-3.5" />
+                Export .txt backup
+              </Button>
               <Button variant="ghost" onClick={() => setShowSeed(false)} className="flex items-center gap-1">
                 <EyeOff className="h-3.5 w-3.5" /> Hide
               </Button>
             </div>
+            <p className="text-[10px] text-[var(--muted)]">
+              Manually write your phrase on paper as well. The exported file is only as safe as where you store it.
+            </p>
           </div>
         )}
       </Panel>

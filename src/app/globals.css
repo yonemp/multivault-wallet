@@ -351,3 +351,10 @@ a {
 .ax-live-dot {
   animation: ax-pulse-dot 2s ease-in-out infinite;
 }
+
+.ax-instant-trade {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-xl), 0 0 40px rgba(0, 0, 0, 0.8);
+}

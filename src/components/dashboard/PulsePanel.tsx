@@ -7,9 +7,11 @@ import {
   buildMemeTokens,
   formatCompactUsd,
   MemeToken,
+  Protocol,
   PulseColumn,
+  PULSE_FILTER_LABELS,
 } from "@/lib/platform/mock-tokens";
-import { ChevronDown, Search, Zap } from "lucide-react";
+import { ChevronDown, Filter, Search, Zap } from "lucide-react";
 
 const TIME_FILTERS = ["1m", "5m", "30m", "1h", "3h", "6h", "12h", "24h", "3d"] as const;
 
@@ -19,9 +21,165 @@ const COLUMNS: { key: PulseColumn; title: string }[] = [
   { key: "migrated", title: "Migrated" },
 ];
 
+const PROTOCOLS: Protocol[] = ["pump.fun", "raydium", "meteora", "moonshot"];
+
+export type ColumnFilters = {
+  protocol: Protocol | "all";
+  mcapMin: number;
+  volMin: number;
+  devMax: number;
+  bundlersMax: number;
+  snipersMax: number;
+  insidersMax: number;
+  newWalletsMin: number;
+};
+
+const DEFAULT_FILTERS: ColumnFilters = {
+  protocol: "all",
+  mcapMin: 0,
+  volMin: 0,
+  devMax: 100,
+  bundlersMax: 999,
+  snipersMax: 999,
+  insidersMax: 999,
+  newWalletsMin: 0,
+};
+
 type PulsePanelProps = {
   onNavigate: (tab: DashboardTab, asset?: string) => void;
 };
+
+function applyFilters(tokens: MemeToken[], f: ColumnFilters, search: string) {
+  const q = search.trim().toLowerCase();
+  return tokens.filter((t) => {
+    if (q && !t.symbol.toLowerCase().includes(q) && !t.name.toLowerCase().includes(q)) return false;
+    if (f.protocol !== "all" && t.protocol !== f.protocol) return false;
+    if (t.mcap < f.mcapMin) return false;
+    if (t.volume < f.volMin) return false;
+    if (t.devHolding > f.devMax) return false;
+    if (t.bundlers > f.bundlersMax) return false;
+    if (t.snipers > f.snipersMax) return false;
+    if (t.insiders > f.insidersMax) return false;
+    if (t.newWallets < f.newWalletsMin) return false;
+    return true;
+  });
+}
+
+function ColumnFilterBar({
+  filters,
+  onChange,
+}: {
+  filters: ColumnFilters;
+  onChange: (f: ColumnFilters) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="border-b border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-1 text-[9px] font-semibold text-[var(--muted)] hover:text-[var(--foreground)]"
+      >
+        <Filter className="h-3 w-3" />
+        Filters
+        <ChevronDown className={`ml-auto h-3 w-3 transition ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="mt-1.5 space-y-1.5 pb-1">
+          <div>
+            <label className="text-[8px] uppercase text-[var(--muted-dim)]">{PULSE_FILTER_LABELS.protocol}</label>
+            <select
+              value={filters.protocol}
+              onChange={(e) => onChange({ ...filters, protocol: e.target.value as ColumnFilters["protocol"] })}
+              className="mv-input mt-0.5 !py-1 text-[9px]"
+            >
+              <option value="all">All</option>
+              {PROTOCOLS.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            <div>
+              <label className="text-[8px] uppercase text-[var(--muted-dim)]">{PULSE_FILTER_LABELS.mcap} min</label>
+              <input
+                type="number"
+                value={filters.mcapMin || ""}
+                onChange={(e) => onChange({ ...filters, mcapMin: Number(e.target.value) || 0 })}
+                placeholder="0"
+                className="mv-input mt-0.5 !py-1 text-[9px]"
+              />
+            </div>
+            <div>
+              <label className="text-[8px] uppercase text-[var(--muted-dim)]">{PULSE_FILTER_LABELS.volume} min</label>
+              <input
+                type="number"
+                value={filters.volMin || ""}
+                onChange={(e) => onChange({ ...filters, volMin: Number(e.target.value) || 0 })}
+                placeholder="0"
+                className="mv-input mt-0.5 !py-1 text-[9px]"
+              />
+            </div>
+            <div>
+              <label className="text-[8px] uppercase text-[var(--muted-dim)]">{PULSE_FILTER_LABELS.devHolding} max%</label>
+              <input
+                type="number"
+                value={filters.devMax}
+                onChange={(e) => onChange({ ...filters, devMax: Number(e.target.value) || 100 })}
+                className="mv-input mt-0.5 !py-1 text-[9px]"
+              />
+            </div>
+            <div>
+              <label className="text-[8px] uppercase text-[var(--muted-dim)]">{PULSE_FILTER_LABELS.bundlers} max</label>
+              <input
+                type="number"
+                value={filters.bundlersMax}
+                onChange={(e) => onChange({ ...filters, bundlersMax: Number(e.target.value) || 999 })}
+                className="mv-input mt-0.5 !py-1 text-[9px]"
+              />
+            </div>
+            <div>
+              <label className="text-[8px] uppercase text-[var(--muted-dim)]">{PULSE_FILTER_LABELS.snipers} max</label>
+              <input
+                type="number"
+                value={filters.snipersMax}
+                onChange={(e) => onChange({ ...filters, snipersMax: Number(e.target.value) || 999 })}
+                className="mv-input mt-0.5 !py-1 text-[9px]"
+              />
+            </div>
+            <div>
+              <label className="text-[8px] uppercase text-[var(--muted-dim)]">{PULSE_FILTER_LABELS.insiders} max</label>
+              <input
+                type="number"
+                value={filters.insidersMax}
+                onChange={(e) => onChange({ ...filters, insidersMax: Number(e.target.value) || 999 })}
+                className="mv-input mt-0.5 !py-1 text-[9px]"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-[8px] uppercase text-[var(--muted-dim)]">{PULSE_FILTER_LABELS.newWallets} min</label>
+            <input
+              type="number"
+              value={filters.newWalletsMin || ""}
+              onChange={(e) => onChange({ ...filters, newWalletsMin: Number(e.target.value) || 0 })}
+              placeholder="0"
+              className="mv-input mt-0.5 !py-1 text-[9px]"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => onChange(DEFAULT_FILTERS)}
+            className="w-full py-0.5 text-[8px] text-[var(--primary)] hover:underline"
+          >
+            Reset filters
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function PulseRow({
   token,
@@ -46,7 +204,7 @@ function PulseRow({
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="truncate text-[11px] font-semibold">{token.symbol}</span>
-            <span className="truncate text-[9px] text-[var(--muted)]">{token.name}</span>
+            <span className="truncate text-[9px] text-[var(--muted)]">{token.protocol}</span>
           </div>
           <span className="font-mono text-[9px] text-[var(--muted-dim)]">{token.age}</span>
         </div>
@@ -75,8 +233,16 @@ function PulseRow({
 export function PulsePanel({ onNavigate }: PulsePanelProps) {
   const [solPrice, setSolPrice] = useState(140);
   const [timeFilter, setTimeFilter] = useState<(typeof TIME_FILTERS)[number]>("5m");
-  const [search, setSearch] = useState("");
-  const [displayOpen, setDisplayOpen] = useState(false);
+  const [columnFilters, setColumnFilters] = useState<Record<PulseColumn, ColumnFilters>>({
+    new: { ...DEFAULT_FILTERS },
+    final: { ...DEFAULT_FILTERS },
+    migrated: { ...DEFAULT_FILTERS },
+  });
+  const [columnSearch, setColumnSearch] = useState<Record<PulseColumn, string>>({
+    new: "",
+    final: "",
+    migrated: "",
+  });
 
   useEffect(() => {
     fetch("/api/prices?assets=sol")
@@ -89,14 +255,6 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
 
   const tokens = useMemo(() => buildMemeTokens(solPrice), [solPrice]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return tokens;
-    return tokens.filter(
-      (t) => t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q),
-    );
-  }, [tokens, search]);
-
   return (
     <div className="flex h-full flex-col">
       <div className="mb-2 flex flex-wrap items-center gap-2 border-b border-[var(--border)] pb-2">
@@ -105,7 +263,6 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
           <span className="text-sm font-semibold">Pulse</span>
           <span className="ax-live-dot h-1.5 w-1.5 rounded-full bg-[var(--gain)]" />
         </div>
-
         <div className="flex flex-wrap items-center gap-0.5">
           {TIME_FILTERS.map((tf) => (
             <button
@@ -122,37 +279,26 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
             </button>
           ))}
         </div>
-
-        <div className="relative ml-auto">
-          <button
-            type="button"
-            onClick={() => setDisplayOpen((o) => !o)}
-            className="flex items-center gap-1 border border-[var(--border)] px-2 py-1 text-[10px] text-[var(--muted)] hover:border-[var(--border-strong)]"
-          >
-            Display <ChevronDown className="h-3 w-3" />
-          </button>
-          {displayOpen && (
-            <div className="absolute right-0 top-full z-20 mt-1 min-w-[140px] border border-[var(--border-strong)] bg-[var(--surface-solid)] py-1 text-[10px] shadow-[var(--shadow-md)]">
-              {["MC", "TX", "Holders", "Age", "5m %"].map((col) => (
-                <label key={col} className="flex cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-[var(--surface-hover)]">
-                  <input type="checkbox" defaultChecked className="accent-[var(--primary)]" />
-                  {col}
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
 
       <div className="mv-panel grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-3">
         {COLUMNS.map(({ key, title }) => {
-          const colTokens = filtered.filter((t) => t.column === key);
+          const colTokens = applyFilters(
+            tokens.filter((t) => t.column === key),
+            columnFilters[key],
+            columnSearch[key],
+          );
           return (
             <div key={key} className="ax-pulse-col min-h-[300px] md:min-h-0">
               <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--surface-solid)] px-2 py-1.5">
                 <span className="text-[10px] font-semibold uppercase tracking-wider">{title}</span>
                 <span className="ml-auto font-mono text-[9px] text-[var(--muted)]">{colTokens.length}</span>
               </div>
+
+              <ColumnFilterBar
+                filters={columnFilters[key]}
+                onChange={(f) => setColumnFilters((prev) => ({ ...prev, [key]: f }))}
+              />
 
               <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,0.7fr)_minmax(0,0.5fr)_minmax(0,0.5fr)_minmax(0,0.6fr)_auto] gap-1 border-b border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1 text-[8px] font-semibold uppercase tracking-wider text-[var(--muted-dim)]">
                 <span>Token</span>
@@ -166,8 +312,8 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
               <div className="relative border-b border-[var(--border)] px-2 py-1">
                 <Search className="absolute left-4 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--muted-dim)]" />
                 <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  value={columnSearch[key]}
+                  onChange={(e) => setColumnSearch((prev) => ({ ...prev, [key]: e.target.value }))}
                   placeholder="Search..."
                   className="w-full bg-transparent py-1 pl-6 text-[10px] text-[var(--foreground)] outline-none placeholder:text-[var(--muted-dim)]"
                 />
@@ -183,7 +329,7 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
                   />
                 ))}
                 {colTokens.length === 0 && (
-                  <p className="px-3 py-6 text-center text-[10px] text-[var(--muted)]">No pairs match filter</p>
+                  <p className="px-3 py-6 text-center text-[10px] text-[var(--muted)]">No pairs match filters</p>
                 )}
               </div>
             </div>

@@ -7,7 +7,6 @@ export type NavItem = {
 };
 
 export const CORE_NAV: NavItem[] = [
-  { id: "discover", label: "Discover", group: "core" },
   { id: "pulse", label: "Pulse", group: "core" },
   { id: "trackers", label: "Trackers", group: "core" },
   { id: "perpetuals", label: "Perpetuals", group: "core" },
@@ -35,7 +34,6 @@ export const MORE_NAV: NavItem[] = [
 
 export const TERMINAL_TABS: DashboardTab[] = [
   "pulse",
-  "discover",
   "trackers",
   "trade",
   "vision",

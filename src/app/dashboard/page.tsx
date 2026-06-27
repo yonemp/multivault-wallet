@@ -6,7 +6,7 @@ import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { DashboardTab } from "@/components/dashboard/ActionTabs";
 import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
 import { PulsePanel } from "@/components/dashboard/PulsePanel";
-import { DiscoverPanel } from "@/components/dashboard/DiscoverPanel";
+
 import { SimilarTokensPanel } from "@/components/dashboard/SimilarTokensPanel";
 import { ReceivePanel } from "@/components/dashboard/ReceivePanel";
 import { SendPanel } from "@/components/dashboard/SendPanel";
@@ -126,7 +126,7 @@ export default function DashboardPage() {
           )}
 
           {activeTab === "pulse" && <PulsePanel onNavigate={handleNavigate} />}
-          {activeTab === "discover" && <DiscoverPanel onNavigate={handleNavigate} />}
+
           {activeTab === "similar" && (
             <SimilarTokensPanel seedAsset={tradeAsset} onNavigate={handleNavigate} />
           )}
