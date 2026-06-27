@@ -1,6 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 
+type TicketRecord = {
+  id: string;
+  wallet_address: string | null;
+  chain: string | null;
+  subject: string;
+  body: string;
+  status: string;
+  created_at: string;
+};
+
+function isMissingTicketsTable(message: string) {
+  return message.includes("support_tickets");
+}
+
+function fallbackTicket(body: {
+  walletAddress?: string;
+  chain?: string;
+  subject: string;
+  body: string;
+}): TicketRecord {
+  const ticket: TicketRecord = {
+    id: `pending-${Date.now()}`,
+    wallet_address: body.walletAddress ?? null,
+    chain: body.chain ?? null,
+    subject: body.subject,
+    body: body.body,
+    status: "open",
+    created_at: new Date().toISOString(),
+  };
+  console.error("[support-ticket-fallback]", JSON.stringify(ticket));
+  return ticket;
+}
+
 export async function GET(req: NextRequest) {
   if (!process.env.ADMIN_SECRET) {
     return NextResponse.json(
@@ -20,6 +53,13 @@ export async function GET(req: NextRequest) {
     .order("created_at", { ascending: false });
 
   if (error) {
+    if (isMissingTicketsTable(error.message)) {
+      return NextResponse.json({
+        tickets: [],
+        setupRequired: true,
+        hint: "Run supabase/schema-v2.sql in the Supabase SQL Editor",
+      });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
@@ -52,10 +92,19 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
+      if (isMissingTicketsTable(error.message)) {
+        const ticket = fallbackTicket({
+          walletAddress: body.walletAddress,
+          chain: body.chain,
+          subject: body.subject.trim(),
+          body: body.body.trim(),
+        });
+        return NextResponse.json({ ticket, synced: false, setupRequired: true });
+      }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ ticket: data });
+    return NextResponse.json({ ticket: data, synced: true });
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }

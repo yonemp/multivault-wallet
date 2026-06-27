@@ -14,6 +14,7 @@ import {
   profileFromApi,
   saveLocalProfile,
 } from "@/lib/platform/user-profile";
+import { markTicketSynced, saveLocalTicket } from "@/lib/platform/support-tickets-local";
 
 import { ArrowLeft, MessageSquare, Shield, User } from "lucide-react";
 
@@ -31,6 +32,7 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const [savedLocally, setSavedLocally] = useState(false);
   const [ticketSent, setTicketSent] = useState(false);
+  const [ticketQueuedLocally, setTicketQueuedLocally] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const lock = useWalletLock(session);
@@ -115,23 +117,56 @@ export default function ProfilePage() {
       return;
     }
     setError(null);
-    const res = await fetch("/api/tickets", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        walletAddress: primaryAddress,
-        chain: session?.addresses.ethereum ? "ethereum" : "solana",
-        subject: ticketSubject,
-        body: ticketBody,
-      }),
+    setTicketQueuedLocally(false);
+
+    const payload = {
+      walletAddress: primaryAddress,
+      chain: session?.addresses.ethereum ? "ethereum" : "solana",
+      subject: ticketSubject.trim(),
+      body: ticketBody.trim(),
+    };
+
+    const local = saveLocalTicket({
+      walletAddress: payload.walletAddress ?? null,
+      chain: payload.chain ?? null,
+      subject: payload.subject,
+      body: payload.body,
+      synced: false,
     });
-    if (!res.ok) {
-      setError("Failed to submit ticket");
-      return;
+
+    let synced = false;
+    let setupRequired = false;
+    try {
+      const res = await fetch("/api/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        synced?: boolean;
+        setupRequired?: boolean;
+        error?: string;
+      };
+      if (res.ok) {
+        synced = data.synced !== false;
+        setupRequired = data.setupRequired === true;
+        if (synced) markTicketSynced(local.id);
+      } else if (!data.error?.includes("support_tickets")) {
+        setError(data.error ?? "Failed to submit ticket");
+        return;
+      }
+    } catch {
+      synced = false;
     }
+
     setTicketSubject("");
     setTicketBody("");
+    setTicketQueuedLocally(!synced || setupRequired);
     setTicketSent(true);
+    setTimeout(() => {
+      setTicketSent(false);
+      setTicketQueuedLocally(false);
+    }, 5000);
   }
 
   if (!session) {
@@ -253,7 +288,13 @@ export default function ProfilePage() {
                 placeholder="Describe your issue…"
               />
             </div>
-            {ticketSent && <p className="mv-alert-success">Ticket submitted</p>}
+            {ticketSent && (
+              <p className="mv-alert-success">
+                {ticketQueuedLocally
+                  ? "Ticket received — queued until support database is configured"
+                  : "Ticket submitted to support"}
+              </p>
+            )}
             <Button variant="secondary" className="w-full" onClick={submitTicket}>
               Submit ticket
             </Button>

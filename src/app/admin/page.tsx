@@ -47,6 +47,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [dataError, setDataError] = useState<string | null>(null);
+  const [ticketsSetupRequired, setTicketsSetupRequired] = useState(false);
   const [replyDraft, setReplyDraft] = useState<Record<string, string>>({});
   const [freezeReason, setFreezeReason] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<"overview" | "wallets" | "tickets">("overview");
@@ -61,6 +62,7 @@ export default function AdminPage() {
     setLoading(true);
     setAuthError(null);
     setDataError(null);
+    setTicketsSetupRequired(false);
 
     try {
       if (!opts?.skipVerify) {
@@ -98,14 +100,19 @@ export default function AdminPage() {
       }
 
       const wData = await wRes.json();
-      const tData = tRes.ok ? await tRes.json() : { tickets: [] };
+      const tData = tRes.ok
+        ? ((await tRes.json()) as { tickets?: TicketRow[]; setupRequired?: boolean; hint?: string })
+        : { tickets: [] as TicketRow[] };
 
       setWallets(wData.wallets ?? []);
       setStats(wData.stats ?? EMPTY_STATS);
       setTickets(tData.tickets ?? []);
+      setTicketsSetupRequired(tData.setupRequired === true);
       setAuthenticated(true);
       sessionStorage.setItem("mv_admin_key", trimmed);
-      if (!tRes.ok) {
+      if (tData.setupRequired) {
+        setDataError(tData.hint ?? "Run supabase/schema-v2.sql in Supabase to enable support tickets.");
+      } else if (!tRes.ok) {
         setDataError("Wallet data loaded, but support tickets could not be fetched.");
       }
     } catch {
@@ -350,6 +357,15 @@ export default function AdminPage() {
 
       {tab === "tickets" && (
         <div className="space-y-3">
+          {ticketsSetupRequired && (
+            <Panel className="p-4 text-sm text-[var(--muted)]">
+              <p className="font-semibold text-[var(--foreground)]">Support tickets database not set up</p>
+              <p className="mt-2">
+                Run <code className="text-xs">supabase/schema-v2.sql</code> in your Supabase SQL Editor.
+                Until then, new tickets are queued in server logs as <code className="text-xs">[support-ticket-fallback]</code>.
+              </p>
+            </Panel>
+          )}
           {tickets.map((t) => (
             <Panel key={t.id} className="p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
