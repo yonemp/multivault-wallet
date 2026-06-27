@@ -19,6 +19,14 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
+import {
+  AI_CHAPTER,
+  DEFI_CHAPTER,
+  MEMECOIN_CHAPTER,
+  PLATFORM_FEATURES,
+  POTENTIAL_CHAPTER,
+  WEBSITE_CHAPTER,
+} from "@/lib/marketing/landing-content";
 import { safeFixed } from "@/lib/format/numbers";
 
 type IntelSubTab = "insights" | "copilot";
@@ -276,6 +284,56 @@ export function IntelPanel({ onNavigate }: IntelPanelProps) {
                   </article>
                 ))}
               </div>
+
+              <div className="mv-panel p-5">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--primary)]">
+                  Platform modules
+                </p>
+                <h3 className="mt-1 text-base font-semibold">What {BRAND_NAME} does today</h3>
+                <div className="mt-4 space-y-6">
+                  {PLATFORM_FEATURES.map((f) => (
+                    <div key={f.title} className="border-t border-[var(--border)] pt-4 first:border-t-0 first:pt-0">
+                      <p className="text-xs font-semibold text-[var(--foreground)]">
+                        {f.title}
+                        <span className="ml-2 font-normal text-[var(--muted)]">— {f.tag}</span>
+                      </p>
+                      {f.paragraphs.map((p) => (
+                        <p key={p.slice(0, 48)} className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+                          {p}
+                        </p>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {[WEBSITE_CHAPTER, MEMECOIN_CHAPTER, DEFI_CHAPTER, AI_CHAPTER, POTENTIAL_CHAPTER].map(
+                (chapter) => (
+                  <article key={chapter.id} className="mv-panel p-5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--primary)]">
+                      {chapter.kicker}
+                    </p>
+                    <h3 className="mt-1 text-lg font-semibold">{chapter.title}</h3>
+                    <p className="mt-2 text-sm font-medium text-[var(--foreground)]">{chapter.lead}</p>
+                    <div className="mt-4 space-y-3">
+                      {chapter.paragraphs.map((p) => (
+                        <p key={p.slice(0, 48)} className="text-sm leading-relaxed text-[var(--muted)]">
+                          {p}
+                        </p>
+                      ))}
+                    </div>
+                    {chapter.bullets && (
+                      <ul className="mt-4 space-y-1.5 border-t border-[var(--border)] pt-4">
+                        {chapter.bullets.map((b) => (
+                          <li key={b} className="text-xs text-[var(--muted)]">
+                            · {b}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </article>
+                ),
+              )}
 
               {pulse && pulse.topMovers.length > 0 && (
                 <div className="mv-panel overflow-hidden">

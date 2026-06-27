@@ -1,4 +1,5 @@
 import { MarketingShell } from "@/components/marketing/MarketingShell";
+import { LandingLongform } from "@/components/landing/LandingLongform";
 import { BRAND_NAME } from "@/lib/brand";
 import { ArrowRight, Bot, Coins, Layers } from "lucide-react";
 import Link from "next/link";
@@ -52,7 +53,8 @@ export function CorporateLanding() {
             <span className="mv-premium-display-accent">One vault.</span>
           </h1>
           <p className="mv-premium-lead">
-            Portfolio, pulse, and execution in a single operator workspace. Keys never leave your device.
+            {BRAND_NAME} is the multi-chain trading terminal for memecoins, DeFi, and the AI-driven
+            future of finance — portfolio, pulse, execution, and intelligence in one operator workspace.
           </p>
 
           <div className="mv-premium-hero-actions">
@@ -92,7 +94,8 @@ export function CorporateLanding() {
           </h2>
           <p className="mv-premium-section-lead">
             {BRAND_NAME} Intel brings live market data, thesis on programmable money, and an AI copilot
-            for navigating memecoins, DeFi composability, and agentic finance.
+            for navigating memecoins, DeFi composability, and agentic finance. Read on — this page goes
+            deep on the platform, the market, and the potential.
           </p>
           <div className="mv-premium-pillar-grid mt-8">
             {stackLayers.map((layer) => (
@@ -108,6 +111,8 @@ export function CorporateLanding() {
           </div>
         </div>
       </section>
+
+      <LandingLongform />
 
       <section className="mv-premium-access">
         <div className="mv-premium-container">

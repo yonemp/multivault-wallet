@@ -171,27 +171,39 @@ export const SUGGESTED_PROMPTS = [
 
 export const INSIGHT_SECTIONS = [
   {
+    id: "website",
+    title: "The Tackers platform",
+    tag: "What this is",
+    body: "A browser-native trading terminal and self-custody vault — not a custodial exchange. Pulse for memecoin discovery, Trade for execution, Intel for AI-assisted context, Trackers for wallet surveillance, Portfolio for cross-chain balances, Rewards for operator retention. Keys encrypted locally; only public addresses register server-side after signature verification.",
+  },
+  {
     id: "memecoins",
     title: "Memecoins",
     tag: "Culture layer",
-    body: "Attention markets on-chain. Price follows narrative velocity, community energy, and liquidity cycles — not earnings. Solana's speed made memecoins a real-time sport: launch, bond, migrate, repeat. Most die; the culture persists.",
+    body: "Attention markets on-chain. Price follows narrative velocity, community energy, and liquidity cycles — not earnings. Solana's speed made memecoins a real-time sport: launch, bond, migrate, repeat. Pulse tracks all three stages. Most tokens die; the culture and infrastructure persist. Reading sniper %, dev holdings, and migration timing is the new financial literacy.",
   },
   {
     id: "defi",
     title: "DeFi",
     tag: "Protocol layer",
-    body: "Financial primitives as open software — swaps, lending, derivatives, and yield that compose like APIs. Borrow on A, swap on B, hedge on C in one transaction. Self-custody means self-responsibility.",
+    body: "Financial primitives as open software — swaps, lending, derivatives, and yield that compose like APIs. Borrow on A, swap on B, hedge on C in one transaction. Tackers routes through Jupiter (Solana) and LI.FI (EVM). Self-custody means self-responsibility: smart contract risk, liquidation, and oracle failure are yours to manage.",
   },
   {
     id: "ai",
     title: "AI × Finance",
     tag: "Compute layer",
-    body: "Agents with wallets. LLMs digest on-chain data at scale. Natural language becomes trade intent. Crypto rails are machine-native — programmable money for programmable intelligence.",
+    body: "Agents with wallets. LLMs digest on-chain data at scale. Natural language becomes trade intent — with human confirmation before signing. Crypto rails are machine-native: addresses, allowances, contract calls. The copilot educates; it never auto-trades. The roadmap: deeper agents, alerts, and session summaries under hard guardrails.",
+  },
+  {
+    id: "potential",
+    title: "Potential",
+    tag: "Where it goes",
+    body: "Near term: wallet alerts, Pulse safety heuristics, copy-trade signals. Medium: chain abstraction, perpetuals, social alpha feeds. Long: an operating system for personal financial stacks — memecoins, RWAs, DeFi, and AI agents in one self-custodial shell. The TAM isn't just crypto natives; it's everyone whose money becomes programmable.",
   },
   {
     id: "future",
     title: "The stack",
-    tag: "Where it's going",
-    body: "Hybrid money (fiat + stablecoins), personal financial stacks instead of single bank apps, RWAs on-chain, chain abstraction, and AI-native protocols. Finance becomes global, social, and automated — with humans setting guardrails.",
+    tag: "Three layers",
+    body: "Culture (memecoins, attention) → Protocol (DeFi composability) → Compute (AI agents). Hybrid money bridges fiat and stablecoins. Personal stacks replace single bank apps. Finance becomes global, social, automated — with humans setting the guardrails. Tackers is the terminal you inhabit while it happens.",
   },
 ] as const;
