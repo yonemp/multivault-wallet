@@ -18,9 +18,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MultiVault | Multi-Chain Trading Terminal",
+  title: "MultiVault | Enterprise Digital Asset Infrastructure",
   description:
-    "Axiom-style trading terminal with Pulse discovery, charts, and self-custody multi-chain wallet.",
+    "Institutional-grade multi-chain trading, portfolio management, and self-custody wallet infrastructure for modern operators.",
 };
 
 export default function RootLayout({

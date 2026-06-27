@@ -3,9 +3,10 @@ import clsx from "clsx";
 type LogoProps = {
   href?: string;
   compact?: boolean;
+  tagline?: string;
 };
 
-export function Logo({ href = "/", compact = false }: LogoProps) {
+export function Logo({ href = "/", compact = false, tagline = "Terminal" }: LogoProps) {
   return (
     <a
       href={href}
@@ -29,7 +30,7 @@ export function Logo({ href = "/", compact = false }: LogoProps) {
             MultiVault
           </p>
           <p className="text-[9px] font-medium uppercase tracking-[0.2em] text-[var(--muted)]">
-            Terminal
+            {tagline}
           </p>
         </div>
       )}
