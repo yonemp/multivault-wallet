@@ -9,6 +9,11 @@ import { Input } from "@/components/ui/Input";
 import { Panel } from "@/components/ui/Panel";
 import { useWalletLock } from "@/hooks/useWalletLock";
 import { loadSession, SessionData, getAddress } from "@/lib/wallet/session";
+import {
+  loadLocalProfile,
+  profileFromApi,
+  saveLocalProfile,
+} from "@/lib/platform/user-profile";
 
 import { ArrowLeft, MessageSquare, Shield, User } from "lucide-react";
 
@@ -24,6 +29,7 @@ export default function ProfilePage() {
   const [ticketSubject, setTicketSubject] = useState("");
   const [ticketBody, setTicketBody] = useState("");
   const [saved, setSaved] = useState(false);
+  const [savedLocally, setSavedLocally] = useState(false);
   const [ticketSent, setTicketSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,33 +47,66 @@ export default function ProfilePage() {
     setSession(s);
 
     const addr = getAddress(s, "ethereum") ?? getAddress(s, "solana");
-    if (addr) {
-      fetch(`/api/profile?address=${encodeURIComponent(addr)}`)
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.profile) {
-            setDisplayName(d.profile.display_name ?? "");
-            setAvatarColor(d.profile.avatar_color ?? AVATAR_COLORS[0]);
-          }
-        })
-        .catch(() => {});
+    if (!addr) return;
+
+    const local = loadLocalProfile(addr);
+    if (local) {
+      setDisplayName(local.displayName);
+      setAvatarColor(local.avatarColor);
     }
+
+    fetch(`/api/profile?address=${encodeURIComponent(addr)}`)
+      .then(async (r) => {
+        if (!r.ok) return null;
+        return r.json() as Promise<{ profile?: { display_name?: string | null; avatar_color?: string | null; updated_at?: string | null } | null }>;
+      })
+      .then((d) => {
+        if (!d?.profile) return;
+        const remote = profileFromApi(addr, d.profile);
+        if (!local || remote.updatedAt >= local.updatedAt) {
+          setDisplayName(remote.displayName);
+          setAvatarColor(remote.avatarColor);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   async function saveProfile() {
-    if (!primaryAddress) return;
-    setError(null);
-    const res = await fetch("/api/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ primaryAddress, displayName, avatarColor }),
-    });
-    if (!res.ok) {
-      setError("Failed to save profile");
+    if (!primaryAddress) {
+      setError("No wallet address found — reconnect your wallet and try again.");
       return;
     }
+    setError(null);
+    setSavedLocally(false);
+
+    saveLocalProfile({
+      primaryAddress,
+      displayName: displayName.trim(),
+      avatarColor,
+    });
+
+    let syncedToCloud = false;
+    try {
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          primaryAddress,
+          displayName: displayName.trim(),
+          avatarColor,
+        }),
+      });
+      syncedToCloud = res.ok;
+    } catch {
+      syncedToCloud = false;
+    }
+
+    setSavedLocally(!syncedToCloud);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setTimeout(() => {
+      setSaved(false);
+      setSavedLocally(false);
+    }, 3000);
   }
 
   async function submitTicket() {
@@ -184,7 +223,11 @@ export default function ProfilePage() {
                 </div>
               </div>
               {error && <p className="mv-alert-error">{error}</p>}
-              {saved && <p className="mv-alert-success">Profile saved</p>}
+              {saved && (
+                <p className="mv-alert-success">
+                  Profile saved{savedLocally ? " on this device" : ""}
+                </p>
+              )}
               <Button onClick={saveProfile}>Save profile</Button>
             </Panel>
           </div>
