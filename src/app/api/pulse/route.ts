@@ -1,15 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  addressSlug,
+  formatPulseAge,
+  solFromLamports,
+  twitterHandle,
+} from "@/lib/pulse/format";
 
 export type PulseToken = {
   id: string;
   symbol: string;
   name: string;
   address: string;
+  addressSlug: string;
   mcap: number;
   volume: number;
   age: string;
   ageMs: number;
+  createdAt?: number;
   txCount: number;
+  buyTx?: number;
+  sellTx?: number;
   bondingProgress: number;
   column: "new" | "final" | "migrated";
   protocol: string;
@@ -21,6 +31,9 @@ export type PulseToken = {
   hasTwitter?: boolean;
   hasTelegram?: boolean;
   hasWebsite?: boolean;
+  twitterUrl?: string;
+  creatorHandle?: string;
+  creatorMetric?: string;
   dexPaid?: boolean;
   caEndsInPump?: boolean;
   recentVisitors?: number;
@@ -30,9 +43,12 @@ export type PulseToken = {
   insidersPct?: number;
   bundlePct?: number;
   holders?: number;
+  sniperCount?: number;
   proTraders?: number;
   devMigrations?: number;
   devPairsCreated?: number;
+  feePct?: number;
+  solLiquidity?: number;
 };
 
 type PumpV3Coin = {
@@ -57,6 +73,9 @@ type PumpV3Coin = {
   telegram?: string;
   website?: string;
   quote_mint?: string;
+  username?: string | null;
+  creator?: string;
+  is_cashback_enabled?: boolean;
 };
 
 type PumpV2Coin = {
@@ -66,6 +85,8 @@ type PumpV2Coin = {
   marketCap?: number;
   volume?: number;
   transactions?: number;
+  buyTransactions?: number;
+  sellTransactions?: number;
   bondingCurveProgress?: number;
   creationTime?: number;
   graduationDate?: number;
@@ -79,6 +100,8 @@ type PumpV2Coin = {
   dev?: string;
   platform?: string;
   program?: string;
+  twitter?: string;
+  twitterReuseCount?: number;
 };
 
 const PUMP_HEADERS = {
@@ -89,14 +112,17 @@ const PUMP_HEADERS = {
 
 const GRADUATION_LAMPORTS = 85_000_000_000;
 
-function formatAge(ms: number) {
-  const sec = Math.floor(ms / 1000);
-  if (sec < 60) return `${sec}s`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h`;
-  return `${Math.floor(hr / 24)}d`;
+function creatorLine(coin: PumpV3Coin, v2?: PumpV2Coin) {
+  const handle =
+    coin.username?.trim()
+    || twitterHandle(v2?.twitter ?? coin.twitter)
+    || (coin.creator ? `${coin.creator.slice(0, 4)}…${coin.creator.slice(-4)}` : undefined);
+  const metric = v2?.twitterReuseCount != null
+    ? `${v2.twitterReuseCount} reuse`
+    : v2?.numHolders != null
+      ? `${v2.numHolders} holders`
+      : undefined;
+  return { creatorHandle: handle, creatorMetric: metric };
 }
 
 function bondingProgress(coin: PumpV3Coin | PumpV2Coin): number {
@@ -170,23 +196,30 @@ function auditFromV2(coin: PumpV2Coin) {
   };
 }
 
-function mapV3Coin(coin: PumpV3Coin, extra?: Partial<PulseToken>): PulseToken | null {
+function mapV3Coin(coin: PumpV3Coin, extra?: Partial<PulseToken>, v2?: PumpV2Coin): PulseToken | null {
   if (!coin.mint || !coin.symbol) return null;
-  const ageMs = coin.created_timestamp ? Date.now() - coin.created_timestamp : 0;
+  const createdAt = coin.created_timestamp;
+  const ageMs = createdAt ? Date.now() - createdAt : 0;
   const progress = bondingProgress(coin);
   const graduated = Boolean(coin.complete || coin.pump_swap_pool || coin.raydium_pool);
   const mcap = coin.usd_market_cap ?? (coin.market_cap ? coin.market_cap * 140 : 0);
+  const reserves = coin.real_quote_reserves ?? coin.real_sol_reserves ?? 0;
+  const creator = creatorLine(coin, v2);
 
   return {
     id: `sol-${coin.mint}`,
     symbol: coin.symbol,
     name: coin.name ?? coin.symbol,
     address: coin.mint,
+    addressSlug: addressSlug(coin.mint),
     mcap,
-    volume: extra?.volume ?? 0,
-    age: coin.created_timestamp ? formatAge(ageMs) : "—",
+    volume: extra?.volume ?? v2?.volume ?? 0,
+    age: createdAt ? formatPulseAge(ageMs) : "—",
     ageMs,
-    txCount: extra?.txCount ?? coin.reply_count ?? 0,
+    createdAt,
+    txCount: extra?.txCount ?? v2?.transactions ?? coin.reply_count ?? 0,
+    buyTx: extra?.buyTx ?? v2?.buyTransactions,
+    sellTx: extra?.sellTx ?? v2?.sellTransactions,
     bondingProgress: progress,
     column: classify(progress, graduated),
     protocol: normalizeProtocol(coin.protocol),
@@ -195,37 +228,60 @@ function mapV3Coin(coin: PumpV3Coin, extra?: Partial<PulseToken>): PulseToken | 
     pairUrl: `https://pump.fun/coin/${coin.mint}`,
     imageUri: coin.image_uri,
     isLive: coin.is_currently_live,
-    hasTwitter: Boolean(coin.twitter?.trim()),
+    hasTwitter: Boolean(coin.twitter?.trim() || v2?.twitter?.trim()),
     hasTelegram: Boolean(coin.telegram?.trim()),
     hasWebsite: Boolean(coin.website?.trim()),
-    ...auditFromV3(coin, undefined),
+    twitterUrl: v2?.twitter ?? coin.twitter,
+    creatorHandle: creator.creatorHandle,
+    creatorMetric: creator.creatorMetric,
+    feePct: coin.is_cashback_enabled ? 0 : 0,
+    solLiquidity: solFromLamports(reserves),
+    sniperCount: extra?.sniperCount ?? v2?.sniperCount,
+    ...auditFromV3(coin, v2),
     ...extra,
   };
 }
 
 function mapV2Coin(coin: PumpV2Coin): PulseToken | null {
   if (!coin.coinMint || !coin.ticker) return null;
-  const ageMs = coin.creationTime ? Date.now() - coin.creationTime : 0;
+  const createdAt = coin.creationTime;
+  const ageMs = createdAt ? Date.now() - createdAt : 0;
   const progress = bondingProgress(coin);
   const graduated = Boolean(coin.graduationDate) || progress >= 100;
+  const handle = twitterHandle(coin.twitter) ?? (coin.dev ? `${coin.dev.slice(0, 4)}…${coin.dev.slice(-4)}` : undefined);
 
   return {
     id: `sol-${coin.coinMint}`,
     symbol: coin.ticker,
     name: coin.name ?? coin.ticker,
     address: coin.coinMint,
+    addressSlug: addressSlug(coin.coinMint),
     mcap: coin.marketCap ?? 0,
     volume: coin.volume ?? 0,
-    age: coin.creationTime ? formatAge(ageMs) : "—",
+    age: createdAt ? formatPulseAge(ageMs) : "—",
     ageMs,
+    createdAt,
     txCount: coin.transactions ?? 0,
+    buyTx: coin.buyTransactions,
+    sellTx: coin.sellTransactions,
     bondingProgress: progress,
     column: classify(progress, graduated),
-    protocol: "pump",
+    protocol: normalizeProtocol(coin.platform ?? coin.program),
     quoteToken: "SOL",
     priceUsd: 0,
     pairUrl: `https://pump.fun/coin/${coin.coinMint}`,
     imageUri: coin.imageUrl,
+    hasTwitter: Boolean(coin.twitter?.trim()),
+    twitterUrl: coin.twitter,
+    creatorHandle: handle,
+    creatorMetric: coin.twitterReuseCount != null
+      ? `${coin.twitterReuseCount} reuse`
+      : coin.numHolders != null
+        ? `${coin.numHolders} holders`
+        : undefined,
+    feePct: 0,
+    solLiquidity: 0,
+    sniperCount: coin.sniperCount,
     ...auditFromV2(coin),
   };
 }
@@ -263,11 +319,7 @@ export async function GET(req: NextRequest) {
 
     for (const coin of latest ?? []) {
       const v2 = v2ByMint.get(coin.mint);
-      const mapped = mapV3Coin(coin, {
-        volume: v2?.volume,
-        txCount: v2?.transactions ?? coin.reply_count,
-        ...(v2 ? auditFromV3(coin, v2) : {}),
-      });
+      const mapped = mapV3Coin(coin, undefined, v2);
       if (!mapped) continue;
       if (!search || mapped.symbol.toLowerCase().includes(search) || mapped.name.toLowerCase().includes(search) || mapped.address.toLowerCase().includes(search)) {
         byId.set(mapped.id, mapped);

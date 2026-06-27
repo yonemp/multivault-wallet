@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PulseToken } from "@/app/api/pulse/route";
+import type { PulseTicker } from "@/app/api/pulse/tickers/route";
 import { DashboardTab } from "@/components/dashboard/ActionTabs.types";
+import { PulseCoinCard } from "@/components/dashboard/PulseCoinCard";
 import {
   applyPulseColumnFilters,
   countActivePulseFilters,
@@ -11,7 +13,7 @@ import {
   type PulseColumnFilterState,
   type PulseColumnKey,
 } from "@/components/dashboard/PulseColumnFilters";
-import { formatCompactUsd } from "@/lib/format/numbers";
+import { formatPulseAge } from "@/lib/pulse/format";
 import { Filter, RefreshCw, Zap } from "lucide-react";
 
 const COLUMNS: { key: PulseToken["column"]; title: string }[] = [
@@ -20,108 +22,42 @@ const COLUMNS: { key: PulseToken["column"]; title: string }[] = [
   { key: "migrated", title: "Migrated" },
 ];
 
-const ROW_GRID =
-  "grid grid-cols-[minmax(0,1.5fr)_minmax(0,0.85fr)_minmax(0,0.85fr)_auto] items-center gap-3";
-
 type PulsePanelProps = {
   onNavigate: (tab: DashboardTab, asset?: string) => void;
 };
 
-function formatAge(ms: number) {
-  const sec = Math.floor(ms / 1000);
-  if (sec < 60) return `${sec}s`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h`;
-  return `${Math.floor(hr / 24)}d`;
-}
-
-function PulseRow({ token, onTrade }: { token: PulseToken; onTrade: () => void }) {
-  const prevMcap = useRef(token.mcap);
-  const prevVol = useRef(token.volume);
-  const [mcFlash, setMcFlash] = useState<"up" | "down" | null>(null);
-  const [volFlash, setVolFlash] = useState<"up" | "down" | null>(null);
-
-  useEffect(() => {
-    if (token.mcap !== prevMcap.current) {
-      setMcFlash(token.mcap > prevMcap.current ? "up" : "down");
-      prevMcap.current = token.mcap;
-      const t = setTimeout(() => setMcFlash(null), 600);
-      return () => clearTimeout(t);
+function mergeTicker(token: PulseToken, tick: PulseTicker, solUsd: number, reserveRef: React.MutableRefObject<Record<string, number>>, volAccumRef: React.MutableRefObject<Record<string, number>>) {
+  let volume = tick.volume;
+  const prevReserves = reserveRef.current[token.address];
+  if (prevReserves != null && tick.quoteReserves > 0) {
+    const deltaSol = Math.abs(tick.quoteReserves - prevReserves) / 1e9;
+    if (deltaSol > 0) {
+      volAccumRef.current[token.address] =
+        (volAccumRef.current[token.address] ?? token.volume) + deltaSol * solUsd;
     }
-  }, [token.mcap]);
+  }
+  reserveRef.current[token.address] = tick.quoteReserves;
+  if (volAccumRef.current[token.address] != null) {
+    volume = Math.max(volume, volAccumRef.current[token.address]);
+  }
 
-  useEffect(() => {
-    if (token.volume !== prevVol.current) {
-      setVolFlash(token.volume > prevVol.current ? "up" : "down");
-      prevVol.current = token.volume;
-      const t = setTimeout(() => setVolFlash(null), 600);
-      return () => clearTimeout(t);
-    }
-  }, [token.volume]);
-
-  const mcClass =
-    mcFlash === "up"
-      ? "text-[var(--gain)]"
-      : mcFlash === "down"
-        ? "text-[var(--loss)]"
-        : "text-[var(--foreground)]";
-
-  const volClass =
-    volFlash === "up"
-      ? "text-[var(--gain)]"
-      : volFlash === "down"
-        ? "text-[var(--loss)]"
-        : "text-[var(--muted)]";
-
-  return (
-    <div className={`ax-pulse-row group ${ROW_GRID} px-4 py-3`}>
-      <button type="button" onClick={onTrade} className="flex min-w-0 items-center gap-3 text-left">
-        {token.imageUri ? (
-          <img
-            src={token.imageUri}
-            alt=""
-            className="h-10 w-10 shrink-0 rounded-sm border-2 border-[var(--border-strong)] object-cover"
-          />
-        ) : (
-          <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border-2 border-[var(--border-strong)] text-xs font-bold"
-            style={{ background: "var(--surface-active)", color: "var(--primary)" }}
-          >
-            {token.symbol.slice(0, 2)}
-          </div>
-        )}
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-sm font-semibold">{token.symbol}</span>
-            {token.isLive && (
-              <span className="rounded border border-[var(--loss)]/40 bg-[var(--loss)]/15 px-1.5 py-0.5 text-[10px] font-bold text-[var(--loss)]">
-                LIVE
-              </span>
-            )}
-            <span className="truncate text-xs capitalize text-[var(--muted)]">{token.protocol}</span>
-          </div>
-          <span className="font-mono text-xs text-[var(--muted-dim)]">{token.age}</span>
-        </div>
-      </button>
-      <span className={`font-mono text-sm font-medium transition-colors duration-300 ${mcClass}`}>
-        {formatCompactUsd(token.mcap)}
-      </span>
-      <span className={`font-mono text-sm transition-colors duration-300 ${volClass}`}>
-        {formatCompactUsd(token.volume)}
-      </span>
-      <a
-        href={token.pairUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={(e) => e.stopPropagation()}
-        className="shrink-0 rounded-sm border border-[var(--primary)] bg-[var(--primary)] px-3 py-1.5 text-xs font-bold text-white opacity-100 transition hover:brightness-110 md:opacity-0 md:group-hover:opacity-100"
-      >
-        Pump
-      </a>
-    </div>
-  );
+  return {
+    ...token,
+    mcap: tick.mcap,
+    volume,
+    ageMs: tick.ageMs,
+    age: tick.ageMs > 0 ? formatPulseAge(tick.ageMs) : token.age,
+    solLiquidity: tick.solLiquidity,
+    txCount: tick.txCount,
+    buyTx: tick.buyTx ?? token.buyTx,
+    sellTx: tick.sellTx ?? token.sellTx,
+    top10HoldersPct: tick.top10HoldersPct ?? token.top10HoldersPct,
+    devHoldingPct: tick.devHoldingPct ?? token.devHoldingPct,
+    snipersPct: tick.snipersPct ?? token.snipersPct,
+    holders: tick.holders ?? token.holders,
+    sniperCount: tick.sniperCount ?? token.sniperCount,
+    proTraders: tick.proTraders ?? token.proTraders,
+  };
 }
 
 export function PulsePanel({ onNavigate }: PulsePanelProps) {
@@ -179,7 +115,7 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
       });
       if (!res.ok) return;
       const data = (await res.json()) as {
-        tickers?: Record<string, { mcap: number; volume: number; ageMs: number; quoteReserves: number }>;
+        tickers?: Record<string, PulseTicker>;
         solUsd?: number;
       };
       if (data.solUsd) solUsdRef.current = data.solUsd;
@@ -188,28 +124,7 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
         prev.map((t) => {
           const tick = data.tickers?.[t.address];
           if (!tick) return t;
-
-          let volume = tick.volume;
-          const prevReserves = reserveRef.current[t.address];
-          if (prevReserves != null && tick.quoteReserves > 0) {
-            const deltaSol = Math.abs(tick.quoteReserves - prevReserves) / 1e9;
-            if (deltaSol > 0) {
-              volAccumRef.current[t.address] =
-                (volAccumRef.current[t.address] ?? t.volume) + deltaSol * solUsdRef.current;
-            }
-          }
-          reserveRef.current[t.address] = tick.quoteReserves;
-          if (volAccumRef.current[t.address] != null) {
-            volume = Math.max(volume, volAccumRef.current[t.address]);
-          }
-
-          return {
-            ...t,
-            mcap: tick.mcap,
-            volume,
-            ageMs: tick.ageMs,
-            age: tick.ageMs > 0 ? formatAge(tick.ageMs) : t.age,
-          };
+          return mergeTicker(t, tick, solUsdRef.current, reserveRef, volAccumRef);
         }),
       );
       setUpdatedAt(Date.now());
@@ -308,23 +223,18 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
                 </span>
               </div>
 
-              <div
-                className={`${ROW_GRID} gap-3 border-b border-[var(--border-strong)] bg-[var(--surface)] px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]`}
-              >
-                <span>Token</span>
-                <span>MC</span>
-                <span>Vol</span>
-                <span />
-              </div>
-
               <div className="min-h-0 flex-1 overflow-y-auto">
                 {loading && !colTokens.length ? (
                   Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="h-16 animate-pulse border-b border-[var(--border)] bg-[var(--surface-hover)]" />
+                    <div key={i} className="ax-pulse-coin-skeleton" />
                   ))
                 ) : (
                   colTokens.map((token) => (
-                    <PulseRow key={token.id} token={token} onTrade={() => onNavigate("trade", token.id)} />
+                    <PulseCoinCard
+                      key={token.id}
+                      token={token}
+                      onTrade={() => onNavigate("trade", token.id)}
+                    />
                   ))
                 )}
                 {!loading && colTokens.length === 0 && tokens.length > 0 && (

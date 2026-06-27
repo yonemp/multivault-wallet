@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { formatPulseAge, solFromLamports } from "@/lib/pulse/format";
 
 type PumpV3Coin = {
   mint: string;
@@ -7,12 +8,40 @@ type PumpV3Coin = {
   created_timestamp?: number;
   real_quote_reserves?: number;
   real_sol_reserves?: number;
+  reply_count?: number;
 };
 
 type PumpV2Coin = {
   coinMint: string;
   marketCap?: number;
   volume?: number;
+  transactions?: number;
+  buyTransactions?: number;
+  sellTransactions?: number;
+  numHolders?: number;
+  numKolsTraded?: number;
+  sniperCount?: number;
+  sniperOwnedPercentage?: number;
+  topHoldersPercentage?: number;
+  devHoldingsPercentage?: number;
+};
+
+export type PulseTicker = {
+  mcap: number;
+  volume: number;
+  ageMs: number;
+  age: string;
+  quoteReserves: number;
+  solLiquidity: number;
+  txCount: number;
+  buyTx?: number;
+  sellTx?: number;
+  top10HoldersPct?: number;
+  devHoldingPct?: number;
+  snipersPct?: number;
+  holders?: number;
+  sniperCount?: number;
+  proTraders?: number;
 };
 
 const PUMP_HEADERS = {
@@ -64,7 +93,7 @@ async function fetchSolUsd() {
   }
 }
 
-async function mapTicker(coin: PumpV3Coin, solUsd: number, v2?: PumpV2Coin) {
+function mapTicker(coin: PumpV3Coin, solUsd: number, v2?: PumpV2Coin): PulseTicker {
   const lamports = coin.real_quote_reserves ?? coin.real_sol_reserves ?? 0;
   const mcap =
     coin.usd_market_cap
@@ -80,7 +109,18 @@ async function mapTicker(coin: PumpV3Coin, solUsd: number, v2?: PumpV2Coin) {
     mcap,
     volume,
     ageMs,
+    age: ageMs > 0 ? formatPulseAge(ageMs) : "—",
     quoteReserves: lamports,
+    solLiquidity: solFromLamports(lamports),
+    txCount: v2?.transactions ?? coin.reply_count ?? 0,
+    buyTx: v2?.buyTransactions,
+    sellTx: v2?.sellTransactions,
+    top10HoldersPct: v2?.topHoldersPercentage,
+    devHoldingPct: v2?.devHoldingsPercentage,
+    snipersPct: v2?.sniperOwnedPercentage,
+    holders: v2?.numHolders,
+    sniperCount: v2?.sniperCount,
+    proTraders: v2?.numKolsTraded,
   };
 }
 
@@ -99,7 +139,7 @@ export async function GET(req: NextRequest) {
     const [graduated, solUsd] = await Promise.all([graduatedByMint(), fetchSolUsd()]);
 
     const chunkSize = 12;
-    const tickers: Record<string, Awaited<ReturnType<typeof mapTicker>>> = {};
+    const tickers: Record<string, PulseTicker> = {};
 
     for (let i = 0; i < mints.length; i += chunkSize) {
       const chunk = mints.slice(i, i + chunkSize);
@@ -110,7 +150,7 @@ export async function GET(req: NextRequest) {
           );
           if (!coin?.mint) return null;
           const v2 = graduated.get(mint);
-          return [mint, await mapTicker(coin, solUsd, v2)] as const;
+          return [mint, mapTicker(coin, solUsd, v2)] as const;
         }),
       );
       for (const row of results) {
