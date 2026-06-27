@@ -8,18 +8,6 @@ import { ChevronDown, Filter, RefreshCw, Search, Zap } from "lucide-react";
 
 const TIME_FILTERS = ["1m", "5m", "30m", "1h", "3h", "6h", "12h", "24h", "3d"] as const;
 
-const TIME_FILTER_MS: Record<(typeof TIME_FILTERS)[number], number> = {
-  "1m": 60_000,
-  "5m": 5 * 60_000,
-  "30m": 30 * 60_000,
-  "1h": 60 * 60_000,
-  "3h": 3 * 60 * 60_000,
-  "6h": 6 * 60 * 60_000,
-  "12h": 12 * 60 * 60_000,
-  "24h": 24 * 60 * 60_000,
-  "3d": 3 * 24 * 60 * 60_000,
-};
-
 function changeForWindow(token: PulseToken, tf: (typeof TIME_FILTERS)[number]) {
   if (tf === "1m" || tf === "5m") return token.change5m;
   if (tf === "30m" || tf === "1h" || tf === "3h") return token.change1h;
@@ -62,13 +50,11 @@ function applyFilters(
   timeFilter: (typeof TIME_FILTERS)[number],
 ) {
   const q = search.trim().toLowerCase();
-  const maxAge = TIME_FILTER_MS[timeFilter];
   return tokens.filter((t) => {
     if (q && !t.symbol.toLowerCase().includes(q) && !t.name.toLowerCase().includes(q) && !t.address.toLowerCase().includes(q)) return false;
     if (f.protocol !== "all" && t.protocol.toLowerCase() !== f.protocol.toLowerCase()) return false;
     if (t.mcap < f.mcapMin) return false;
     if (volumeForWindow(t, timeFilter) < f.volMin) return false;
-    if (t.ageMs > 0 && t.ageMs > maxAge) return false;
     return true;
   });
 }
@@ -191,7 +177,7 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
-  const [timeFilter, setTimeFilter] = useState<(typeof TIME_FILTERS)[number]>("5m");
+  const [timeFilter, setTimeFilter] = useState<(typeof TIME_FILTERS)[number]>("24h");
   const [columnFilters, setColumnFilters] = useState<Record<PulseToken["column"], ColumnFilters>>({
     new: { ...DEFAULT_FILTERS },
     final: { ...DEFAULT_FILTERS },
@@ -291,8 +277,11 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
                     <PulseRow key={token.id} token={token} timeFilter={timeFilter} onTrade={() => onNavigate("trade", token.id)} />
                   ))
                 )}
-                {!loading && colTokens.length === 0 && (
-                  <p className="px-3 py-6 text-center text-[10px] text-[var(--muted)]">No live pairs match filters</p>
+                {!loading && colTokens.length === 0 && tokens.length > 0 && (
+                  <p className="px-3 py-6 text-center text-[10px] text-[var(--muted)]">No pairs in this column match your filters</p>
+                )}
+                {!loading && tokens.length === 0 && (
+                  <p className="px-3 py-6 text-center text-[10px] text-[var(--muted)]">No live pairs from DexScreener — try Refresh</p>
                 )}
               </div>
             </div>

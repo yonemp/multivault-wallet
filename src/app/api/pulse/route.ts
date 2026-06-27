@@ -56,7 +56,7 @@ function classifyPair(pair: DexPair): PulseToken["column"] {
   const liq = pair.liquidity?.usd ?? 0;
   const dex = pair.dexId?.toLowerCase() ?? "";
 
-  if (dex.includes("raydium") || dex.includes("orca") || liq > 80_000) return "migrated";
+  if (dex.includes("raydium") || dex.includes("orca") || dex.includes("pumpswap") || liq > 80_000) return "migrated";
   if (ageMs < 20 * 60_000 || liq < 15_000) return "new";
   return "final";
 }
@@ -94,6 +94,12 @@ function mapPair(pair: DexPair): PulseToken | null {
   };
 }
 
+async function fetchDex(url: string) {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) return null;
+  return res.json();
+}
+
 async function fetchPairsForTokens(addresses: string[]): Promise<DexPair[]> {
   const chunks: string[][] = [];
   for (let i = 0; i < addresses.length; i += 30) {
@@ -102,58 +108,53 @@ async function fetchPairsForTokens(addresses: string[]): Promise<DexPair[]> {
 
   const all: DexPair[] = [];
   for (const chunk of chunks) {
-    const res = await fetch(
-      `https://api.dexscreener.com/latest/dex/tokens/${chunk.join(",")}`,
-      { next: { revalidate: 30 } },
-    );
-    if (!res.ok) continue;
-    const data = (await res.json()) as { pairs?: DexPair[] };
-    if (data.pairs) all.push(...data.pairs);
+    const data = await fetchDex(`https://api.dexscreener.com/latest/dex/tokens/${chunk.join(",")}`);
+    if (data?.pairs) all.push(...(data.pairs as DexPair[]));
   }
   return all;
+}
+
+async function collectAddresses(search?: string): Promise<string[]> {
+  const addresses = new Set<string>();
+
+  if (search) {
+    const data = await fetchDex(
+      `https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(search)}`,
+    );
+    for (const p of (data?.pairs ?? []) as DexPair[]) {
+      if (p.chainId === "solana" && p.baseToken?.address) addresses.add(p.baseToken.address);
+    }
+    return [...addresses].slice(0, 40);
+  }
+
+  const [boosts, profiles, topBoosts, searchPump] = await Promise.all([
+    fetchDex("https://api.dexscreener.com/token-boosts/latest/v1"),
+    fetchDex("https://api.dexscreener.com/token-profiles/latest/v1"),
+    fetchDex("https://api.dexscreener.com/token-boosts/top/v1"),
+    fetchDex("https://api.dexscreener.com/latest/dex/search?q=pump"),
+  ]);
+
+  for (const list of [boosts, profiles, topBoosts]) {
+    if (!Array.isArray(list)) continue;
+    for (const t of list as Array<{ chainId: string; tokenAddress: string }>) {
+      if (t.chainId === "solana" && t.tokenAddress) addresses.add(t.tokenAddress);
+    }
+  }
+
+  for (const p of ((searchPump?.pairs ?? []) as DexPair[])) {
+    if (p.chainId === "solana" && p.baseToken?.address) addresses.add(p.baseToken.address);
+  }
+
+  return [...addresses].slice(0, 80);
 }
 
 export async function GET(req: NextRequest) {
   try {
     const search = req.nextUrl.searchParams.get("q")?.trim();
-
-    let addresses: string[] = [];
-
-    if (search) {
-      const searchRes = await fetch(
-        `https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(search)}`,
-        { next: { revalidate: 30 } },
-      );
-      if (searchRes.ok) {
-        const data = (await searchRes.json()) as { pairs?: DexPair[] };
-        addresses = [
-          ...new Set(
-            (data.pairs ?? [])
-              .filter((p) => p.chainId === "solana")
-              .map((p) => p.baseToken.address),
-          ),
-        ].slice(0, 40);
-      }
-    } else {
-      const [boostsRes, profilesRes] = await Promise.all([
-        fetch("https://api.dexscreener.com/token-boosts/latest/v1", { next: { revalidate: 30 } }),
-        fetch("https://api.dexscreener.com/token-profiles/latest/v1", { next: { revalidate: 30 } }),
-      ]);
-
-      const boosts = boostsRes.ok ? ((await boostsRes.json()) as Array<{ chainId: string; tokenAddress: string }>) : [];
-      const profiles = profilesRes.ok ? ((await profilesRes.json()) as Array<{ chainId: string; tokenAddress: string }>) : [];
-
-      addresses = [
-        ...new Set(
-          [...boosts, ...profiles]
-            .filter((t) => t.chainId === "solana" && t.tokenAddress)
-            .map((t) => t.tokenAddress),
-        ),
-      ].slice(0, 60);
-    }
+    const addresses = await collectAddresses(search);
 
     if (!addresses.length) {
-      return NextResponse.json({ tokens: [], source: "dexscreener" });
+      return NextResponse.json({ tokens: [], source: "dexscreener", updatedAt: Date.now() });
     }
 
     const pairs = await fetchPairsForTokens(addresses);

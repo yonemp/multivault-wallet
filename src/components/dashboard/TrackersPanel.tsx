@@ -9,9 +9,23 @@ import {
   removeWatchedWallet,
   WatchedWallet,
 } from "@/lib/platform/watched-wallets";
-import { AtSign, Download, Plus, Trash2, Upload } from "lucide-react";
+import { AtSign, Download, Plus, Trash2, Upload, Wallet } from "lucide-react";
 
-const SUB_TABS = ["All", "Wallet Manager", "Live Trades", "Monitor", "KOLs"] as const;
+const SUB_TABS = ["Wallet Manager", "Live Trades", "Monitor", "KOLs"] as const;
+
+function truncate(addr: string) {
+  if (!addr || addr.length < 12) return addr || "—";
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
+function EmptyState({ title, desc }: { title: string; desc: string }) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-16 text-center">
+      <p className="text-sm font-semibold text-[var(--muted)]">{title}</p>
+      <p className="max-w-sm text-xs leading-relaxed text-[var(--muted-dim)]">{desc}</p>
+    </div>
+  );
+}
 
 export function TrackersPanel() {
   const [subTab, setSubTab] = useState<(typeof SUB_TABS)[number]>("Wallet Manager");
@@ -99,53 +113,80 @@ export function TrackersPanel() {
           </div>
         </div>
 
-        <div className="grid gap-2 border-b border-[var(--border)] p-3 sm:grid-cols-[1fr_1fr_auto]">
-          <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label" />
-          <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Solana address" />
-          <Button onClick={handleAdd} className="flex items-center gap-1">
-            <Plus className="h-3.5 w-3.5" /> Add
-          </Button>
-        </div>
-        {error && <p className="mv-alert-error mx-3 text-xs">{error}</p>}
+        {subTab === "Wallet Manager" && (
+          <>
+            <div className="grid gap-2 border-b border-[var(--border)] p-3 sm:grid-cols-[1fr_1fr_auto]">
+              <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label" />
+              <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Solana address" />
+              <Button onClick={handleAdd} className="flex items-center gap-1">
+                <Plus className="h-3.5 w-3.5" /> Add
+              </Button>
+            </div>
+            {error && <p className="mv-alert-error mx-3 text-xs">{error}</p>}
 
-        <div className="flex-1 overflow-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="sticky top-0 bg-[var(--surface-solid)]">
-              <tr className="border-b border-[var(--border)] text-[9px] uppercase tracking-wider text-[var(--muted)]">
-                <th className="px-3 py-2">Wallet</th>
-                <th className="px-3 py-2">Last trade</th>
-                <th className="px-3 py-2 text-right">PnL</th>
-                <th className="px-3 py-2 text-right">Win %</th>
-                <th className="px-3 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {wallets.map((w) => (
-                <tr key={w.id} className="ax-table-row">
-                  <td className="px-3 py-2">
-                    <p className="font-semibold">{w.label}</p>
-                    <p className="font-mono text-[9px] text-[var(--muted)]">{w.address.slice(0, 8)}…{w.address.slice(-6)}</p>
-                  </td>
-                  <td className="px-3 py-2 font-mono text-[10px] text-[var(--muted)]">BUY · 2m ago</td>
-                  <td className="px-3 py-2 text-right font-mono text-[var(--gain)]">{w.pnl}</td>
-                  <td className="px-3 py-2 text-right font-mono">{w.winRate}%</td>
-                  <td className="px-3 py-2 text-right">
-                    <button type="button" onClick={() => { removeWatchedWallet(w.id); refresh(); }} className="text-[var(--muted)] hover:text-[var(--loss)]">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {!wallets.length && (
-                <tr>
-                  <td colSpan={5} className="px-3 py-10 text-center text-[var(--muted)]">
-                    Add wallets to track live trades and copy entries
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            <div className="min-h-0 flex-1 overflow-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="sticky top-0 z-10 bg-[var(--surface-solid)]">
+                  <tr className="border-b border-[var(--border)] text-[9px] uppercase tracking-wider text-[var(--muted)]">
+                    <th className="px-3 py-2">Wallet</th>
+                    <th className="px-3 py-2">Chain</th>
+                    <th className="px-3 py-2">Added</th>
+                    <th className="px-3 py-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {wallets.map((w) => (
+                    <tr key={w.id} className="ax-table-row">
+                      <td className="px-3 py-2">
+                        <p className="font-semibold">{w.label}</p>
+                        <p className="font-mono text-[9px] text-[var(--muted)]">{truncate(w.address)}</p>
+                      </td>
+                      <td className="px-3 py-2 text-[10px] capitalize text-[var(--muted)]">{w.chain}</td>
+                      <td className="px-3 py-2 font-mono text-[10px] text-[var(--muted)]">
+                        {new Date(w.addedAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <button type="button" onClick={() => { removeWatchedWallet(w.id); refresh(); }} className="text-[var(--muted)] hover:text-[var(--loss)]">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {!wallets.length && (
+                    <tr>
+                      <td colSpan={4} className="px-3 py-12 text-center">
+                        <Wallet className="mx-auto mb-2 h-8 w-8 text-[var(--muted-dim)]" />
+                        <p className="text-[var(--muted)]">Add Solana wallets to track</p>
+                        <p className="mt-1 text-[10px] text-[var(--muted-dim)]">Live trade feed requires an on-chain indexer</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {subTab === "Live Trades" && (
+          <EmptyState
+            title="Live trades feed"
+            desc="Per-wallet buy/sell stream needs a Solana transaction indexer. Add wallets in Wallet Manager — trades will appear here when the indexer is connected."
+          />
+        )}
+
+        {subTab === "Monitor" && (
+          <EmptyState
+            title="Wallet monitor"
+            desc="Real-time balance and position monitoring for tracked wallets. Connect an indexer to enable alerts when tracked wallets trade."
+          />
+        )}
+
+        {subTab === "KOLs" && (
+          <EmptyState
+            title="KOL tracker"
+            desc="Follow key opinion leaders and whale wallets. Add addresses in Wallet Manager or connect a curated KOL list API."
+          />
+        )}
       </div>
 
       <aside className="mv-panel flex w-full shrink-0 flex-col lg:w-[280px]">

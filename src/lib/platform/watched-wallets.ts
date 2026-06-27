@@ -35,8 +35,6 @@ export function addWatchedWallet(input: {
     id,
     ...input,
     addedAt: Date.now(),
-    pnl: `+${(Math.random() * 40 + 5).toFixed(1)}%`,
-    winRate: Math.floor(Math.random() * 30 + 55),
   };
   saveWatchedWallets([...wallets, next]);
   return next;
