@@ -21,6 +21,18 @@ export type PulseToken = {
   hasTwitter?: boolean;
   hasTelegram?: boolean;
   hasWebsite?: boolean;
+  dexPaid?: boolean;
+  caEndsInPump?: boolean;
+  recentVisitors?: number;
+  top10HoldersPct?: number;
+  devHoldingPct?: number;
+  snipersPct?: number;
+  insidersPct?: number;
+  bundlePct?: number;
+  holders?: number;
+  proTraders?: number;
+  devMigrations?: number;
+  devPairsCreated?: number;
 };
 
 type PumpV3Coin = {
@@ -58,6 +70,15 @@ type PumpV2Coin = {
   creationTime?: number;
   graduationDate?: number;
   imageUrl?: string;
+  numHolders?: number;
+  numKolsTraded?: number;
+  sniperCount?: number;
+  sniperOwnedPercentage?: number;
+  topHoldersPercentage?: number;
+  devHoldingsPercentage?: number;
+  dev?: string;
+  platform?: string;
+  program?: string;
 };
 
 const PUMP_HEADERS = {
@@ -108,6 +129,47 @@ function normalizeProtocol(raw?: string): string {
   return raw.toLowerCase().replace(/\.fun$/, "").trim();
 }
 
+function caEndsInPump(mint: string) {
+  const lower = mint.toLowerCase();
+  return lower.endsWith("pump") || lower.endsWith("bonk");
+}
+
+function auditFromV3(coin: PumpV3Coin, v2?: PumpV2Coin) {
+  const graduated = Boolean(coin.complete || coin.pump_swap_pool || coin.raydium_pool);
+  return {
+    dexPaid: graduated,
+    caEndsInPump: caEndsInPump(coin.mint),
+    recentVisitors: v2?.transactions ?? coin.reply_count ?? 0,
+    top10HoldersPct: v2?.topHoldersPercentage,
+    devHoldingPct: v2?.devHoldingsPercentage,
+    snipersPct: v2?.sniperOwnedPercentage,
+    insidersPct: undefined as number | undefined,
+    bundlePct: undefined as number | undefined,
+    holders: v2?.numHolders,
+    proTraders: v2?.numKolsTraded,
+    devMigrations: graduated ? 1 : 0,
+    devPairsCreated: undefined as number | undefined,
+  };
+}
+
+function auditFromV2(coin: PumpV2Coin) {
+  const graduated = Boolean(coin.graduationDate) || (coin.bondingCurveProgress ?? 0) >= 100;
+  return {
+    dexPaid: graduated,
+    caEndsInPump: caEndsInPump(coin.coinMint),
+    recentVisitors: coin.transactions ?? 0,
+    top10HoldersPct: coin.topHoldersPercentage,
+    devHoldingPct: coin.devHoldingsPercentage,
+    snipersPct: coin.sniperOwnedPercentage,
+    insidersPct: undefined as number | undefined,
+    bundlePct: undefined as number | undefined,
+    holders: coin.numHolders,
+    proTraders: coin.numKolsTraded,
+    devMigrations: graduated ? 1 : 0,
+    devPairsCreated: undefined as number | undefined,
+  };
+}
+
 function mapV3Coin(coin: PumpV3Coin, extra?: Partial<PulseToken>): PulseToken | null {
   if (!coin.mint || !coin.symbol) return null;
   const ageMs = coin.created_timestamp ? Date.now() - coin.created_timestamp : 0;
@@ -136,6 +198,7 @@ function mapV3Coin(coin: PumpV3Coin, extra?: Partial<PulseToken>): PulseToken | 
     hasTwitter: Boolean(coin.twitter?.trim()),
     hasTelegram: Boolean(coin.telegram?.trim()),
     hasWebsite: Boolean(coin.website?.trim()),
+    ...auditFromV3(coin, undefined),
     ...extra,
   };
 }
@@ -163,6 +226,7 @@ function mapV2Coin(coin: PumpV2Coin): PulseToken | null {
     priceUsd: 0,
     pairUrl: `https://pump.fun/coin/${coin.coinMint}`,
     imageUri: coin.imageUrl,
+    ...auditFromV2(coin),
   };
 }
 
@@ -202,6 +266,7 @@ export async function GET(req: NextRequest) {
       const mapped = mapV3Coin(coin, {
         volume: v2?.volume,
         txCount: v2?.transactions ?? coin.reply_count,
+        ...(v2 ? auditFromV3(coin, v2) : {}),
       });
       if (!mapped) continue;
       if (!search || mapped.symbol.toLowerCase().includes(search) || mapped.name.toLowerCase().includes(search) || mapped.address.toLowerCase().includes(search)) {

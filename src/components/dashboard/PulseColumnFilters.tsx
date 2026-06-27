@@ -11,9 +11,25 @@ export type PulseColumnFilterState = {
   protocols: string[];
   quoteTokens: string[];
   audit: {
-    liveOnly: boolean;
-    graduatedOnly: boolean;
-    highTx: boolean;
+    dexPaid: boolean;
+    caEndsInPump: boolean;
+    recentVisitorsMin: number;
+    recentVisitorsMax: number;
+    ageMinMins: number;
+    ageMaxMins: number;
+    top10HoldersPctMin: number;
+    devHoldingPctMin: number;
+    snipersPctMin: number;
+    insidersPctMin: number;
+    bundlePctMin: number;
+    holdersMin: number;
+    holdersMax: number;
+    proTradersMin: number;
+    proTradersMax: number;
+    devMigrationsMin: number;
+    devMigrationsMax: number;
+    devPairsCreatedMin: number;
+    devPairsCreatedMax: number;
   };
   metrics: {
     mcapMin: number;
@@ -34,7 +50,27 @@ export const DEFAULT_PULSE_FILTERS: PulseColumnFilterState = {
   excludeKeywords: "",
   protocols: [],
   quoteTokens: [],
-  audit: { liveOnly: false, graduatedOnly: false, highTx: false },
+  audit: {
+    dexPaid: false,
+    caEndsInPump: false,
+    recentVisitorsMin: 0,
+    recentVisitorsMax: 0,
+    ageMinMins: 0,
+    ageMaxMins: 0,
+    top10HoldersPctMin: 0,
+    devHoldingPctMin: 0,
+    snipersPctMin: 0,
+    insidersPctMin: 0,
+    bundlePctMin: 0,
+    holdersMin: 0,
+    holdersMax: 0,
+    proTradersMin: 0,
+    proTradersMax: 0,
+    devMigrationsMin: 0,
+    devMigrationsMax: 0,
+    devPairsCreatedMin: 0,
+    devPairsCreatedMax: 0,
+  },
   metrics: { mcapMin: 0, mcapMax: 0, volMin: 0, volMax: 0, ageMaxMins: 0 },
   socials: { twitter: false, telegram: false, website: false },
 };
@@ -72,12 +108,6 @@ const QUOTE_TOKENS = [
   { id: "USDT", label: "USDT", color: "#eab308", bg: "rgba(234,179,8,0.2)" },
 ] as const;
 
-const AUDIT_OPTIONS = [
-  { key: "liveOnly" as const, label: "Live stream only" },
-  { key: "graduatedOnly" as const, label: "Graduated / migrated" },
-  { key: "highTx" as const, label: "High activity (10+ tx)" },
-];
-
 const SOCIAL_OPTIONS = [
   { key: "twitter" as const, label: "Has Twitter" },
   { key: "telegram" as const, label: "Has Telegram" },
@@ -91,16 +121,136 @@ function parseKeywords(raw: string) {
     .filter(Boolean);
 }
 
+function countAuditFilters(a: PulseColumnFilterState["audit"]) {
+  let n = 0;
+  if (a.dexPaid) n++;
+  if (a.caEndsInPump) n++;
+  if (a.recentVisitorsMin || a.recentVisitorsMax) n++;
+  if (a.ageMinMins || a.ageMaxMins) n++;
+  if (a.top10HoldersPctMin) n++;
+  if (a.devHoldingPctMin) n++;
+  if (a.snipersPctMin) n++;
+  if (a.insidersPctMin) n++;
+  if (a.bundlePctMin) n++;
+  if (a.holdersMin || a.holdersMax) n++;
+  if (a.proTradersMin || a.proTradersMax) n++;
+  if (a.devMigrationsMin || a.devMigrationsMax) n++;
+  if (a.devPairsCreatedMin || a.devPairsCreatedMax) n++;
+  return n;
+}
+
 function activeFilterCount(f: PulseColumnFilterState) {
   let n = 0;
   if (f.searchKeywords.trim()) n++;
   if (f.excludeKeywords.trim()) n++;
   if (f.protocols.length) n++;
   if (f.quoteTokens.length) n++;
-  if (f.audit.liveOnly || f.audit.graduatedOnly || f.audit.highTx) n++;
+  n += countAuditFilters(f.audit);
   if (f.metrics.mcapMin || f.metrics.mcapMax || f.metrics.volMin || f.metrics.volMax || f.metrics.ageMaxMins) n++;
   if (f.socials.twitter || f.socials.telegram || f.socials.website) n++;
   return n;
+}
+
+function AuditToggle({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-md border px-3 py-2 text-[11px] font-semibold transition ${
+        active
+          ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)]"
+          : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--border-strong)]"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function AuditMinMax({
+  label,
+  min,
+  max,
+  onMin,
+  onMax,
+  suffix,
+  minPlaceholder,
+}: {
+  label: string;
+  min: number;
+  max: number;
+  onMin: (v: number) => void;
+  onMax: (v: number) => void;
+  suffix?: string;
+  minPlaceholder?: string;
+}) {
+  return (
+    <div className="ax-pulse-audit-row">
+      <span className="ax-pulse-audit-label">{label}</span>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[9px] font-semibold uppercase text-[var(--muted-dim)]">Min</span>
+        <input
+          type="number"
+          min="0"
+          value={min || ""}
+          onChange={(e) => onMin(Number(e.target.value) || 0)}
+          placeholder={minPlaceholder ?? "0"}
+          className="ax-pulse-audit-input"
+        />
+        {suffix && <span className="text-[10px] text-[var(--muted-dim)]">{suffix}</span>}
+        <span className="ml-1 text-[9px] font-semibold uppercase text-[var(--muted-dim)]">Max</span>
+        <input
+          type="number"
+          min="0"
+          value={max || ""}
+          onChange={(e) => onMax(Number(e.target.value) || 0)}
+          placeholder="0"
+          className="ax-pulse-audit-input"
+        />
+        {suffix && <span className="text-[10px] text-[var(--muted-dim)]">{suffix}</span>}
+      </div>
+    </div>
+  );
+}
+
+function AuditMinOnly({
+  label,
+  min,
+  onMin,
+  placeholder,
+  suffix,
+}: {
+  label: string;
+  min: number;
+  onMin: (v: number) => void;
+  placeholder?: string;
+  suffix?: string;
+}) {
+  return (
+    <div className="ax-pulse-audit-row">
+      <span className="ax-pulse-audit-label">{label}</span>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[9px] font-semibold uppercase text-[var(--muted-dim)]">Min</span>
+        <input
+          type="number"
+          min="0"
+          value={min || ""}
+          onChange={(e) => onMin(Number(e.target.value) || 0)}
+          placeholder={placeholder ?? "0"}
+          className="ax-pulse-audit-input"
+        />
+        {suffix && <span className="text-[10px] text-[var(--muted-dim)]">{suffix}</span>}
+      </div>
+    </div>
+  );
 }
 
 function TabBadge({ count }: { count: number }) {
@@ -131,7 +281,7 @@ export function PulseColumnFilters({
   const [showAllProtocols, setShowAllProtocols] = useState(false);
 
   const protocolCount = filters.protocols.length;
-  const auditCount = [filters.audit.liveOnly, filters.audit.graduatedOnly, filters.audit.highTx].filter(Boolean).length;
+  const auditCount = countAuditFilters(filters.audit);
   const metricsCount = [
     filters.metrics.mcapMin,
     filters.metrics.mcapMax,
@@ -311,26 +461,110 @@ export function PulseColumnFilters({
           )}
 
           {tab === "audit" && (
-            <div className="mt-3 space-y-2">
-              {AUDIT_OPTIONS.map(({ key, label }) => (
-                <label
-                  key={key}
-                  className="flex cursor-pointer items-center gap-2.5 rounded-md border border-[var(--border)] px-3 py-2.5 text-xs transition hover:border-[var(--border-strong)]"
-                >
-                  <input
-                    type="checkbox"
-                    checked={filters.audit[key]}
-                    onChange={(e) =>
-                      onChange({
-                        ...filters,
-                        audit: { ...filters.audit, [key]: e.target.checked },
-                      })
-                    }
-                    className="accent-[var(--primary)]"
-                  />
-                  <span className="text-[var(--muted)]">{label}</span>
-                </label>
-              ))}
+            <div className="mt-3 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <AuditToggle
+                  label="Dex Paid"
+                  active={filters.audit.dexPaid}
+                  onClick={() =>
+                    onChange({
+                      ...filters,
+                      audit: { ...filters.audit, dexPaid: !filters.audit.dexPaid },
+                    })
+                  }
+                />
+                <AuditToggle
+                  label={"CA ends in 'pump'"}
+                  active={filters.audit.caEndsInPump}
+                  onClick={() =>
+                    onChange({
+                      ...filters,
+                      audit: { ...filters.audit, caEndsInPump: !filters.audit.caEndsInPump },
+                    })
+                  }
+                />
+              </div>
+
+              <AuditMinMax
+                label="Recent Visitors"
+                min={filters.audit.recentVisitorsMin}
+                max={filters.audit.recentVisitorsMax}
+                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, recentVisitorsMin: v } })}
+                onMax={(v) => onChange({ ...filters, audit: { ...filters.audit, recentVisitorsMax: v } })}
+              />
+
+              <AuditMinMax
+                label="Age"
+                min={filters.audit.ageMinMins}
+                max={filters.audit.ageMaxMins}
+                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, ageMinMins: v } })}
+                onMax={(v) => onChange({ ...filters, audit: { ...filters.audit, ageMaxMins: v } })}
+                suffix="m"
+              />
+
+              <AuditMinOnly
+                label="Top 10 Holders %"
+                min={filters.audit.top10HoldersPctMin}
+                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, top10HoldersPctMin: v } })}
+                placeholder="20"
+              />
+              <AuditMinOnly
+                label="Dev Holding %"
+                min={filters.audit.devHoldingPctMin}
+                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, devHoldingPctMin: v } })}
+                placeholder="10"
+              />
+              <AuditMinOnly
+                label="Snipers %"
+                min={filters.audit.snipersPctMin}
+                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, snipersPctMin: v } })}
+                placeholder="30"
+              />
+              <AuditMinOnly
+                label="Insiders %"
+                min={filters.audit.insidersPctMin}
+                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, insidersPctMin: v } })}
+                placeholder="15"
+              />
+              <AuditMinOnly
+                label="Bundle %"
+                min={filters.audit.bundlePctMin}
+                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, bundlePctMin: v } })}
+                placeholder="30"
+              />
+
+              <AuditMinMax
+                label="Holders"
+                min={filters.audit.holdersMin}
+                max={filters.audit.holdersMax}
+                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, holdersMin: v } })}
+                onMax={(v) => onChange({ ...filters, audit: { ...filters.audit, holdersMax: v } })}
+              />
+
+              <AuditMinMax
+                label="Pro Traders"
+                min={filters.audit.proTradersMin}
+                max={filters.audit.proTradersMax}
+                minPlaceholder="5"
+                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, proTradersMin: v } })}
+                onMax={(v) => onChange({ ...filters, audit: { ...filters.audit, proTradersMax: v } })}
+              />
+
+              <AuditMinMax
+                label="Dev Migrations"
+                min={filters.audit.devMigrationsMin}
+                max={filters.audit.devMigrationsMax}
+                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, devMigrationsMin: v } })}
+                onMax={(v) => onChange({ ...filters, audit: { ...filters.audit, devMigrationsMax: v } })}
+              />
+
+              <AuditMinMax
+                label="Dev Pairs Created"
+                min={filters.audit.devPairsCreatedMin}
+                max={filters.audit.devPairsCreatedMax}
+                onMin={(v) => onChange({ ...filters, audit: { ...filters.audit, devPairsCreatedMin: v } })}
+                onMax={(v) => onChange({ ...filters, audit: { ...filters.audit, devPairsCreatedMax: v } })}
+              />
             </div>
           )}
 
@@ -415,6 +649,24 @@ export function countActivePulseFilters(f: PulseColumnFilterState) {
   return activeFilterCount(f);
 }
 
+function passesMinMax(
+  value: number | undefined,
+  min: number,
+  max: number,
+): boolean {
+  if (!min && !max) return true;
+  if (value == null) return false;
+  if (min && value < min) return false;
+  if (max && value > max) return false;
+  return true;
+}
+
+function passesMin(value: number | undefined, min: number): boolean {
+  if (!min) return true;
+  if (value == null) return false;
+  return value >= min;
+}
+
 export function applyPulseColumnFilters<
   T extends {
     symbol: string;
@@ -431,6 +683,18 @@ export function applyPulseColumnFilters<
     hasTwitter?: boolean;
     hasTelegram?: boolean;
     hasWebsite?: boolean;
+    dexPaid?: boolean;
+    caEndsInPump?: boolean;
+    recentVisitors?: number;
+    top10HoldersPct?: number;
+    devHoldingPct?: number;
+    snipersPct?: number;
+    insidersPct?: number;
+    bundlePct?: number;
+    holders?: number;
+    proTraders?: number;
+    devMigrations?: number;
+    devPairsCreated?: number;
   },
 >(tokens: T[], f: PulseColumnFilterState): T[] {
   const include = parseKeywords(f.searchKeywords);
@@ -453,9 +717,25 @@ export function applyPulseColumnFilters<
       if (!f.quoteTokens.includes(qt)) return false;
     }
 
-    if (f.audit.liveOnly && !t.isLive) return false;
-    if (f.audit.graduatedOnly && t.column !== "migrated") return false;
-    if (f.audit.highTx && t.txCount < 10) return false;
+    const a = f.audit;
+    if (a.dexPaid && !t.dexPaid) return false;
+    if (a.caEndsInPump && !t.caEndsInPump) return false;
+
+    if (!passesMinMax(t.recentVisitors, a.recentVisitorsMin, a.recentVisitorsMax)) return false;
+
+    const ageMins = t.ageMs / 60_000;
+    if (a.ageMinMins && ageMins < a.ageMinMins) return false;
+    if (a.ageMaxMins && ageMins > a.ageMaxMins) return false;
+
+    if (!passesMin(t.top10HoldersPct, a.top10HoldersPctMin)) return false;
+    if (!passesMin(t.devHoldingPct, a.devHoldingPctMin)) return false;
+    if (!passesMin(t.snipersPct, a.snipersPctMin)) return false;
+    if (!passesMin(t.insidersPct, a.insidersPctMin)) return false;
+    if (!passesMin(t.bundlePct, a.bundlePctMin)) return false;
+    if (!passesMinMax(t.holders, a.holdersMin, a.holdersMax)) return false;
+    if (!passesMinMax(t.proTraders, a.proTradersMin, a.proTradersMax)) return false;
+    if (!passesMinMax(t.devMigrations, a.devMigrationsMin, a.devMigrationsMax)) return false;
+    if (!passesMinMax(t.devPairsCreated, a.devPairsCreatedMin, a.devPairsCreatedMax)) return false;
 
     if (f.metrics.mcapMin && t.mcap < f.metrics.mcapMin) return false;
     if (f.metrics.mcapMax && t.mcap > f.metrics.mcapMax) return false;
