@@ -66,7 +66,7 @@ export function CorporateLanding() {
             <a href="#onboarding">Get started</a>
           </nav>
           <div className="mv-landing-header-actions">
-            <Link href="/dashboard" className="mv-landing-link">
+            <Link href="/sign-in" className="mv-landing-link">
               Sign in
             </Link>
             <Link href="/create" className="mv-landing-btn mv-landing-btn--primary">
@@ -97,7 +97,7 @@ export function CorporateLanding() {
                   Create organization wallet
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link href="/dashboard" className="mv-landing-btn mv-landing-btn--secondary">
+                <Link href="/sign-in" className="mv-landing-btn mv-landing-btn--secondary">
                   Launch terminal
                 </Link>
               </div>
@@ -264,7 +264,7 @@ export function CorporateLanding() {
             <a href="#platform">Platform</a>
             <a href="#security">Security</a>
             <a href="#onboarding">Get started</a>
-            <Link href="/dashboard">Terminal</Link>
+            <Link href="/sign-in">Sign in</Link>
           </div>
           <p className="mv-landing-footer-legal">
             © {new Date().getFullYear()} MultiVault Technologies. All rights reserved.
