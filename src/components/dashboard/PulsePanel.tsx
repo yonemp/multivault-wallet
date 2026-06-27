@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PulseToken } from "@/app/api/pulse/route";
 import { DashboardTab } from "@/components/dashboard/ActionTabs.types";
 import { formatCompactUsd } from "@/lib/format/numbers";
@@ -28,6 +28,16 @@ const DEFAULT_FILTERS: ColumnFilters = {
 type PulsePanelProps = {
   onNavigate: (tab: DashboardTab, asset?: string) => void;
 };
+
+function formatAge(ms: number) {
+  const sec = Math.floor(ms / 1000);
+  if (sec < 60) return `${sec}s`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h`;
+  return `${Math.floor(hr / 24)}d`;
+}
 
 function applyFilters(tokens: PulseToken[], f: ColumnFilters, search: string) {
   const q = search.trim().toLowerCase();
@@ -93,6 +103,43 @@ function ColumnFilterBar({
 }
 
 function PulseRow({ token, onTrade }: { token: PulseToken; onTrade: () => void }) {
+  const prevMcap = useRef(token.mcap);
+  const prevVol = useRef(token.volume);
+  const [mcFlash, setMcFlash] = useState<"up" | "down" | null>(null);
+  const [volFlash, setVolFlash] = useState<"up" | "down" | null>(null);
+
+  useEffect(() => {
+    if (token.mcap !== prevMcap.current) {
+      setMcFlash(token.mcap > prevMcap.current ? "up" : "down");
+      prevMcap.current = token.mcap;
+      const t = setTimeout(() => setMcFlash(null), 600);
+      return () => clearTimeout(t);
+    }
+  }, [token.mcap]);
+
+  useEffect(() => {
+    if (token.volume !== prevVol.current) {
+      setVolFlash(token.volume > prevVol.current ? "up" : "down");
+      prevVol.current = token.volume;
+      const t = setTimeout(() => setVolFlash(null), 600);
+      return () => clearTimeout(t);
+    }
+  }, [token.volume]);
+
+  const mcClass =
+    mcFlash === "up"
+      ? "text-[var(--gain)]"
+      : mcFlash === "down"
+        ? "text-[var(--loss)]"
+        : "text-[var(--foreground)]";
+
+  const volClass =
+    volFlash === "up"
+      ? "text-[var(--gain)]"
+      : volFlash === "down"
+        ? "text-[var(--loss)]"
+        : "text-[var(--muted)]";
+
   return (
     <div className={`ax-pulse-row group ${ROW_GRID} px-4 py-3`}>
       <button type="button" onClick={onTrade} className="flex min-w-0 items-center gap-3 text-left">
@@ -123,8 +170,12 @@ function PulseRow({ token, onTrade }: { token: PulseToken; onTrade: () => void }
           <span className="font-mono text-xs text-[var(--muted-dim)]">{token.age}</span>
         </div>
       </button>
-      <span className="font-mono text-sm font-medium text-[var(--foreground)]">{formatCompactUsd(token.mcap)}</span>
-      <span className="font-mono text-sm text-[var(--muted)]">{formatCompactUsd(token.volume)}</span>
+      <span className={`font-mono text-sm font-medium transition-colors duration-300 ${mcClass}`}>
+        {formatCompactUsd(token.mcap)}
+      </span>
+      <span className={`font-mono text-sm transition-colors duration-300 ${volClass}`}>
+        {formatCompactUsd(token.volume)}
+      </span>
       <a
         href={token.pairUrl}
         target="_blank"
@@ -141,8 +192,18 @@ function PulseRow({ token, onTrade }: { token: PulseToken; onTrade: () => void }
 export function PulsePanel({ onNavigate }: PulsePanelProps) {
   const [tokens, setTokens] = useState<PulseToken[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tickerBusy, setTickerBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
+  const tokensRef = useRef<PulseToken[]>([]);
+  const reserveRef = useRef<Record<string, number>>({});
+  const volAccumRef = useRef<Record<string, number>>({});
+  const solUsdRef = useRef(140);
+
+  useEffect(() => {
+    tokensRef.current = tokens;
+  }, [tokens]);
+
   const [columnFilters, setColumnFilters] = useState<Record<PulseToken["column"], ColumnFilters>>({
     new: { ...DEFAULT_FILTERS },
     final: { ...DEFAULT_FILTERS },
@@ -154,27 +215,87 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
     migrated: "",
   });
 
-  const loadPulse = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadPulse = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
-      const res = await fetch("/api/pulse");
+      const res = await fetch("/api/pulse", { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to load");
       const data = (await res.json()) as { tokens: PulseToken[]; updatedAt?: number };
       setTokens(data.tokens ?? []);
       setUpdatedAt(data.updatedAt ?? Date.now());
+      for (const t of data.tokens ?? []) {
+        volAccumRef.current[t.address] = t.volume;
+      }
     } catch {
-      setError("Could not load live coins from pump.fun");
+      if (!silent) setError("Could not load live coins from pump.fun");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
+    }
+  }, []);
+
+  const refreshTickers = useCallback(async () => {
+    const current = tokensRef.current;
+    if (!current.length) return;
+    setTickerBusy(true);
+    try {
+      const mints = current.map((t) => t.address).join(",");
+      const res = await fetch(`/api/pulse/tickers?mints=${encodeURIComponent(mints)}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        tickers?: Record<string, { mcap: number; volume: number; ageMs: number; quoteReserves: number }>;
+        solUsd?: number;
+      };
+      if (data.solUsd) solUsdRef.current = data.solUsd;
+
+      setTokens((prev) =>
+        prev.map((t) => {
+          const tick = data.tickers?.[t.address];
+          if (!tick) return t;
+
+          let volume = tick.volume;
+          const prevReserves = reserveRef.current[t.address];
+          if (prevReserves != null && tick.quoteReserves > 0) {
+            const deltaSol = Math.abs(tick.quoteReserves - prevReserves) / 1e9;
+            if (deltaSol > 0) {
+              volAccumRef.current[t.address] =
+                (volAccumRef.current[t.address] ?? t.volume) + deltaSol * solUsdRef.current;
+            }
+          }
+          reserveRef.current[t.address] = tick.quoteReserves;
+          if (volAccumRef.current[t.address] != null) {
+            volume = Math.max(volume, volAccumRef.current[t.address]);
+          }
+
+          return {
+            ...t,
+            mcap: tick.mcap,
+            volume,
+            ageMs: tick.ageMs,
+            age: tick.ageMs > 0 ? formatAge(tick.ageMs) : t.age,
+          };
+        }),
+      );
+      setUpdatedAt(Date.now());
+    } finally {
+      setTickerBusy(false);
     }
   }, []);
 
   useEffect(() => {
-    loadPulse();
-    const interval = setInterval(loadPulse, 30_000);
-    return () => clearInterval(interval);
+    void loadPulse();
+    const fullInterval = setInterval(() => void loadPulse(true), 30_000);
+    return () => clearInterval(fullInterval);
   }, [loadPulse]);
+
+  useEffect(() => {
+    const tickerInterval = setInterval(() => void refreshTickers(), 1000);
+    return () => clearInterval(tickerInterval);
+  }, [refreshTickers]);
 
   const counts = useMemo(() => ({
     new: tokens.filter((t) => t.column === "new").length,
@@ -188,12 +309,14 @@ export function PulsePanel({ onNavigate }: PulsePanelProps) {
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-[var(--primary)]" />
           <span className="text-base font-semibold">Pulse</span>
-          <span className="ax-live-dot h-2 w-2 rounded-full bg-[var(--gain)]" />
-          <span className="text-xs text-[var(--muted)]">pump.fun live · {tokens.length} coins</span>
+          <span className={`ax-live-dot h-2 w-2 rounded-full ${tickerBusy ? "animate-pulse bg-[var(--primary)]" : "bg-[var(--gain)]"}`} />
+          <span className="text-xs text-[var(--muted)]">
+            pump.fun live · {tokens.length} coins · MC/Vol 1s
+          </span>
         </div>
         <button
           type="button"
-          onClick={loadPulse}
+          onClick={() => void loadPulse()}
           disabled={loading}
           className="ml-auto flex items-center gap-1.5 rounded-sm border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
         >

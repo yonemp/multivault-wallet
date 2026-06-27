@@ -9,7 +9,7 @@ import { TwoFactorModal } from "@/components/profile/TwoFactorModal";
 import { usePasswordPrompt } from "@/hooks/usePasswordPrompt";
 import { loadEncryptedWallet } from "@/lib/wallet/storage";
 import { changeWalletPassword, verifyWalletPassword } from "@/lib/wallet/verify-password";
-import { clearVerificationCode } from "@/lib/platform/two-factor";
+
 import { AlertTriangle, Copy, Download, Eye, EyeOff, KeyRound, ShieldAlert } from "lucide-react";
 
 const DISCLAIMERS = [
@@ -114,7 +114,6 @@ export function SecurityPanel({ email, phone, isLocalWallet }: SecurityPanelProp
     setNewPassword("");
     setConfirmPassword("");
     setPendingNewPassword(null);
-    clearVerificationCode();
     setPasswordChanged(true);
     setTimeout(() => setPasswordChanged(false), 3000);
   }
