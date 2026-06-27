@@ -22,6 +22,7 @@ type WalletRow = {
 type TicketRow = {
   id: string;
   wallet_address?: string;
+  username?: string;
   subject: string;
   body: string;
   status: string;
@@ -372,6 +373,7 @@ export default function AdminPage() {
                 <div>
                   <p className="font-semibold">{t.subject}</p>
                   <p className="mt-1 text-xs text-[var(--muted)]">
+                    {t.username ? `@${t.username} · ` : ""}
                     {t.wallet_address ?? "No address"} · {new Date(t.created_at).toLocaleString()}
                   </p>
                 </div>

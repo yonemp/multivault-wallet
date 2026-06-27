@@ -12,6 +12,7 @@ create table if not exists support_tickets (
   id uuid primary key default gen_random_uuid(),
   wallet_address text,
   chain text,
+  username text,
   subject text not null,
   body text not null,
   status text not null default 'open' check (status in ('open', 'answered', 'closed')),
@@ -37,6 +38,7 @@ create policy "Anyone can update tickets"
 create table if not exists user_profiles (
   id uuid primary key default gen_random_uuid(),
   primary_address text not null unique,
+  username text unique,
   display_name text,
   avatar_color text default '#2f6fed',
   created_at timestamptz default now(),
@@ -53,3 +55,7 @@ create policy "Anyone can upsert profiles"
 
 create policy "Anyone can update profiles"
   on user_profiles for update using (true);
+
+-- Migrations for existing deployments
+alter table user_profiles add column if not exists username text unique;
+alter table support_tickets add column if not exists username text;

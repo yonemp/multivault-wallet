@@ -18,6 +18,7 @@ function isMissingTicketsTable(message: string) {
 function fallbackTicket(body: {
   walletAddress?: string;
   chain?: string;
+  username?: string;
   subject: string;
   body: string;
 }): TicketRecord {
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as {
       walletAddress?: string;
       chain?: string;
+      username?: string;
       subject?: string;
       body?: string;
     };
@@ -85,6 +87,7 @@ export async function POST(req: NextRequest) {
       .insert({
         wallet_address: body.walletAddress ?? null,
         chain: body.chain ?? null,
+        username: body.username?.trim().toLowerCase() ?? null,
         subject: body.subject.trim(),
         body: body.body.trim(),
       })
@@ -96,6 +99,7 @@ export async function POST(req: NextRequest) {
         const ticket = fallbackTicket({
           walletAddress: body.walletAddress,
           chain: body.chain,
+          username: body.username,
           subject: body.subject.trim(),
           body: body.body.trim(),
         });

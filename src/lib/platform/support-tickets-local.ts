@@ -2,6 +2,7 @@ export type LocalSupportTicket = {
   id: string;
   walletAddress: string | null;
   chain: string | null;
+  username: string | null;
   subject: string;
   body: string;
   status: "open" | "answered" | "closed";
@@ -31,6 +32,7 @@ export function saveLocalTicket(
     id: `local-${Date.now()}`,
     walletAddress: input.walletAddress,
     chain: input.chain,
+    username: input.username ?? null,
     subject: input.subject,
     body: input.body,
     status: "open",

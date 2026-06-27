@@ -9,6 +9,8 @@ import { Panel } from "@/components/ui/Panel";
 import { Logo } from "@/components/layout/Logo";
 import { OnboardingStepper } from "@/components/wallet/OnboardingStepper";
 import { createSeedPhrase } from "@/lib/wallet/mnemonic";
+import { UsernamePicker } from "@/components/onboarding/UsernamePicker";
+import { hasAccountUsername, saveUsernameForWallet } from "@/lib/platform/account-username";
 import { setupLocalWallet } from "@/lib/wallet/setup-wallet";
 import { vaultWalletCount } from "@/lib/wallet/wallet-vault";
 import {
@@ -25,6 +27,7 @@ const STEPS = [
   { id: "intro", label: "Start" },
   { id: "backup", label: "Backup" },
   { id: "secure", label: "Secure" },
+  { id: "username", label: "Username" },
   { id: "done", label: "Ready" },
 ];
 
@@ -45,6 +48,14 @@ export default function CreateWalletPage() {
   const words = useMemo(
     () => (seedPhrase ? seedPhrase.split(" ") : []),
     [seedPhrase],
+  );
+
+  const displaySteps = useMemo(
+    () =>
+      isAdding || hasAccountUsername()
+        ? STEPS.filter((s) => s.id !== "username")
+        : STEPS,
+    [isAdding],
   );
 
   function handleGenerate() {
@@ -73,8 +84,12 @@ export default function CreateWalletPage() {
         label: label.trim() || undefined,
         makeActive: !isAdding || vaultWalletCount() === 0,
       });
-      setCreatedAddress(vaultWallet.addresses.solana ?? null);
-      setStep("done");
+      const addr =
+        vaultWallet.addresses.solana ??
+        vaultWallet.addresses.ethereum ??
+        null;
+      setCreatedAddress(addr);
+      setStep(!isAdding && !hasAccountUsername() ? "username" : "done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create wallet");
     } finally {
@@ -95,7 +110,7 @@ export default function CreateWalletPage() {
 
       <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="mb-8 flex justify-center">
-          <OnboardingStepper steps={STEPS} current={step} />
+          <OnboardingStepper steps={displaySteps} current={step} />
         </div>
 
         {step === "intro" && (
@@ -230,6 +245,15 @@ export default function CreateWalletPage() {
               {loading ? "Securing wallet…" : "Create wallet"}
             </Button>
           </Panel>
+        )}
+
+        {step === "username" && createdAddress && (
+          <UsernamePicker
+            onSubmit={async (username) => {
+              await saveUsernameForWallet(createdAddress, username);
+              setStep("done");
+            }}
+          />
         )}
 
         {step === "done" && (

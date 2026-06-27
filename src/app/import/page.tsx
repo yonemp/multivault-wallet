@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
@@ -9,6 +9,8 @@ import { Panel } from "@/components/ui/Panel";
 import { Logo } from "@/components/layout/Logo";
 import { OnboardingStepper } from "@/components/wallet/OnboardingStepper";
 import { isValidSeedPhrase } from "@/lib/wallet/mnemonic";
+import { UsernamePicker } from "@/components/onboarding/UsernamePicker";
+import { hasAccountUsername, saveUsernameForWallet } from "@/lib/platform/account-username";
 import { setupLocalWallet } from "@/lib/wallet/setup-wallet";
 import { vaultWalletCount } from "@/lib/wallet/wallet-vault";
 import { CheckCircle2, Download, KeyRound, Shield } from "lucide-react";
@@ -16,6 +18,7 @@ import { CheckCircle2, Download, KeyRound, Shield } from "lucide-react";
 const STEPS = [
   { id: "phrase", label: "Phrase" },
   { id: "secure", label: "Secure" },
+  { id: "username", label: "Username" },
   { id: "done", label: "Ready" },
 ];
 
@@ -31,6 +34,14 @@ export default function ImportWalletPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importedAddress, setImportedAddress] = useState<string | null>(null);
+
+  const displaySteps = useMemo(
+    () =>
+      isAdding || hasAccountUsername()
+        ? STEPS.filter((s) => s.id !== "username")
+        : STEPS,
+    [isAdding],
+  );
 
   async function handleImport() {
     const normalized = seedPhrase.trim().toLowerCase();
@@ -57,8 +68,12 @@ export default function ImportWalletPage() {
         label: label.trim() || undefined,
         makeActive: !isAdding,
       });
-      setImportedAddress(vaultWallet.addresses.solana ?? null);
-      setStep("done");
+      const addr =
+        vaultWallet.addresses.solana ??
+        vaultWallet.addresses.ethereum ??
+        null;
+      setImportedAddress(addr);
+      setStep(!isAdding && !hasAccountUsername() ? "username" : "done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to import wallet");
     } finally {
@@ -79,7 +94,7 @@ export default function ImportWalletPage() {
 
       <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="mb-8 flex justify-center">
-          <OnboardingStepper steps={STEPS} current={step} />
+          <OnboardingStepper steps={displaySteps} current={step} />
         </div>
 
         {step === "phrase" && (
@@ -150,6 +165,15 @@ export default function ImportWalletPage() {
               </Button>
             </div>
           </Panel>
+        )}
+
+        {step === "username" && importedAddress && (
+          <UsernamePicker
+            onSubmit={async (username) => {
+              await saveUsernameForWallet(importedAddress, username);
+              setStep("done");
+            }}
+          />
         )}
 
         {step === "done" && (

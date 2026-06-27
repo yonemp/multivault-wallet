@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { normalizeUsername, validateUsername } from "@/lib/platform/username";
 
 export async function GET(req: NextRequest) {
   const address = req.nextUrl.searchParams.get("address");
@@ -26,6 +27,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as {
       primaryAddress?: string;
       displayName?: string;
+      username?: string;
       avatarColor?: string;
     };
 
@@ -33,18 +35,54 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "primaryAddress required" }, { status: 400 });
     }
 
+    const username = body.username
+      ? normalizeUsername(body.username)
+      : body.displayName
+        ? normalizeUsername(body.displayName)
+        : null;
+
+    if (username) {
+      const validationError = validateUsername(username);
+      if (validationError) {
+        return NextResponse.json({ error: validationError }, { status: 400 });
+      }
+
+      const supabase = createServerClient();
+      const takenUsername = await supabase
+        .from("user_profiles")
+        .select("primary_address")
+        .eq("username", username)
+        .neq("primary_address", body.primaryAddress)
+        .maybeSingle();
+
+      if (!takenUsername.error && takenUsername.data) {
+        return NextResponse.json({ error: "Username is already taken" }, { status: 409 });
+      }
+
+      const takenDisplay = await supabase
+        .from("user_profiles")
+        .select("primary_address")
+        .ilike("display_name", username)
+        .neq("primary_address", body.primaryAddress)
+        .maybeSingle();
+
+      if (!takenDisplay.error && takenDisplay.data) {
+        return NextResponse.json({ error: "Username is already taken" }, { status: 409 });
+      }
+    }
+
     const supabase = createServerClient();
+    const row: Record<string, string | null> = {
+      primary_address: body.primaryAddress,
+      display_name: username ?? body.displayName?.trim() ?? null,
+      avatar_color: body.avatarColor ?? "#2f6fed",
+      updated_at: new Date().toISOString(),
+    };
+    if (username) row.username = username;
+
     const { data, error } = await supabase
       .from("user_profiles")
-      .upsert(
-        {
-          primary_address: body.primaryAddress,
-          display_name: body.displayName ?? null,
-          avatar_color: body.avatarColor ?? "#2f6fed",
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "primary_address" },
-      )
+      .upsert(row, { onConflict: "primary_address" })
       .select()
       .single();
 

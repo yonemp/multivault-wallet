@@ -14,6 +14,7 @@ import {
   profileFromApi,
   saveLocalProfile,
 } from "@/lib/platform/user-profile";
+import { getAccountUsername } from "@/lib/platform/account-username";
 import { markTicketSynced, saveLocalTicket } from "@/lib/platform/support-tickets-local";
 
 import { ArrowLeft, MessageSquare, Shield, User } from "lucide-react";
@@ -46,15 +47,22 @@ export default function ProfilePage() {
       window.location.href = "/";
       return;
     }
+    if (!getAccountUsername()) {
+      window.location.href = "/onboarding/username?redirect=/profile";
+      return;
+    }
     setSession(s);
 
     const addr = getAddress(s, "ethereum") ?? getAddress(s, "solana");
     if (!addr) return;
 
+    const accountName = getAccountUsername() ?? "";
     const local = loadLocalProfile(addr);
     if (local) {
-      setDisplayName(local.displayName);
+      setDisplayName(local.displayName || accountName);
       setAvatarColor(local.avatarColor);
+    } else if (accountName) {
+      setDisplayName(accountName);
     }
 
     fetch(`/api/profile?address=${encodeURIComponent(addr)}`)
@@ -119,9 +127,12 @@ export default function ProfilePage() {
     setError(null);
     setTicketQueuedLocally(false);
 
+    const username = getAccountUsername();
+
     const payload = {
       walletAddress: primaryAddress,
       chain: session?.addresses.ethereum ? "ethereum" : "solana",
+      username,
       subject: ticketSubject.trim(),
       body: ticketBody.trim(),
     };
@@ -129,6 +140,7 @@ export default function ProfilePage() {
     const local = saveLocalTicket({
       walletAddress: payload.walletAddress ?? null,
       chain: payload.chain ?? null,
+      username: payload.username,
       subject: payload.subject,
       body: payload.body,
       synced: false,
@@ -239,6 +251,17 @@ export default function ProfilePage() {
               <h2 className="flex items-center gap-2 text-sm font-semibold">
                 <User className="h-4 w-4 text-[var(--primary)]" /> Identity
               </h2>
+              <div>
+                <label className="mv-label">Username</label>
+                <Input
+                  value={getAccountUsername() ?? displayName}
+                  readOnly
+                  className="opacity-80"
+                />
+                <p className="mt-1 text-[10px] text-[var(--muted)]">
+                  Set during wallet setup · used for tickets and account moderation
+                </p>
+              </div>
               <div>
                 <label className="mv-label">Display name</label>
                 <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Trader name" />

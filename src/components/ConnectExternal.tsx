@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { UsernamePicker } from "@/components/onboarding/UsernamePicker";
 import {
   connectMetaMask,
   connectPhantom,
@@ -10,7 +11,8 @@ import {
   signSolanaMessage,
 } from "@/lib/wallet/providers";
 import { registerWallet } from "@/lib/wallet/register";
-import { saveSession } from "@/lib/wallet/session";
+import { hasAccountUsername, saveUsernameForWallet } from "@/lib/platform/account-username";
+import { saveSession, SessionData, getAddress } from "@/lib/wallet/session";
 
 const wallets = [
   { id: "metamask" as const, label: "MetaMask", variant: "primary" as const },
@@ -21,6 +23,16 @@ const wallets = [
 export function ConnectExternal() {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingSession, setPendingSession] = useState<SessionData | null>(null);
+
+  function finishConnect(session: SessionData) {
+    if (!hasAccountUsername()) {
+      setPendingSession(session);
+      return;
+    }
+    saveSession(session);
+    window.location.href = "/dashboard";
+  }
 
   async function handleEvm(provider: "metamask" | "trust") {
     setLoading(provider);
@@ -44,14 +56,12 @@ export function ConnectExternal() {
         signature,
       });
 
-      saveSession({
+      finishConnect({
         mode: "external",
         walletType: provider,
         addresses: { ethereum: address },
         evmAddress: address,
       });
-
-      window.location.href = "/dashboard";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Connection failed");
     } finally {
@@ -75,14 +85,12 @@ export function ConnectExternal() {
         signature,
       });
 
-      saveSession({
+      finishConnect({
         mode: "external",
         walletType: "phantom",
         addresses: { solana: address },
         solanaAddress: address,
       });
-
-      window.location.href = "/dashboard";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Connection failed");
     } finally {
@@ -90,9 +98,31 @@ export function ConnectExternal() {
     }
   }
 
+  async function handleUsername(username: string) {
+    if (!pendingSession) return;
+    const addr =
+      getAddress(pendingSession, "ethereum") ??
+      getAddress(pendingSession, "solana");
+    if (!addr) throw new Error("No wallet address");
+    await saveUsernameForWallet(addr, username);
+    saveSession(pendingSession);
+    window.location.href = "/dashboard";
+  }
+
   function handleClick(id: "metamask" | "phantom" | "trust") {
     if (id === "phantom") handlePhantom();
     else handleEvm(id);
+  }
+
+  if (pendingSession) {
+    return (
+      <UsernamePicker
+        title="Choose your username"
+        description="Required to finish connecting your wallet. Used for support tickets and account moderation."
+        submitLabel="Finish connecting"
+        onSubmit={handleUsername}
+      />
+    );
   }
 
   return (

@@ -35,9 +35,12 @@ import {
   clearSession,
   loadSession,
   SessionData,
+  getAddress,
 } from "@/lib/wallet/session";
 import { clearUnlockedMnemonic } from "@/lib/wallet/unlock-store";
 import { migrateLegacyWallet } from "@/lib/wallet/wallet-vault";
+import { hasAccountUsername, getAccountUsername } from "@/lib/platform/account-username";
+import { FrozenAccountGate } from "@/components/wallet/FrozenAccountGate";
 
 function tabFromParam(value: string | null): DashboardTab | null {
   if (!value) return null;
@@ -59,6 +62,10 @@ export default function DashboardPage() {
   const [loadingBalances, setLoadingBalances] = useState(false);
   const [openWalletsTab, setOpenWalletsTab] = useState(false);
   const [showWalletWelcome, setShowWalletWelcome] = useState(false);
+  const [accountFrozen, setAccountFrozen] = useState<{
+    reason: string | null;
+  } | null>(null);
+  const [gateReady, setGateReady] = useState(false);
 
   const lock = useWalletLock(session);
 
@@ -82,6 +89,31 @@ export default function DashboardPage() {
     }
 
     migrateLegacyWallet(current);
+
+    if (!hasAccountUsername()) {
+      window.location.href = "/onboarding/username?redirect=/dashboard";
+      return;
+    }
+
+    const primary =
+      getAddress(current, "ethereum") ?? getAddress(current, "solana");
+    if (primary) {
+      fetch(`/api/wallet/status?address=${encodeURIComponent(primary)}`)
+        .then(async (r) => {
+          if (!r.ok) return null;
+          return r.json() as Promise<{ isFrozen?: boolean; frozenReason?: string | null }>;
+        })
+        .then((data) => {
+          if (data?.isFrozen) {
+            setAccountFrozen({ reason: data.frozenReason ?? null });
+          }
+        })
+        .catch(() => {})
+        .finally(() => setGateReady(true));
+    } else {
+      setGateReady(true);
+    }
+
     setSession(current);
 
     const tab = tabFromParam(searchParams.get("tab"));
@@ -114,11 +146,21 @@ export default function DashboardPage() {
   const isTerminal = TERMINAL_TABS.includes(activeTab);
   const showLockBanner = session?.mode === "local";
 
-  if (!session) {
+  if (!session || !gateReady) {
     return (
       <main className="flex min-h-screen items-center justify-center text-[var(--muted)]">
         Loading terminal…
       </main>
+    );
+  }
+
+  if (accountFrozen) {
+    return (
+      <FrozenAccountGate
+        username={getAccountUsername()}
+        reason={accountFrozen.reason}
+        onLogout={handleLogout}
+      />
     );
   }
 
