@@ -2,15 +2,15 @@
 
 import { BRAND_NAME } from "@/lib/brand";
 import { Reveal } from "@/components/landing/LandingMotion";
-import { ArrowRight, Radio, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, Radio, Shield, Sparkles, User, Zap } from "lucide-react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 
 const stats = [
   { label: "7 networks", icon: Zap },
-  { label: "Self-custody", icon: Sparkles },
+  { label: "Self-custody vault", icon: Shield },
   { label: "Live Pulse", icon: Radio },
-  { label: "AI Intel", icon: Sparkles },
+  { label: "@username identity", icon: User },
 ];
 
 const TICKERS = ["$BONK", "$WIF", "$POPCAT", "SOL +2.4%", "PULSE LIVE", "JUPITER", "MEMECOIN", "DEFI", "AGENTS"];
@@ -25,22 +25,22 @@ export function LandingHero() {
           <Reveal>
             <div className="mv-premium-hero-badge">
               <span className="mv-premium-live-dot" />
-              Multi-chain terminal · tackers.xyz
+              Operator terminal · tackers.xyz · Live
             </div>
           </Reveal>
 
           <Reveal delay={0.05}>
             <h1 className="mv-premium-display">
-              <span className="mv-premium-display-line">Control every chain.</span>
-              <span className="mv-premium-display-gradient">One vault.</span>
+              <span className="mv-premium-display-line">Trade every chain.</span>
+              <span className="mv-premium-display-gradient">Own your edge.</span>
             </h1>
           </Reveal>
 
           <Reveal delay={0.1}>
             <p className="mv-premium-lead">
-              {BRAND_NAME} is the operator workspace for memecoins, DeFi, and the AI-driven future of
-              finance — pulse discovery, live execution, encrypted vault, and intelligence in one
-              cinematic terminal.
+              {BRAND_NAME} is the cinematic trading terminal for memecoins, DeFi, and on-chain
+              intelligence — pulse discovery, instant execution, encrypted vault, and a persistent
+              @username so friends, tickets, and rewards follow you across every session.
             </p>
           </Reveal>
 
@@ -50,8 +50,8 @@ export function LandingHero() {
                 Create wallet
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link href="/import" className="mv-premium-btn mv-premium-btn--glass">
-                Import wallet
+              <Link href="/sign-in" className="mv-premium-btn mv-premium-btn--glass">
+                Sign in
               </Link>
             </div>
           </Reveal>

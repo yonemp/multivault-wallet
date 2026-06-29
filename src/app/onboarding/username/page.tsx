@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Logo } from "@/components/layout/Logo";
+import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { UsernamePicker } from "@/components/onboarding/UsernamePicker";
 import { saveUsernameForWallet } from "@/lib/platform/account-username";
 import { loadSession, getAddress } from "@/lib/wallet/session";
@@ -34,19 +33,14 @@ export default function OnboardingUsernamePage() {
   }
 
   return (
-    <div className="relative min-h-screen">
-      <header className="border-b border-[var(--border)] bg-[var(--bg-elevated)]/80 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
-          <Logo href="/" compact />
-          <Link href="/" className="text-xs text-[var(--muted)] hover:text-[var(--primary)]">
-            ← Home
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-lg px-4 py-10 sm:px-6">
-        <UsernamePicker onSubmit={handleSubmit} />
-      </main>
-    </div>
+    <MarketingShell narrow backHref="/" backLabel="Home">
+      <div className="mv-premium-page-head">
+        <h1 className="mv-premium-page-title">One last step</h1>
+        <p className="mv-premium-page-sub">
+          Pick a username before you enter the terminal.
+        </p>
+      </div>
+      {address && <UsernamePicker submitLabel="Enter terminal" onSubmit={handleSubmit} />}
+    </MarketingShell>
   );
 }

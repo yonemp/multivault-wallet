@@ -178,6 +178,7 @@ export default function DashboardPage() {
       showNav
       onLogout={handleLogout}
       terminal={isTerminal}
+      username={getAccountUsername()}
     >
       {activeTab === "pulse" && <PulsePanel onNavigate={handleNavigate} />}
 

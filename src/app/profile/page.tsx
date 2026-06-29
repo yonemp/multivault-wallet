@@ -256,7 +256,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <AppShell showNav={false} terminal={false}>
+    <AppShell showNav={false} terminal={false} username={accountUsername}>
       <Link href="/dashboard" className="mb-4 inline-flex items-center gap-1.5 text-sm text-[var(--muted)] hover:text-[var(--primary)]">
         <ArrowLeft className="h-4 w-4" /> Back to dashboard
       </Link>

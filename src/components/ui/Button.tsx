@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { ButtonHTMLAttributes } from "react";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "ghost" | "outline" | "buy" | "sell";
+  variant?: "primary" | "secondary" | "ghost" | "outline" | "glow" | "buy" | "sell";
   size?: "sm" | "md" | "lg";
 };
 
@@ -25,6 +25,8 @@ export function Button({
           "border border-[var(--border)] bg-[var(--surface-solid)] text-[var(--foreground)] hover:bg-[var(--surface-hover)]",
         variant === "outline" &&
           "border border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)] hover:bg-[rgba(82,111,255,0.2)]",
+        variant === "glow" &&
+          "ax-btn-glow border border-[var(--primary)] bg-[var(--primary)] text-white shadow-[var(--shadow-glow)] hover:bg-[var(--primary-hover)] hover:shadow-[0_0_48px_rgba(107,138,255,0.45)]",
         variant === "ghost" &&
           "border border-transparent text-[var(--muted)] hover:border-[var(--border)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]",
         variant === "buy" && "ax-buy-btn",

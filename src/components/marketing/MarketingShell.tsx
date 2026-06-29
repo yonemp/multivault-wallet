@@ -37,7 +37,10 @@ export function MarketingShell({
             ) : null}
             {headerRight ?? (
               <>
-                <Link href="/import" className="mv-premium-ghost-link">
+                <Link href="/sign-in" className="mv-premium-ghost-link">
+                  Sign in
+                </Link>
+                <Link href="/import" className="mv-premium-ghost-link hidden sm:inline-flex">
                   Import wallet
                 </Link>
                 <Link href="/create" className="mv-premium-btn mv-premium-btn--solid">
@@ -58,6 +61,7 @@ export function MarketingShell({
           <div className="mv-premium-container mv-premium-footer-inner">
             <p>© {new Date().getFullYear()} {BRAND_NAME}</p>
             <div className="mv-premium-footer-links">
+              <Link href="/sign-in">Sign in</Link>
               <Link href="/import">Import wallet</Link>
               <Link href="/create">Create wallet</Link>
             </div>

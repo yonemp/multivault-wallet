@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import { BRAND_NAME } from "@/lib/brand";
 import { Geist, Geist_Mono } from "next/font/google";
-import { AppBackground } from "@/components/layout/AppBackground";
 import { ErrorBoundary } from "@/components/layout/ErrorBoundary";
 import { HealthMonitor } from "@/components/layout/HealthMonitor";
-import { StatusBar } from "@/components/layout/StatusBar";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { RouteChrome } from "@/components/layout/RouteChrome";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -34,13 +33,13 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="relative min-h-full flex flex-col pb-[var(--status-h)] text-[var(--foreground)]">
-        <AppBackground />
-        <HealthMonitor />
-        <ErrorBoundary>
-          <PageTransition>{children}</PageTransition>
-        </ErrorBoundary>
-        <StatusBar />
+      <body className="relative min-h-full flex flex-col text-[var(--foreground)]">
+        <RouteChrome>
+          <HealthMonitor />
+          <ErrorBoundary>
+            <PageTransition>{children}</PageTransition>
+          </ErrorBoundary>
+        </RouteChrome>
       </body>
     </html>
   );

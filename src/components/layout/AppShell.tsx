@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Logo } from "@/components/layout/Logo";
 import { ActionTabs, DashboardTab } from "@/components/dashboard/ActionTabs";
 import { Button } from "@/components/ui/Button";
-import { LogOut, Search, Wallet } from "lucide-react";
+import { LogOut, Search, User, Wallet } from "lucide-react";
 import type { AssetMarketData } from "@/app/api/prices/route";
 import { RecentMemecoinsBar } from "@/components/layout/RecentMemecoinsBar";
 import { safeFixed, safeNumber } from "@/lib/format/numbers";
@@ -18,6 +18,7 @@ type AppShellProps = {
   showNav?: boolean;
   onLogout?: () => void;
   terminal?: boolean;
+  username?: string | null;
 };
 
 export function AppShell({
@@ -28,6 +29,7 @@ export function AppShell({
   showNav = true,
   onLogout,
   terminal = true,
+  username,
 }: AppShellProps) {
   const [solPrice, setSolPrice] = useState<AssetMarketData | null>(null);
 
@@ -40,7 +42,7 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-elevated)]/90 backdrop-blur-xl">
+      <header className="ax-shell-header sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-elevated)]/90 backdrop-blur-xl">
         <div className="mv-header-glow h-px w-full" />
 
         <div className="flex min-w-0 items-center gap-2 border-b border-[var(--border)] px-4 py-1.5 text-[11px]">
@@ -66,7 +68,13 @@ export function AppShell({
           )}
 
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <button type="button" className="mv-header-btn hidden sm:flex">
+            {username && (
+              <Link href="/profile" className="mv-user-chip hidden sm:inline-flex">
+                <span className="mv-user-chip-dot" aria-hidden />
+                @{username}
+              </Link>
+            )}
+            <button type="button" className="mv-header-btn hidden lg:flex">
               <Search className="h-3.5 w-3.5" />
               Search
             </button>
@@ -74,7 +82,10 @@ export function AppShell({
               <Wallet className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Wallet</span>
             </Link>
-            <Link href="/profile" className="ax-nav-link hidden sm:inline">Profile</Link>
+            <Link href="/profile" className="mv-header-btn hidden sm:flex">
+              <User className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">Profile</span>
+            </Link>
             <Link href="/admin" className="ax-nav-link hidden md:inline">Admin</Link>
             {onLogout && (
               <Button variant="ghost" size="sm" onClick={onLogout} className="!px-2">
